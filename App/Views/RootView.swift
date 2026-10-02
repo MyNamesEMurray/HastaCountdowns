@@ -36,7 +36,12 @@ struct RootView: View {
         .onChange(of: router.isCreatingCountdown) { _, _ in
             handlePendingCreation()
         }
-        .onAppear(perform: handlePendingCreation)
+        .onAppear {
+            if let url = ScreenshotMode.initialURL {
+                router.open(url)
+            }
+            handlePendingCreation()
+        }
     }
 
     private var shouldShowWelcome: Bool {

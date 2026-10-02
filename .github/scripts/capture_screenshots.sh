@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Installs the simulator build of Hasta and captures its main screens in
-# light and dark mode, using screenshot launch modes and deep links.
+# light and dark mode. Launch arguments pick the sample data and the
+# screen to open, since opening deep links from outside the app shows a
+# confirmation prompt.
 set -euo pipefail
 
 device="$1"
@@ -25,18 +27,19 @@ limit 30 xcrun simctl status_bar "$device" override --time 9:41 --batteryState c
 limit 120 xcrun simctl install "$device" "$app"
 
 launch() {
+  local mode="$1"
+  local screen="${2:-}"
   limit 30 xcrun simctl terminate "$device" "$bundle" >/dev/null 2>&1 || true
-  limit 60 xcrun simctl launch "$device" "$bundle" -HastaScreenshotMode "$1"
+  if [ -n "$screen" ]; then
+    limit 60 xcrun simctl launch "$device" "$bundle" -HastaScreenshotMode "$mode" -HastaScreenshotScreen "$screen"
+  else
+    limit 60 xcrun simctl launch "$device" "$bundle" -HastaScreenshotMode "$mode"
+  fi
   sleep 4
 }
 
 shot() {
   limit 30 xcrun simctl io "$device" screenshot --type=png "$out/$1.png"
-}
-
-open_url() {
-  limit 30 xcrun simctl openurl "$device" "$1"
-  sleep 3
 }
 
 for appearance in light dark; do
@@ -50,18 +53,16 @@ for appearance in light dark; do
 
   launch samples
   shot "$appearance-03-home"
-  open_url "hasta://countdown/00000000-0000-0000-0000-000000000001"
+
+  launch samples "countdown/00000000-0000-0000-0000-000000000001"
   shot "$appearance-04-detail"
 
-  launch samples
-  open_url "hasta://new"
+  launch samples new
   shot "$appearance-05-editor"
 
-  launch samples
-  open_url "hasta://settings"
+  launch samples settings
   shot "$appearance-06-settings"
 
-  launch samples
-  open_url "hasta://premium"
+  launch samples premium
   shot "$appearance-07-premium"
 done

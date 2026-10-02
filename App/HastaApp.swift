@@ -64,6 +64,11 @@ enum ScreenshotMode: String {
     static var current: ScreenshotMode? {
         UserDefaults.standard.string(forKey: "HastaScreenshotMode").flatMap(ScreenshotMode.init(rawValue:))
     }
+
+    static var initialURL: URL? {
+        guard current != nil, let screen = UserDefaults.standard.string(forKey: "HastaScreenshotScreen") else { return nil }
+        return URL(string: "\(DeepLink.scheme)://\(screen)")
+    }
 }
 
 final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {

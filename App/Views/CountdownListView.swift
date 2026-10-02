@@ -53,6 +53,7 @@ struct CountdownListView: View {
             Button("Add Countdown", action: onCreate)
                 .buttonStyle(.borderedProminent)
                 .buttonBorderShape(.capsule)
+                .controlSize(.large)
         }
     }
 
