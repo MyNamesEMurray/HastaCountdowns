@@ -182,7 +182,7 @@ private struct DetailInfoView: View {
         return first.title(isAllDay: countdown.isAllDay, defaultTime: ReminderPreferences.time)
     }
 
-    private func row(_ title: String, systemImage: String, value: String) -> some View {
+    private func row(_ title: LocalizedStringKey, systemImage: String, value: String) -> some View {
         HStack(spacing: 12) {
             Image(systemName: systemImage)
                 .font(.body.weight(.medium))
