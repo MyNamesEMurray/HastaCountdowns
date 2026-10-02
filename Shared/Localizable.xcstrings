@@ -3288,7 +3288,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Countdown bearbeiten"
+            "value": "Bearbeiten"
           }
         },
         "fr": {
@@ -7616,7 +7616,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Repetição"
+            "value": "Repete"
           }
         },
         "ja": {
@@ -17072,6 +17072,65 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "picker.lockScreen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lock Screen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloqueo"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloqueo"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sperrbild."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verrouillage"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloqueio"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ロック画面"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "잠금 화면"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "锁定屏幕"
           }
         }
       }

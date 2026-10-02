@@ -63,7 +63,7 @@ enum PreviewFamily: String, CaseIterable, Identifiable {
         case .small: String(localized: "Small")
         case .medium: String(localized: "Medium")
         case .large: String(localized: "Large")
-        case .lockScreen: String(localized: "Lock Screen")
+        case .lockScreen: String(localized: "picker.lockScreen")
         }
     }
 }
