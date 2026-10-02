@@ -58,6 +58,8 @@ jobs:
             | "${FORMATTER[@]}"
 
       - name: Capture screenshots
+        continue-on-error: true
+        timeout-minutes: 10
         env:
           SIMULATOR_ID: ${{ steps.sim.outputs.udid }}
         run: |
@@ -70,6 +72,7 @@ jobs:
         with:
           name: Screenshots
           path: Screenshots
+          if-no-files-found: ignore
           retention-days: 14
 
       - name: Upload test results

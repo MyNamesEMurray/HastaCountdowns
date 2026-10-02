@@ -9,29 +9,38 @@ out="${3:-Screenshots}"
 bundle="com.exaltedpixels.Hasta"
 
 mkdir -p "$out"
-xcrun simctl bootstatus "$device" -b >/dev/null
-xcrun simctl status_bar "$device" override --time 9:41 --batteryState charged --batteryLevel 100 \
+
+# Runs a command with a time limit so a stuck simulator call fails fast
+# and the log shows which one it was.
+limit() {
+  local seconds="$1"
+  shift
+  echo "+ $*"
+  perl -e 'alarm shift; exec @ARGV' "$seconds" "$@"
+}
+
+limit 120 xcrun simctl bootstatus "$device" -b
+limit 30 xcrun simctl status_bar "$device" override --time 9:41 --batteryState charged --batteryLevel 100 \
   --cellularMode active --cellularBars 4 --wifiBars 3 || true
-xcrun simctl install "$device" "$app"
+limit 120 xcrun simctl install "$device" "$app"
 
 launch() {
-  xcrun simctl terminate "$device" "$bundle" >/dev/null 2>&1 || true
-  xcrun simctl launch "$device" "$bundle" -HastaScreenshotMode "$1" >/dev/null
+  limit 30 xcrun simctl terminate "$device" "$bundle" >/dev/null 2>&1 || true
+  limit 60 xcrun simctl launch "$device" "$bundle" -HastaScreenshotMode "$1"
   sleep 4
 }
 
 shot() {
-  xcrun simctl io "$device" screenshot --type=png "$out/$1.png" >/dev/null
-  echo "captured $1"
+  limit 30 xcrun simctl io "$device" screenshot --type=png "$out/$1.png"
 }
 
 open_url() {
-  xcrun simctl openurl "$device" "$1"
+  limit 30 xcrun simctl openurl "$device" "$1"
   sleep 3
 }
 
 for appearance in light dark; do
-  xcrun simctl ui "$device" appearance "$appearance"
+  limit 30 xcrun simctl ui "$device" appearance "$appearance"
 
   launch welcome
   shot "$appearance-01-welcome"
