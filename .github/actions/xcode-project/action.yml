@@ -1,0 +1,53 @@
+name: Xcode project
+description: >-
+  Selects the Xcode to build with and generates Hasta.xcodeproj with
+  XcodeGen.
+
+inputs:
+  xcode:
+    description: >-
+      Xcode major version to select (release builds only, never a beta).
+      Empty picks the newest release Xcode on the runner image.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    # App Store Connect rejects uploads built with SDKs older than iOS 26,
+    # so only release Xcode 26 or later is ever selected.
+    - name: Select Xcode
+      shell: bash
+      env:
+        XCODE_MAJOR: ${{ inputs.xcode }}
+      run: |
+        candidates=$(ls -d /Applications/Xcode_*.app 2>/dev/null | grep -vi -E 'beta|rc' || true)
+        if [ -n "$XCODE_MAJOR" ]; then
+          candidates=$(echo "$candidates" | grep -E "/Xcode_${XCODE_MAJOR}(\.|\.app)" || true)
+        fi
+        XCODE=""
+        for app in $(echo "$candidates" | sort -V); do
+          major=$(basename "$app" .app | sed -E 's/^Xcode_([0-9]+).*/\1/')
+          if [ "$major" -ge 26 ]; then
+            XCODE="$app"
+          fi
+        done
+        if [ -z "$XCODE" ]; then
+          echo "::error::No release Xcode 26+ ${XCODE_MAJOR:+matching $XCODE_MAJOR }on this runner. Installed:"
+          ls /Applications | grep -i xcode || true
+          exit 1
+        fi
+        sudo xcode-select -s "$XCODE"
+        xcodebuild -version
+
+    - name: Install XcodeGen
+      shell: bash
+      run: |
+        if ! command -v xcodegen >/dev/null; then
+          brew install xcodegen
+        fi
+        xcodegen --version
+
+    - name: Generate Xcode project
+      shell: bash
+      run: xcodegen generate
