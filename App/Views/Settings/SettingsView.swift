@@ -83,7 +83,7 @@ struct SettingsView: View {
                 } header: {
                     Text("iCloud")
                 } footer: {
-                    Text("Keeps your countdowns, reminders, and photos on all your devices through your private iCloud account, and brings them back on a new iPhone. Hasta can't see your data. Turning sync off keeps your iCloud copy unless you choose to delete it.")
+                    Text("Keeps your countdowns, reminders, and photos on all your devices through your private iCloud account.")
                 }
 
                 Section("Appearance") {
@@ -172,7 +172,7 @@ struct SettingsView: View {
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("Your countdowns stay on this iPhone either way. Deleting removes Hasta's data from iCloud; your other devices keep what they have but stop syncing.")
+                Text("Your countdowns stay on this iPhone either way.")
             }
             .alert("Couldn't Delete from iCloud", isPresented: Binding(get: { syncError != nil }, set: { if !$0 { syncError = nil } })) {
                 Button("OK", role: .cancel) {}
