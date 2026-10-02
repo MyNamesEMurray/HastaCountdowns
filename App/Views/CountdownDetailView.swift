@@ -29,6 +29,9 @@ struct CountdownDetailView: View {
                     }
                 }
                 DetailInfoView(countdown: countdown)
+                if !countdown.status().isPast {
+                    LiveActivityRow(countdown: original)
+                }
                 widgetSection(countdown: countdown, image: image)
             }
             .frame(maxWidth: .infinity)
@@ -237,5 +240,70 @@ private struct DetailInfoView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 13)
+    }
+}
+
+private struct LiveActivityRow: View {
+    let countdown: Countdown
+    @State private var isActive = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button(action: toggle) {
+                HStack(spacing: 12) {
+                    Image(systemName: "lock.iphone")
+                        .font(.body.weight(.medium))
+                        .foregroundStyle(countdown.tint)
+                        .frame(width: 20)
+                    Text(isActive ? "Remove from Lock Screen" : "Show on Lock Screen")
+                    Spacer(minLength: 12)
+                    if isActive {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 13)
+                .background(Color(uiColor: .secondarySystemGroupedBackground), in: .rect(cornerRadius: 20, style: .continuous))
+            }
+            .tint(.primary)
+
+            Text("Shows a large live countdown on your Lock Screen and in the Dynamic Island. iOS keeps it there for up to 8 hours, so it's perfect for the big day.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 16)
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .padding(.horizontal, 16)
+            }
+        }
+        .onAppear {
+            isActive = LiveActivityManager.isActive(for: countdown.id)
+        }
+    }
+
+    private func toggle() {
+        if isActive {
+            Task {
+                await LiveActivityManager.stop(for: countdown.id)
+                isActive = false
+            }
+            return
+        }
+        guard LiveActivityManager.areActivitiesEnabled else {
+            errorMessage = "Live Activities are turned off for Hasta. You can turn them on in Settings > Hasta."
+            return
+        }
+        do {
+            try LiveActivityManager.start(for: countdown)
+            isActive = true
+            errorMessage = nil
+        } catch {
+            errorMessage = "Couldn't show this countdown on the Lock Screen right now."
+        }
     }
 }

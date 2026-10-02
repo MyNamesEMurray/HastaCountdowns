@@ -74,6 +74,8 @@ final class CountdownStore {
     func refreshSideEffects() {
         WidgetCenter.shared.reloadAllTimelines()
         ReminderScheduler.reschedule(countdowns)
+        let snapshot = countdowns
+        Task { await LiveActivityManager.sync(with: snapshot) }
     }
 
     private func persist() {

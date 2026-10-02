@@ -6,5 +6,6 @@ struct HastaWidgetsBundle: WidgetBundle {
     var body: some Widget {
         CountdownWidget()
         UpNextWidget()
+        CountdownLiveActivity()
     }
 }

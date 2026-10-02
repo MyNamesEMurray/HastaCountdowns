@@ -499,6 +499,39 @@ struct UpNextView: View {
     }
 }
 
+struct UpNextAccessoryView: View {
+    let countdowns: [Countdown]
+    let now: Date
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            if countdowns.isEmpty {
+                Label("No countdowns", systemImage: "hourglass")
+                    .font(.headline)
+            } else {
+                ForEach(countdowns.prefix(3)) { countdown in
+                    HStack(spacing: 4) {
+                        Image(systemName: countdown.symbol)
+                            .font(.system(size: 10, weight: .semibold))
+                            .frame(width: 14)
+                            .widgetAccentable()
+                        Text(countdown.displayTitle)
+                            .font(.system(.caption, design: .rounded, weight: .semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                        Spacer(minLength: 2)
+                        Text(countdown.status(at: now).compactPhrase)
+                            .font(.system(.caption, design: .rounded, weight: .bold))
+                            .monospacedDigit()
+                            .widgetAccentable()
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+    }
+}
+
 struct EmptyCountdownView: View {
     var compact = false
 

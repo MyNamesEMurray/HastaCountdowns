@@ -50,9 +50,15 @@ struct UpNextWidgetView: View {
     let entry: UpNextEntry
 
     var body: some View {
-        UpNextView(countdowns: entry.countdowns, now: entry.date, limit: family == .systemLarge ? 6 : 3)
-            .containerBackground(for: .widget) { Color(uiColor: .secondarySystemGroupedBackground) }
-            .widgetURL(entry.countdowns.isEmpty ? DeepLink.newCountdown : nil)
+        if family == .accessoryRectangular {
+            UpNextAccessoryView(countdowns: entry.countdowns, now: entry.date)
+                .containerBackground(for: .widget) { Color.clear }
+                .widgetURL(entry.countdowns.isEmpty ? DeepLink.newCountdown : nil)
+        } else {
+            UpNextView(countdowns: entry.countdowns, now: entry.date, limit: family == .systemLarge ? 6 : 3)
+                .containerBackground(for: .widget) { Color(uiColor: .secondarySystemGroupedBackground) }
+                .widgetURL(entry.countdowns.isEmpty ? DeepLink.newCountdown : nil)
+        }
     }
 }
 
@@ -65,11 +71,17 @@ struct UpNextWidget: Widget {
         }
         .configurationDisplayName("Up Next")
         .description("See your next few countdowns at a glance.")
-        .supportedFamilies([.systemMedium, .systemLarge])
+        .supportedFamilies([.systemMedium, .systemLarge, .accessoryRectangular])
     }
 }
 
 #Preview("Up Next", as: .systemMedium) {
+    UpNextWidget()
+} timeline: {
+    UpNextEntry(date: .now, countdowns: Countdown.samples.upcoming())
+}
+
+#Preview("Up Next Lock Screen", as: .accessoryRectangular) {
     UpNextWidget()
 } timeline: {
     UpNextEntry(date: .now, countdowns: Countdown.samples.upcoming())
