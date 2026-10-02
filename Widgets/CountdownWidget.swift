@@ -172,8 +172,12 @@ struct CountdownWidget: Widget {
 enum WidgetRefreshSchedule {
     static func closeRangeDates(for countdown: Countdown, now: Date) -> [Date] {
         let target = countdown.nextOccurrence(after: now)
-        guard target > now, target.timeIntervalSince(now) < 2 * 86_400 else { return [] }
-        var dates = [target]
+        guard target > now else { return [] }
+        var dates = (1...8)
+            .map { target.addingTimeInterval(Double(-$0) * 86_400) }
+            .filter { $0 > now }
+        dates.append(target)
+        guard target.timeIntervalSince(now) < 2 * 86_400 else { return dates }
         guard countdown.unit == .automatic else { return dates }
         var hourMark = target.addingTimeInterval(-86_400)
         while hourMark < target.addingTimeInterval(-3_600) {

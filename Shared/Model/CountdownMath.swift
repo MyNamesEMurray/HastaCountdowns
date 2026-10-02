@@ -92,7 +92,13 @@ extension Countdown {
         let startOfToday = calendar.startOfDay(for: now)
         let startOfTarget = calendar.startOfDay(for: target)
         let signedDays = calendar.dateComponents([.day], from: startOfToday, to: startOfTarget).day ?? 0
-        let days = abs(signedDays)
+        let elapsedDays = Int(abs(target.timeIntervalSince(now)) / 86_400)
+        let days: Int
+        if isAllDay || signedDays == 0 {
+            days = abs(signedDays)
+        } else {
+            days = max(1, elapsedDays)
+        }
 
         let phase: CountdownStatus.Phase
         if signedDays == 0 {
@@ -103,8 +109,15 @@ extension Countdown {
             phase = .past
         }
 
-        let from = signedDays >= 0 ? startOfToday : startOfTarget
-        let to = signedDays >= 0 ? startOfTarget : startOfToday
+        let from: Date
+        let to: Date
+        if isAllDay || signedDays == 0 {
+            from = signedDays >= 0 ? startOfToday : startOfTarget
+            to = signedDays >= 0 ? startOfTarget : startOfToday
+        } else {
+            from = min(now, target)
+            to = max(now, target)
+        }
 
         func make(_ unit: CountdownStatus.Unit, _ value: Int, _ singular: String, _ plural: String, remainder: String? = nil) -> CountdownStatus {
             CountdownStatus(

@@ -185,4 +185,14 @@ struct CountdownMathTests {
         let decoded = try JSONDecoder().decode(Countdown.self, from: data)
         #expect(decoded.reminders == countdown.reminders)
     }
+
+    @Test func timedEventsCountElapsedDays() {
+        let countdown = Countdown(title: "Party", date: date("2027-01-09T01:00:00"), isAllDay: false, unit: .days)
+        #expect(countdown.status(at: date("2026-10-02T14:48:00"), calendar: calendar).number == "98")
+    }
+
+    @Test func timedEventTomorrowStillReadsTomorrowInDays() {
+        let countdown = Countdown(title: "Breakfast", date: date("2026-10-03T08:00:00"), isAllDay: false, unit: .days)
+        #expect(countdown.status(at: now, calendar: calendar).phrase == "Tomorrow")
+    }
 }
