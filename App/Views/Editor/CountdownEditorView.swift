@@ -24,8 +24,10 @@ struct CountdownEditorView: View {
     private let isNew: Bool
 
     init(countdown: Countdown, isNew: Bool) {
-        _draft = State(initialValue: countdown)
-        original = countdown
+        var normalized = countdown
+        normalized.adoptCurrentTimeZone()
+        _draft = State(initialValue: normalized)
+        original = normalized
         self.isNew = isNew
     }
 

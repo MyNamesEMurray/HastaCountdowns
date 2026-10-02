@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 import UserNotifications
 
@@ -18,6 +19,13 @@ struct HastaApp: App {
                 .environment(router)
                 .onOpenURL { url in
                     router.open(url)
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+                    NSTimeZone.resetSystemTimeZone()
+                    store.refreshSideEffects()
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
+                    store.refreshSideEffects()
                 }
         }
         .onChange(of: scenePhase) { _, phase in

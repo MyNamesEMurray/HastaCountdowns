@@ -42,6 +42,9 @@ final class CountdownStore {
     func save(_ countdown: Countdown) {
         var countdown = countdown
         countdown.modifiedAt = .now
+        if countdown.timeZoneIdentifier == nil {
+            countdown.timeZoneIdentifier = TimeZone.current.identifier
+        }
         if let index = countdowns.firstIndex(where: { $0.id == countdown.id }) {
             let previousImage = countdowns[index].backgroundImageID
             if let previousImage, previousImage != countdown.backgroundImageID {

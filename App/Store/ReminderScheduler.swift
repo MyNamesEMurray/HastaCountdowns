@@ -49,7 +49,7 @@ enum ReminderScheduler {
                     content.sound = .default
                     content.userInfo = ["url": DeepLink.countdown(countdown.id).absoluteString]
 
-                    let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+                    let components = ReminderRule.triggerComponents(for: date, isAllDay: countdown.isAllDay, calendar: calendar)
                     let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
                     let identifier = "\(identifierPrefix)\(countdown.id.uuidString)-\(rule.id.uuidString)-\(index)"
                     scheduled.append((date, UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)))

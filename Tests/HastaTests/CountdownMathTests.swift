@@ -257,4 +257,64 @@ struct CountdownMathTests {
         let countdown = Countdown(title: "Dinner", date: date("2026-10-02T19:00:00"), isAllDay: false)
         #expect(countdown.segments(at: now, calendar: calendar).isEmpty)
     }
+
+    private func calendar(_ identifier: String) -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: identifier)!
+        return calendar
+    }
+
+    private func date(_ string: String, in identifier: String) -> Date {
+        let formatter = ISO8601DateFormatter()
+        formatter.timeZone = TimeZone(identifier: identifier)!
+        formatter.formatOptions = [.withFullDate, .withTime, .withColonSeparatorInTime, .withDashSeparatorInDate]
+        return formatter.date(from: string)!
+    }
+
+    @Test func allDayDateStaysTheSameDayWhenTravelingWest() {
+        let created = Countdown(title: "Birthday", date: date("2027-04-06T00:00:00", in: "America/New_York"), timeZoneIdentifier: "America/New_York")
+        let losAngeles = calendar("America/Los_Angeles")
+        let now = date("2026-10-02T15:00:00", in: "America/Los_Angeles")
+        #expect(created.nextOccurrence(after: now, calendar: losAngeles) == date("2027-04-06T00:00:00", in: "America/Los_Angeles"))
+        #expect(created.status(at: now, calendar: losAngeles).days == 186)
+    }
+
+    @Test func allDayDateStaysTheSameDayWhenTravelingEast() {
+        let created = Countdown(title: "Trip", date: date("2026-12-24T00:00:00", in: "America/Los_Angeles"), timeZoneIdentifier: "America/Los_Angeles")
+        let tokyo = calendar("Asia/Tokyo")
+        let now = date("2026-10-03T08:00:00", in: "Asia/Tokyo")
+        #expect(created.nextOccurrence(after: now, calendar: tokyo) == date("2026-12-24T00:00:00", in: "Asia/Tokyo"))
+    }
+
+    @Test func timedEventsStayAtTheSameMomentAcrossTimeZones() {
+        let flight = Countdown(title: "Flight", date: date("2026-11-01T09:00:00", in: "America/New_York"), isAllDay: false, timeZoneIdentifier: "America/New_York")
+        let losAngeles = calendar("America/Los_Angeles")
+        let now = date("2026-10-02T12:00:00", in: "America/Los_Angeles")
+        #expect(flight.nextOccurrence(after: now, calendar: losAngeles) == date("2026-11-01T06:00:00", in: "America/Los_Angeles"))
+    }
+
+    @Test func timedDaysCountAcrossSpringForward() {
+        let newYork = calendar("America/New_York")
+        let countdown = Countdown(title: "Meeting", date: date("2027-03-11T09:00:00", in: "America/New_York"), isAllDay: false, unit: .days)
+        #expect(countdown.status(at: date("2027-03-01T09:00:00", in: "America/New_York"), calendar: newYork).number == "10")
+    }
+
+    @Test func adoptingTimeZoneKeepsTheCalendarDay() {
+        var countdown = Countdown(title: "Holiday", date: date("2026-12-25T00:00:00", in: "Europe/London"), timeZoneIdentifier: "Europe/London")
+        let losAngeles = calendar("America/Los_Angeles")
+        countdown.adoptCurrentTimeZone(calendar: losAngeles)
+        #expect(countdown.timeZoneIdentifier == "America/Los_Angeles")
+        #expect(countdown.date == date("2026-12-25T00:00:00", in: "America/Los_Angeles"))
+    }
+
+    @Test func timedReminderTriggersArePinnedToATimeZone() {
+        let newYork = calendar("America/New_York")
+        let fire = date("2026-10-20T18:00:00", in: "America/New_York")
+        let timed = ReminderRule.triggerComponents(for: fire, isAllDay: false, calendar: newYork)
+        let allDay = ReminderRule.triggerComponents(for: fire, isAllDay: true, calendar: newYork)
+        #expect(timed.timeZone == TimeZone(identifier: "America/New_York"))
+        #expect(timed.hour == 18)
+        #expect(allDay.timeZone == nil)
+        #expect(allDay.hour == 18)
+    }
 }

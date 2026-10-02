@@ -5,6 +5,7 @@ struct Countdown: Identifiable, Codable, Hashable {
     var title: String = ""
     var date: Date = Countdown.defaultDate
     var isAllDay: Bool = true
+    var timeZoneIdentifier: String?
     var repeatRule: RepeatRule = .never
     var symbol: String = "star.fill"
     var color: CountdownColor = .blue
@@ -29,6 +30,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         title: String = "",
         date: Date = Countdown.defaultDate,
         isAllDay: Bool = true,
+        timeZoneIdentifier: String? = nil,
         repeatRule: RepeatRule = .never,
         symbol: String = "star.fill",
         color: CountdownColor = .blue,
@@ -46,6 +48,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         self.title = title
         self.date = date
         self.isAllDay = isAllDay
+        self.timeZoneIdentifier = timeZoneIdentifier
         self.repeatRule = repeatRule
         self.symbol = symbol
         self.color = color
@@ -66,6 +69,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         title = try container.decodeIfPresent(String.self, forKey: .title) ?? ""
         date = try container.decode(Date.self, forKey: .date)
         isAllDay = try container.decodeIfPresent(Bool.self, forKey: .isAllDay) ?? true
+        timeZoneIdentifier = try container.decodeIfPresent(String.self, forKey: .timeZoneIdentifier)
         repeatRule = (try? container.decodeIfPresent(RepeatRule.self, forKey: .repeatRule)) ?? .never
         symbol = try container.decodeIfPresent(String.self, forKey: .symbol) ?? "star.fill"
         color = (try? container.decodeIfPresent(CountdownColor.self, forKey: .color)) ?? .blue

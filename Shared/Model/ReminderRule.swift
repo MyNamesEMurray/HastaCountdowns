@@ -106,6 +106,14 @@ struct ReminderRule: Codable, Hashable, Identifiable {
         return offset
     }
 
+    static func triggerComponents(for fireDate: Date, isAllDay: Bool, calendar: Calendar = .current) -> DateComponents {
+        var components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
+        if !isAllDay {
+            components.timeZone = calendar.timeZone
+        }
+        return components
+    }
+
     var notificationBody: String {
         if amount == 0 {
             return unit.usesTimeOfDay ? "Today's the day! 🎉" : "It's time! 🎉"

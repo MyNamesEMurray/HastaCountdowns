@@ -61,8 +61,22 @@ struct CountdownStatus: Equatable {
 }
 
 extension Countdown {
+    func anchorDate(calendar: Calendar = .current) -> Date {
+        guard isAllDay else { return date }
+        var source = calendar
+        source.timeZone = timeZoneIdentifier.flatMap(TimeZone.init(identifier:)) ?? calendar.timeZone
+        let day = source.dateComponents([.year, .month, .day], from: date)
+        return calendar.date(from: DateComponents(year: day.year, month: day.month, day: day.day)) ?? date
+    }
+
+    mutating func adoptCurrentTimeZone(calendar: Calendar = .current) {
+        date = anchorDate(calendar: calendar)
+        timeZoneIdentifier = calendar.timeZone.identifier
+    }
+
     func nextOccurrence(after now: Date = .now, calendar: Calendar = .current) -> Date {
-        guard let component = repeatRule.calendarComponent else { return date }
+        let anchor = anchorDate(calendar: calendar)
+        guard let component = repeatRule.calendarComponent else { return anchor }
         let reference = isAllDay ? calendar.startOfDay(for: now) : now
 
         func isCurrent(_ candidate: Date) -> Bool {
@@ -70,14 +84,14 @@ extension Countdown {
             return comparable >= reference
         }
 
-        if isCurrent(date) { return date }
+        if isCurrent(anchor) { return anchor }
 
-        let elapsed = calendar.dateComponents([component], from: date, to: reference).value(for: component) ?? 0
+        let elapsed = calendar.dateComponents([component], from: anchor, to: reference).value(for: component) ?? 0
         var step = max(0, elapsed - 1)
-        var candidate = calendar.date(byAdding: component, value: step, to: date) ?? date
+        var candidate = calendar.date(byAdding: component, value: step, to: anchor) ?? anchor
         while !isCurrent(candidate) && step < 100_000 {
             step += 1
-            candidate = calendar.date(byAdding: component, value: step, to: date) ?? candidate
+            candidate = calendar.date(byAdding: component, value: step, to: anchor) ?? candidate
         }
         return candidate
     }
@@ -92,7 +106,7 @@ extension Countdown {
         let startOfToday = calendar.startOfDay(for: now)
         let startOfTarget = calendar.startOfDay(for: target)
         let signedDays = calendar.dateComponents([.day], from: startOfToday, to: startOfTarget).day ?? 0
-        let elapsedDays = Int(abs(target.timeIntervalSince(now)) / 86_400)
+        let elapsedDays = abs(calendar.dateComponents([.day], from: min(now, target), to: max(now, target)).day ?? 0)
         let days: Int
         if isAllDay || signedDays == 0 {
             days = abs(signedDays)
