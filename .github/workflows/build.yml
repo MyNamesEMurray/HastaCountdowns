@@ -1,0 +1,65 @@
+name: Build
+
+# Compiles the app, widget extension and tests for the iOS Simulator and
+# runs the unit tests. Pushes to main are skipped: main only receives
+# merges of branches that were already built.
+on:
+  push:
+    branches-ignore:
+      - main
+    paths-ignore:
+      - "**.md"
+      - "AppStore/**"
+      - "docs/**"
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    name: Build & test
+    # Set the MACOS_RUNNER repository variable to use a different runner
+    # (for example a self-hosted Mac). Defaults to GitHub's macOS image.
+    runs-on: ${{ vars.MACOS_RUNNER || 'macos-26' }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/xcode-project
+        with:
+          xcode: ${{ vars.XCODE_VERSION }}
+
+      - name: Pick a simulator
+        id: sim
+        run: python3 .github/scripts/pick_simulator.py
+
+      - name: Build and test
+        env:
+          SIMULATOR_ID: ${{ steps.sim.outputs.udid }}
+        run: |
+          set -o pipefail
+          FORMATTER=(cat)
+          if command -v xcbeautify >/dev/null; then
+            FORMATTER=(xcbeautify --renderer github-actions)
+          fi
+          xcodebuild test \
+            -project Hasta.xcodeproj \
+            -scheme Hasta \
+            -destination "id=$SIMULATOR_ID" \
+            -derivedDataPath DerivedData \
+            -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            | "${FORMATTER[@]}"
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: TestResults
+          path: TestResults.xcresult
+          retention-days: 7

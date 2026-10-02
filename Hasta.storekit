@@ -1,0 +1,40 @@
+{
+  "identifier" : "6B1F0C2A",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "6739000001",
+      "localizations" : [
+        {
+          "description" : "Unlock all themes, fonts & extras forever.",
+          "displayName" : "Hasta Premium",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.exaltedpixels.Hasta.premium",
+      "referenceName" : "Hasta Premium Lifetime",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6818568923",
+    "_developerTeamID" : "",
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

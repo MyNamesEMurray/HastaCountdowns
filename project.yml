@@ -1,0 +1,126 @@
+# XcodeGen project definition. CI runs `xcodegen generate` to produce
+# Hasta.xcodeproj, which is not committed.
+name: Hasta
+options:
+  bundleIdPrefix: com.exaltedpixels
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+  groupSortPosition: top
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    TARGETED_DEVICE_FAMILY: "1"
+    CODE_SIGN_STYLE: Automatic
+    # CI overrides MARKETING_VERSION from the release tag and
+    # CURRENT_PROJECT_VERSION with the next App Store Connect build number.
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    STRING_CATALOG_GENERATE_SYMBOLS: YES
+    SWIFT_EMIT_LOC_STRINGS: YES
+
+fileGroups:
+  - Hasta.storekit
+  - project.yml
+
+targets:
+  Hasta:
+    type: application
+    platform: iOS
+    sources:
+      - App
+      - Shared
+    dependencies:
+      - target: HastaWidgets
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Hasta
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
+        LSApplicationCategoryType: public.app-category.utilities
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UIApplicationSupportsIndirectInputEvents: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        CFBundleURLTypes:
+          - CFBundleTypeRole: Viewer
+            CFBundleURLName: com.exaltedpixels.Hasta
+            CFBundleURLSchemes:
+              - hasta
+    entitlements:
+      path: App/Hasta.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.exaltedpixels.Hasta
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.exaltedpixels.Hasta
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES: AppIcon-Midnight AppIcon-Ocean AppIcon-Mint AppIcon-Mono
+        ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: NO
+        ENABLE_PREVIEWS: YES
+
+  HastaWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Widgets
+      - Shared
+    info:
+      path: Widgets/Info.plist
+      properties:
+        CFBundleDisplayName: Hasta
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: Widgets/HastaWidgets.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.exaltedpixels.Hasta
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.exaltedpixels.Hasta.widgets
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ENABLE_PREVIEWS: YES
+
+  HastaTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - Tests
+    dependencies:
+      - target: Hasta
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.exaltedpixels.HastaTests
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  Hasta:
+    build:
+      targets:
+        Hasta: all
+        HastaTests: [test]
+    run:
+      config: Debug
+      storeKitConfiguration: Hasta.storekit
+    test:
+      config: Debug
+      targets:
+        - HastaTests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
