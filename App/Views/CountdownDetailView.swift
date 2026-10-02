@@ -24,7 +24,7 @@ struct CountdownDetailView: View {
             VStack(spacing: 20) {
                 TimelineView(.periodic(from: .now, by: 1)) { context in
                     VStack(spacing: 20) {
-                        DetailHero(countdown: countdown, image: image, now: context.date)
+                        DetailHero(countdown: countdown, image: image, upNext: upNext(excluding: countdown), now: context.date)
                         TimeBreakdownView(countdown: countdown, now: context.date)
                     }
                 }
@@ -66,6 +66,12 @@ struct CountdownDetailView: View {
         }
     }
 
+    private func upNext(excluding countdown: Countdown) -> [Countdown] {
+        store.upcoming()
+            .filter { $0.id != countdown.id }
+            .map { $0.resolved(isPremium: purchases.isPremium) }
+    }
+
     private func widgetSection(countdown: Countdown, image: UIImage?) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -100,54 +106,18 @@ struct CountdownDetailView: View {
 private struct DetailHero: View {
     let countdown: Countdown
     let image: UIImage?
+    let upNext: [Countdown]
     let now: Date
 
     var body: some View {
-        let status = countdown.status(at: now)
-        let palette = CountdownPalette(countdown: countdown, hasImage: image != nil)
-        WidgetPreviewFrame(countdown: countdown, image: image, cornerRadius: 32, padding: 24) {
-            VStack(spacing: 6) {
-                Image(systemName: countdown.symbol)
-                    .font(.system(size: 34, weight: .semibold))
-                    .foregroundStyle(palette.accent)
-                    .padding(.bottom, 6)
-                Text(countdown.displayTitle)
-                    .font(countdown.typeface.font(.title, weight: .bold))
-                    .foregroundStyle(palette.primary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(3)
-                    .minimumScaleFactor(0.5)
-                Text(countdown.formattedDate(at: now, style: .complete))
-                    .font(countdown.typeface.font(.subheadline, weight: .medium))
-                    .foregroundStyle(palette.secondary)
-                    .multilineTextAlignment(.center)
-                Spacer(minLength: 16)
-                if status.isToday && !countdown.isLiveToday(at: now) {
-                    Text("Today")
-                        .font(countdown.typeface.font(size: 72))
-                        .foregroundStyle(palette.number)
-                } else if countdown.isLiveToday(at: now) {
-                    Text(timerInterval: now...status.target, countsDown: true)
-                        .font(countdown.typeface.font(size: 64))
-                        .monospacedDigit()
-                        .foregroundStyle(palette.number)
-                        .multilineTextAlignment(.center)
-                } else {
-                    Text(status.number)
-                        .font(countdown.typeface.font(size: 104))
-                        .monospacedDigit()
-                        .foregroundStyle(palette.number)
-                        .contentTransition(.numericText(countsDown: !status.isPast))
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
-                    Text(status.caption.uppercased())
-                        .font(countdown.typeface.font(.subheadline, weight: .semibold))
-                        .foregroundStyle(palette.secondary)
-                }
+        let metrics = WidgetMetrics.current
+        GeometryReader { proxy in
+            HomeWidgetPreview(countdown: countdown, image: image, size: metrics.large, metrics: metrics) {
+                LargeCountdownView(countdown: countdown, upNext: upNext, now: now, hasImage: image != nil)
             }
-            .frame(maxWidth: .infinity)
+            .scaleEffect(proxy.size.width / metrics.large.width, anchor: .topLeading)
         }
-        .frame(height: 360)
+        .aspectRatio(metrics.large.width / metrics.large.height, contentMode: .fit)
     }
 }
 
