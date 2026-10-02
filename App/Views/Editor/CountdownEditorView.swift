@@ -39,12 +39,6 @@ struct CountdownEditorView: View {
         draft != original
     }
 
-    private var previewUpNext: [Countdown] {
-        store.upcoming()
-            .filter { $0.id != draft.id }
-            .map { $0.resolved(isPremium: purchases.isPremium) }
-    }
-
     private var previewImage: UIImage? {
         guard purchases.isPremium, let id = draft.backgroundImageID else { return nil }
         return ImageCache.shared.image(for: id)
@@ -57,7 +51,6 @@ struct CountdownEditorView: View {
                     WidgetFamilyPreview(
                         countdown: draft.resolved(isPremium: purchases.isPremium),
                         image: previewImage,
-                        upNext: previewUpNext,
                         family: $previewFamily
                     )
                     .padding(.vertical, 8)
@@ -107,8 +100,7 @@ struct CountdownEditorView: View {
                 if let image = previewImage {
                     PhotoFramingView(
                         countdown: draft.resolved(isPremium: purchases.isPremium),
-                        image: image,
-                        upNext: previewUpNext
+                        image: image
                     ) { framing in
                         withAnimation { draft.backgroundFraming = framing == .centered ? nil : framing }
                     }

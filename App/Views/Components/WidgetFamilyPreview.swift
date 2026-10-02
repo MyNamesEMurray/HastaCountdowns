@@ -90,7 +90,6 @@ struct HomeWidgetPreview<Content: View>: View {
 struct WidgetFamilyPreview: View {
     let countdown: Countdown
     let image: UIImage?
-    let upNext: [Countdown]
     @Binding var family: PreviewFamily
     var now: Date = .now
 
@@ -109,7 +108,7 @@ struct WidgetFamilyPreview: View {
                     }
                 case .large:
                     HomeWidgetPreview(countdown: countdown, image: image, size: metrics.large, metrics: metrics) {
-                        LargeCountdownView(countdown: countdown, upNext: upNext, now: now, hasImage: image != nil)
+                        LargeCountdownView(countdown: countdown, now: now, hasImage: image != nil)
                     }
                 case .lockScreen:
                     LockScreenPreview(countdown: countdown, now: now, metrics: metrics)

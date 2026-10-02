@@ -4,13 +4,12 @@ import WidgetKit
 struct CountdownEntry: TimelineEntry {
     let date: Date
     let countdown: Countdown?
-    let upNext: [Countdown]
     let image: UIImage?
 }
 
 struct CountdownProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> CountdownEntry {
-        CountdownEntry(date: .now, countdown: Countdown.samples[0], upNext: Array(Countdown.samples.dropFirst()), image: nil)
+        CountdownEntry(date: .now, countdown: Countdown.samples[0], image: nil)
     }
 
     func snapshot(for configuration: SelectCountdownIntent, in context: Context) async -> CountdownEntry {
@@ -35,7 +34,7 @@ struct CountdownProvider: AppIntentTimelineProvider {
         if let selected = selectedCountdown(for: configuration, in: all, at: now), !selected.isAllDay {
             dates += WidgetRefreshSchedule.closeRangeDates(for: selected, now: now)
         }
-        if context.family == .accessoryRectangular {
+        if context.family == .accessoryRectangular || context.family == .systemLarge {
             dates += WidgetRefreshSchedule.hourlyDates(from: now)
         }
         dates = Array(Set(dates)).sorted()
@@ -64,11 +63,10 @@ struct CountdownProvider: AppIntentTimelineProvider {
         let isPremium = Premium.isUnlocked
         let resolvedAll = all.map { $0.resolved(isPremium: isPremium) }
         let selected = selectedCountdown(for: configuration, in: resolvedAll, at: date)
-        let upNext = resolvedAll.upcoming(at: date).filter { $0.id != selected?.id }
         let image = preloadedImage ?? loadImage(for: selected, context: context)
         var displayed = selected
         displayed?.backgroundFraming = nil
-        return CountdownEntry(date: date, countdown: displayed, upNext: upNext, image: image)
+        return CountdownEntry(date: date, countdown: displayed, image: image)
     }
 
     private func loadImage(for countdown: Countdown?, context: Context) -> UIImage? {
@@ -108,7 +106,7 @@ struct CountdownWidgetEntryView: View {
             MediumCountdownView(countdown: countdown, now: entry.date, hasImage: hasImage)
                 .containerBackground(for: .widget) { CountdownBackground(countdown: countdown, image: entry.image) }
         case .systemLarge, .systemExtraLarge:
-            LargeCountdownView(countdown: countdown, upNext: entry.upNext, now: entry.date, hasImage: hasImage)
+            LargeCountdownView(countdown: countdown, now: entry.date, hasImage: hasImage)
                 .containerBackground(for: .widget) { CountdownBackground(countdown: countdown, image: entry.image) }
         case .accessoryCircular:
             CircularCountdownView(countdown: countdown, now: entry.date)
@@ -149,32 +147,32 @@ struct CountdownWidget: Widget {
 #Preview("Small", as: .systemSmall) {
     CountdownWidget()
 } timeline: {
-    CountdownEntry(date: .now, countdown: Countdown.samples[0], upNext: [], image: nil)
-    CountdownEntry(date: .now, countdown: Countdown.samples[2], upNext: [], image: nil)
+    CountdownEntry(date: .now, countdown: Countdown.samples[0], image: nil)
+    CountdownEntry(date: .now, countdown: Countdown.samples[2], image: nil)
 }
 
 #Preview("Medium", as: .systemMedium) {
     CountdownWidget()
 } timeline: {
-    CountdownEntry(date: .now, countdown: Countdown.samples[1], upNext: [], image: nil)
+    CountdownEntry(date: .now, countdown: Countdown.samples[1], image: nil)
 }
 
 #Preview("Large", as: .systemLarge) {
     CountdownWidget()
 } timeline: {
-    CountdownEntry(date: .now, countdown: Countdown.samples[0], upNext: Array(Countdown.samples.dropFirst()), image: nil)
+    CountdownEntry(date: .now, countdown: Countdown.samples[0], image: nil)
 }
 
 #Preview("Lock Screen", as: .accessoryRectangular) {
     CountdownWidget()
 } timeline: {
-    CountdownEntry(date: .now, countdown: Countdown.samples[0], upNext: [], image: nil)
+    CountdownEntry(date: .now, countdown: Countdown.samples[0], image: nil)
 }
 
 #Preview("Circular", as: .accessoryCircular) {
     CountdownWidget()
 } timeline: {
-    CountdownEntry(date: .now, countdown: Countdown.samples[1], upNext: [], image: nil)
+    CountdownEntry(date: .now, countdown: Countdown.samples[1], image: nil)
 }
 
 enum WidgetRefreshSchedule {

@@ -4,7 +4,6 @@ struct PhotoFramingView: View {
     @Environment(\.dismiss) private var dismiss
     let countdown: Countdown
     let image: UIImage
-    let upNext: [Countdown]
     let onSave: (BackgroundFraming) -> Void
 
     @State private var framing: BackgroundFraming
@@ -12,10 +11,9 @@ struct PhotoFramingView: View {
     @GestureState private var dragTranslation: CGSize = .zero
     @GestureState private var pinchScale: CGFloat = 1
 
-    init(countdown: Countdown, image: UIImage, upNext: [Countdown], onSave: @escaping (BackgroundFraming) -> Void) {
+    init(countdown: Countdown, image: UIImage, onSave: @escaping (BackgroundFraming) -> Void) {
         self.countdown = countdown
         self.image = image
-        self.upNext = upNext
         self.onSave = onSave
         _framing = State(initialValue: countdown.backgroundFraming ?? .centered)
     }
@@ -113,7 +111,7 @@ struct PhotoFramingView: View {
         case .medium:
             MediumCountdownView(countdown: countdown, now: .now, hasImage: true)
         case .large:
-            LargeCountdownView(countdown: countdown, upNext: upNext, now: .now, hasImage: true)
+            LargeCountdownView(countdown: countdown, now: .now, hasImage: true)
         }
     }
 }

@@ -233,7 +233,6 @@ struct MediumCountdownView: View {
 struct LargeCountdownView: View {
     @Environment(\.widgetRenderingMode) private var renderingMode
     let countdown: Countdown
-    let upNext: [Countdown]
     let now: Date
     var hasImage = false
 
@@ -267,29 +266,28 @@ struct LargeCountdownView: View {
                 .font(countdown.typeface.font(.subheadline, weight: .medium))
                 .foregroundStyle(palette.secondary)
                 .lineLimit(1)
-            if !upNext.isEmpty {
-                VStack(spacing: 7) {
-                    ForEach(upNext.prefix(3)) { other in
-                        let otherStatus = other.status(at: now)
-                        HStack(spacing: 8) {
-                            Image(systemName: other.symbol)
-                                .font(.footnote.weight(.semibold))
-                                .frame(width: 18)
+            let segments = countdown.segments(at: now)
+            if !segments.isEmpty {
+                HStack(spacing: 8) {
+                    ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                        VStack(spacing: 2) {
+                            Text(segment.value.formatted())
+                                .font(countdown.typeface.font(size: 24, weight: .bold))
+                                .monospacedDigit()
+                                .foregroundStyle(palette.primary)
                                 .widgetAccentable()
-                            Text(other.displayTitle)
-                                .font(countdown.typeface.font(.subheadline, weight: .medium))
+                            Text(segment.label)
+                                .font(countdown.typeface.font(.caption, weight: .semibold))
+                                .foregroundStyle(palette.secondary)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.7)
-                                .allowsTightening(true)
-                            Spacer(minLength: 4)
-                            Text(otherStatus.isToday ? String(localized: "Today") : otherStatus.unit.amount(otherStatus.value))
-                                .font(countdown.typeface.font(.subheadline, weight: .semibold))
-                                .monospacedDigit()
                         }
-                        .foregroundStyle(palette.primary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(palette.primary.opacity(0.14), in: .rect(cornerRadius: 14, style: .continuous))
                     }
                 }
-                .padding(.top, 14)
+                .padding(.top, 16)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

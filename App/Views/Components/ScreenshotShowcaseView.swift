@@ -46,11 +46,7 @@ private struct ShowcaseHomeScreen: View {
                 MediumCountdownView(countdown: countdown, now: now)
             }
             widget(countdowns[3], size: metrics.large, metrics: metrics) { countdown in
-                LargeCountdownView(
-                    countdown: countdown,
-                    upNext: [countdowns[4], countdowns[1], countdowns[2]],
-                    now: now
-                )
+                LargeCountdownView(countdown: countdown, now: now)
             }
             Spacer(minLength: 0)
         }

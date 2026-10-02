@@ -24,7 +24,7 @@ struct CountdownDetailView: View {
             VStack(spacing: 20) {
                 TimelineView(.periodic(from: .now, by: 1)) { context in
                     VStack(spacing: 20) {
-                        DetailHero(countdown: countdown, image: image, upNext: upNext(excluding: countdown), now: context.date)
+                        DetailHero(countdown: countdown, image: image, now: context.date)
                         TimeBreakdownView(countdown: countdown, now: context.date)
                     }
                 }
@@ -66,12 +66,6 @@ struct CountdownDetailView: View {
         }
     }
 
-    private func upNext(excluding countdown: Countdown) -> [Countdown] {
-        store.upcoming()
-            .filter { $0.id != countdown.id }
-            .map { $0.resolved(isPremium: purchases.isPremium) }
-    }
-
     private func widgetSection(countdown: Countdown, image: UIImage?) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -106,14 +100,13 @@ struct CountdownDetailView: View {
 private struct DetailHero: View {
     let countdown: Countdown
     let image: UIImage?
-    let upNext: [Countdown]
     let now: Date
 
     var body: some View {
         let metrics = WidgetMetrics.current
         GeometryReader { proxy in
             HomeWidgetPreview(countdown: countdown, image: image, size: metrics.large, metrics: metrics) {
-                LargeCountdownView(countdown: countdown, upNext: upNext, now: now, hasImage: image != nil)
+                LargeCountdownView(countdown: countdown, now: now, hasImage: image != nil)
             }
             .scaleEffect(proxy.size.width / metrics.large.width, anchor: .topLeading)
         }
