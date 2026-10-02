@@ -9,6 +9,8 @@ struct SettingsView: View {
     @Environment(\.requestReview) private var requestReview
     @State private var isShowingPaywall = false
     @State private var isSyncEnabled = CloudSyncManager.isEnabledPreference
+    @State private var isConfirmingSyncOff = false
+    @State private var syncError: String?
     @State private var reminderTime: Date = Calendar.current.date(from: ReminderPreferences.time) ?? .now
 
     var body: some View {
@@ -61,7 +63,17 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Toggle(isOn: $isSyncEnabled) {
+                    Toggle(isOn: Binding(
+                        get: { isSyncEnabled },
+                        set: { enabled in
+                            if enabled {
+                                isSyncEnabled = true
+                                store.sync?.setEnabled(true)
+                            } else {
+                                isConfirmingSyncOff = true
+                            }
+                        }
+                    )) {
                         Label("iCloud Sync", systemImage: "icloud")
                     }
                     if isSyncEnabled {
@@ -73,7 +85,7 @@ struct SettingsView: View {
                 } header: {
                     Text("iCloud")
                 } footer: {
-                    Text("Keeps your countdowns, reminders, and photos on all your devices through your private iCloud account, and brings them back on a new iPhone. Hasta can't see your data.")
+                    Text("Keeps your countdowns, reminders, and photos on all your devices through your private iCloud account, and brings them back on a new iPhone. Hasta can't see your data. Turning sync off keeps your iCloud copy unless you choose to delete it.")
                 }
 
                 Section("Appearance") {
@@ -147,8 +159,29 @@ struct SettingsView: View {
                         .fontWeight(.semibold)
                 }
             }
-            .onChange(of: isSyncEnabled) { _, enabled in
-                store.sync?.setEnabled(enabled)
+            .confirmationDialog("Turn Off iCloud Sync?", isPresented: $isConfirmingSyncOff, titleVisibility: .visible) {
+                Button("Turn Off") {
+                    isSyncEnabled = false
+                    store.sync?.setEnabled(false)
+                }
+                Button("Turn Off and Delete from iCloud", role: .destructive) {
+                    Task {
+                        do {
+                            try await store.sync?.deleteCloudData()
+                            isSyncEnabled = false
+                        } catch {
+                            syncError = error.localizedDescription
+                        }
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Your countdowns stay on this iPhone either way. Deleting removes Hasta's data from iCloud; your other devices keep what they have but stop syncing.")
+            }
+            .alert("Couldn't Delete from iCloud", isPresented: Binding(get: { syncError != nil }, set: { if !$0 { syncError = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(syncError ?? "")
             }
             .onChange(of: reminderTime) { _, newValue in
                 ReminderPreferences.time = Calendar.current.dateComponents([.hour, .minute], from: newValue)

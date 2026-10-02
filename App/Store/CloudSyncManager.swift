@@ -75,6 +75,22 @@ final class CloudSyncManager: CKSyncEngineDelegate {
         }
     }
 
+    func deleteCloudData() async throws {
+        engine = nil
+        status = .syncing
+        do {
+            _ = try await container.privateCloudDatabase.deleteRecordZone(withID: zoneID)
+        } catch let error as CKError where error.code == .zoneNotFound {
+        } catch {
+            start()
+            throw error
+        }
+        metadata = SyncMetadata()
+        metadata.save()
+        Self.isEnabledPreference = false
+        status = .off
+    }
+
     func fetchChanges() async {
         guard let engine else { return }
         status = .syncing
@@ -102,6 +118,7 @@ final class CloudSyncManager: CKSyncEngineDelegate {
     // MARK: - CKSyncEngineDelegate
 
     func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
+        guard syncEngine === engine else { return }
         switch event {
         case .stateUpdate(let update):
             metadata.stateSerialization = update.stateSerialization
@@ -124,6 +141,7 @@ final class CloudSyncManager: CKSyncEngineDelegate {
     }
 
     func nextRecordZoneChangeBatch(_ context: CKSyncEngine.SendChangesContext, syncEngine: CKSyncEngine) async -> CKSyncEngine.RecordZoneChangeBatch? {
+        guard syncEngine === engine else { return nil }
         let changes = syncEngine.state.pendingRecordZoneChanges.filter { context.options.scope.contains($0) }
         guard !changes.isEmpty else { return nil }
         var records: [CKRecord.ID: CKRecord] = [:]
@@ -184,11 +202,11 @@ final class CloudSyncManager: CKSyncEngineDelegate {
 
     private func handleFetchedDatabaseChanges(_ changes: CKSyncEngine.Event.FetchedDatabaseChanges) {
         guard changes.deletions.contains(where: { $0.zoneID == zoneID }) else { return }
-        metadata.systemFields = [:]
+        engine = nil
+        metadata = SyncMetadata()
         metadata.save()
-        if let engine {
-            engine.state.add(pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneID: zoneID))])
-        }
+        Self.isEnabledPreference = false
+        status = .unavailable("Hasta's iCloud data was deleted. Turn iCloud Sync on again to upload this device's countdowns.")
     }
 
     private func handleFetchedRecordZoneChanges(_ changes: CKSyncEngine.Event.FetchedRecordZoneChanges) {
