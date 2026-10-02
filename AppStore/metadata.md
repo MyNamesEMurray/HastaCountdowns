@@ -18,42 +18,12 @@ Source of truth for the Hasta listing. Keep in sync with App Store Connect.
 | Secondary category | Lifestyle |
 | Age rating | 4+ |
 
-## Version 1.0 (en-US)
+## Version 1.0 listings
 
-### Subtitle (set manually, 30 max)
-Lock Screen Event Countdowns
-
-### Promotional text (170 max)
-Count down to the moments that matter, right on your Lock Screen. Unlimited countdowns and every widget, free. Premium is one small purchase, never a subscription.
-
-### Keywords (100 max)
-days until,event,timer,lock screen,birthday,vacation,wedding,reminder,date,counter,anniversary,trip
-
-### Description
-Hasta counts down to the moments you're looking forward to and puts them right where you'll see them: your Lock Screen, Home Screen, and StandBy.
-
-Create a countdown in seconds. Pick a date, give it a name, choose a symbol and a color, and Hasta takes care of the rest.
-
-FREE, WITH NO CATCH
-• Unlimited countdowns
-• Every widget size: small, medium and large on the Home Screen, plus circular, rectangular and inline on the Lock Screen
-• Repeating events for birthdays, anniversaries and holidays
-• Count up from past events, too
-• Show time remaining in days, weeks, or months
-• Reminders before your big day
-• Hundreds of symbols and a curated color palette
-• Looks great in Light and Dark Mode
-
-HASTA PREMIUM
-One small, one-time purchase. No subscription, ever.
-• Photo backgrounds for your widgets
-• Additional typefaces and widget styles
-• Custom colors
-• Alternate app icons
-• Support an independent developer
-
-PRIVATE BY DESIGN
-Your countdowns stay on your device. No accounts, no ads, no tracking.
+Each locale's name, subtitle, promotional text, keywords and description
+live in [listings/](listings/). Locales: en-US, es-MX, es-ES, de-DE, fr-FR,
+pt-BR, ja, ko, zh-Hans. Support URL https://hasta.day/support and marketing
+URL https://hasta.day are set on every locale.
 
 ## In-App Purchase
 
