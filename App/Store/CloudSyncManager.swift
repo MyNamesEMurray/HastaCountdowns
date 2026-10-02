@@ -46,6 +46,10 @@ final class CloudSyncManager: CKSyncEngineDelegate {
     }
 
     func start() {
+        if ScreenshotMode.current != nil, Self.isEnabledPreference {
+            status = .upToDate(Calendar.current.date(bySettingHour: 9, minute: 41, second: 0, of: .now) ?? .now)
+            return
+        }
         guard Self.isAllowedInThisProcess, Self.isEnabledPreference else {
             status = .off
             return

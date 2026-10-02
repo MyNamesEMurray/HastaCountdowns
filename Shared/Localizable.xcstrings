@@ -1353,6 +1353,58 @@
         }
       }
     },
+    "Change Photo": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambiar foto"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto ändern"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changer de photo"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trocar foto"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真を変更"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "사진 변경"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更换照片"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambiar foto"
+          }
+        }
+      }
+    },
     "Checking iCloud…": {
       "localizations": {
         "es-419": {
@@ -1661,6 +1713,58 @@
           "stringUnit": {
             "state": "translated",
             "value": "Elige un icono alternativo para tu pantalla de inicio."
+          }
+        }
+      }
+    },
+    "Choose which countdown this widget shows.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige qué cuenta regresiva muestra este widget."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle, welchen Countdown dieses Widget zeigt."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisissez le compte à rebours affiché par ce widget."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha qual contagem este widget mostra."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このウィジェットに表示するカウントダウンを選びます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 위젯에 표시할 카운트다운을 선택하세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择此小组件显示的倒计时。"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige qué cuenta atrás muestra este widget."
           }
         }
       }
@@ -7849,6 +7953,58 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ve tus próximas cuentas atrás de un vistazo."
+          }
+        }
+      }
+    },
+    "Select Countdown": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seleccionar cuenta regresiva"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Countdown auswählen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisir un compte à rebours"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selecionar contagem"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カウントダウンを選択"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "카운트다운 선택"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择倒计时"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seleccionar cuenta atrás"
           }
         }
       }

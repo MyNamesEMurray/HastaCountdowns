@@ -189,7 +189,7 @@ private struct TimeBreakdownView: View {
                 .font(.system(size: 28, weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .contentTransition(.numericText(countsDown: true))
-                .animation(.snappy, value: value)
+                .animation(ScreenshotMode.current == nil ? .snappy : nil, value: value)
             Text(label)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.secondary)
