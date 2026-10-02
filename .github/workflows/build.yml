@@ -11,6 +11,7 @@ on:
       - "**.md"
       - "AppStore/**"
       - "docs/**"
+      - "site/**"
   workflow_dispatch:
 
 concurrency:

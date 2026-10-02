@@ -105,6 +105,12 @@ struct SettingsView: View {
                     } label: {
                         Label("Rate Hasta", systemImage: "star")
                     }
+                    Link(destination: URL(string: "https://hasta.day/support/")!) {
+                        Label("Help & Support", systemImage: "questionmark.circle")
+                    }
+                    Link(destination: URL(string: "https://hasta.day/privacy/")!) {
+                        Label("Privacy Policy", systemImage: "hand.raised")
+                    }
                 } header: {
                     Text("Support")
                 }

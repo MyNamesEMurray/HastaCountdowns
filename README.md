@@ -37,6 +37,7 @@ Both workflows use GitHub's `macos-26` runner. To use a different runner, set th
 | `Shared/` | Code compiled into both targets: model, date math, storage, widget views, App Intents |
 | `Tests/` | Swift Testing unit tests for the date math and premium gating |
 | `AppStore/` | App Store Connect metadata |
+| `site/` | Website for hasta.day |
 | `scripts/` | Icon generator |
 | `.github/` | CI workflows and helper scripts |
 
@@ -54,6 +55,10 @@ The app and widget share data through the App Group `group.com.exaltedpixels.Has
 | Rounded and Standard typefaces, Classic and Minimal styles | |
 
 Premium is the non-consumable product `com.exaltedpixels.Hasta.premium`. The unlocked state is cached in the App Group so widgets can respect it.
+
+## Website
+
+`site/` is the static website for [hasta.day](https://hasta.day): the landing page, `privacy/`, and `support/`. It's plain HTML and CSS with no build step, deployed by Cloudflare Pages with the build output directory set to `site`. `site/_headers` sets security and cache headers.
 
 ## App Icons
 
