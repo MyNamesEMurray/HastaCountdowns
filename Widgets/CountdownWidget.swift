@@ -35,6 +35,9 @@ struct CountdownProvider: AppIntentTimelineProvider {
         if let selected = selectedCountdown(for: configuration, in: all, at: now), !selected.isAllDay {
             dates += WidgetRefreshSchedule.closeRangeDates(for: selected, now: now)
         }
+        if context.family == .accessoryRectangular {
+            dates += WidgetRefreshSchedule.hourlyDates(from: now)
+        }
         dates = Array(Set(dates)).sorted()
 
         let image = loadImage(for: selectedCountdown(for: configuration, in: all, at: now), context: context)
@@ -175,6 +178,12 @@ struct CountdownWidget: Widget {
 }
 
 enum WidgetRefreshSchedule {
+    static func hourlyDates(from now: Date, hours: Int = 48) -> [Date] {
+        let calendar = Calendar.current
+        guard let nextHour = calendar.nextDate(after: now, matching: DateComponents(minute: 0, second: 0), matchingPolicy: .nextTime) else { return [] }
+        return (0..<hours).compactMap { calendar.date(byAdding: .hour, value: $0, to: nextHour) }
+    }
+
     static func closeRangeDates(for countdown: Countdown, now: Date) -> [Date] {
         let target = countdown.nextOccurrence(after: now)
         guard target > now else { return [] }

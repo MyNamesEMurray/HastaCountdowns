@@ -363,47 +363,95 @@ struct RectangularCountdownView: View {
 
     var body: some View {
         let status = countdown.status(at: now)
-        VStack(alignment: .leading, spacing: 0) {
+        let segments = countdown.segments(at: now)
+        VStack(alignment: .leading, spacing: 3) {
             HStack(spacing: 4) {
                 Image(systemName: countdown.symbol)
-                    .font(.system(size: 11, weight: .semibold))
-                    .imageScale(.small)
-                    .frame(width: 14, height: 14)
+                    .font(.system(size: 10, weight: .semibold))
+                    .frame(width: 13, height: 13)
                 Text(countdown.displayTitle)
-                    .font(countdown.typeface.font(.subheadline, weight: .semibold))
-            }
-            .lineLimit(1)
-            .minimumScaleFactor(0.6)
-            .allowsTightening(true)
-            .widgetAccentable()
-
-            Group {
-                if countdown.isLiveToday(at: now) {
-                    Text(timerInterval: now...status.target, countsDown: true)
-                        .font(countdown.typeface.font(size: 22))
-                        .monospacedDigit()
-                } else if status.isToday {
-                    Text("Today")
-                        .font(countdown.typeface.font(size: 22))
-                } else {
-                    HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        Text(status.number)
-                            .font(countdown.typeface.font(size: 24))
-                            .monospacedDigit()
-                        Text(status.isPast ? "\(status.unitLabel) ago" : status.unitLabel)
-                            .font(countdown.typeface.font(.subheadline))
-                    }
+                    .font(countdown.typeface.font(.caption, weight: .bold))
+                    .minimumScaleFactor(0.7)
+                    .allowsTightening(true)
+                if status.isPast {
+                    Spacer(minLength: 2)
+                    Text("ago")
+                        .font(countdown.typeface.font(.caption2, weight: .semibold))
+                        .foregroundStyle(.secondary)
                 }
             }
             .lineLimit(1)
-            .minimumScaleFactor(0.6)
+            .widgetAccentable()
 
-            Text(status.remainder.map { "+\($0) · \(countdown.formattedDate(at: now))" } ?? countdown.formattedDate(at: now))
-                .font(countdown.typeface.font(.caption, weight: .regular))
+            if !segments.isEmpty {
+                HStack(spacing: 5) {
+                    ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                        SegmentTile(
+                            text: String(format: "%02d", segment.value),
+                            label: segment.label,
+                            typeface: countdown.typeface
+                        )
+                    }
+                }
+            } else if countdown.isLiveToday(at: now) {
+                SegmentTile(
+                    timerInterval: now...status.target,
+                    label: "remaining",
+                    typeface: countdown.typeface
+                )
+            } else {
+                SegmentTile(text: "Today", label: countdown.formattedDate(at: now, style: .abbreviated), typeface: countdown.typeface)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+    }
+}
+
+struct SegmentTile: View {
+    private let text: String?
+    private let timerInterval: ClosedRange<Date>?
+    let label: String
+    let typeface: Typeface
+
+    init(text: String, label: String, typeface: Typeface) {
+        self.text = text
+        self.timerInterval = nil
+        self.label = label
+        self.typeface = typeface
+    }
+
+    init(timerInterval: ClosedRange<Date>, label: String, typeface: Typeface) {
+        self.text = nil
+        self.timerInterval = timerInterval
+        self.label = label
+        self.typeface = typeface
+    }
+
+    var body: some View {
+        VStack(spacing: 1) {
+            Group {
+                if let timerInterval {
+                    Text(timerInterval: timerInterval, countsDown: true)
+                        .multilineTextAlignment(.center)
+                } else if let text {
+                    Text(text)
+                }
+            }
+            .font(typeface.font(size: 19, weight: .bold))
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 3)
+            .background(Color.primary.opacity(0.16), in: .rect(cornerRadius: 8, style: .continuous))
+            .widgetAccentable()
+
+            Text(label)
+                .font(typeface.font(size: 10, weight: .medium))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

@@ -218,6 +218,41 @@ extension Countdown {
     }
 }
 
+struct CountdownSegment: Equatable {
+    let value: Int
+    let label: String
+}
+
+extension Countdown {
+    func segments(at now: Date = .now, calendar: Calendar = .current) -> [CountdownSegment] {
+        let target = nextOccurrence(after: now, calendar: calendar)
+        let end = isAllDay ? calendar.startOfDay(for: target) : target
+        let isPast = end < now
+        if !isPast && !isAllDay && end.timeIntervalSince(now) < 86_400 { return [] }
+        if isAllDay && calendar.isDate(target, inSameDayAs: now) { return [] }
+
+        let from = isPast ? end : now
+        let to = isPast ? now : end
+        let parts = calendar.dateComponents([.year, .month, .day, .hour], from: from, to: to)
+        let years = parts.year ?? 0
+        let months = parts.month ?? 0
+        let days = parts.day ?? 0
+        let hours = parts.hour ?? 0
+
+        func segment(_ value: Int, _ singular: String, _ plural: String) -> CountdownSegment {
+            CountdownSegment(value: value, label: value == 1 ? singular : plural)
+        }
+
+        if years > 0 {
+            return [segment(years, "year", "years"), segment(months, "month", "months"), segment(days, "day", "days")]
+        }
+        if months > 0 {
+            return [segment(months, "month", "months"), segment(days, "day", "days"), segment(hours, "hour", "hours")]
+        }
+        return [segment(days, "day", "days"), segment(hours, "hour", "hours")]
+    }
+}
+
 extension Array where Element == Countdown {
     func upcoming(at now: Date = .now) -> [Countdown] {
         filter { !$0.status(at: now).isPast }

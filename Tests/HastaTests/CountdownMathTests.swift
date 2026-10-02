@@ -226,4 +226,35 @@ struct CountdownMathTests {
         let decoded = try JSONDecoder().decode(Countdown.self, from: Data(json.utf8))
         #expect(decoded.backgroundFraming == nil)
     }
+
+    @Test func segmentsForFarEventsUseYearsMonthsDays() {
+        let countdown = Countdown(title: "Far", date: date("2028-01-15T00:00:00"))
+        #expect(countdown.segments(at: now, calendar: calendar) == [
+            CountdownSegment(value: 1, label: "year"),
+            CountdownSegment(value: 3, label: "months"),
+            CountdownSegment(value: 12, label: "days"),
+        ])
+    }
+
+    @Test func segmentsForMonthsAwayIncludeHours() {
+        let countdown = Countdown(title: "Party", date: date("2027-01-02T18:00:00"), isAllDay: false)
+        #expect(countdown.segments(at: now, calendar: calendar) == [
+            CountdownSegment(value: 3, label: "months"),
+            CountdownSegment(value: 0, label: "days"),
+            CountdownSegment(value: 3, label: "hours"),
+        ])
+    }
+
+    @Test func segmentsForDaysAwayUseDaysAndHours() {
+        let countdown = Countdown(title: "Soon", date: date("2026-10-05T00:00:00"))
+        #expect(countdown.segments(at: now, calendar: calendar) == [
+            CountdownSegment(value: 2, label: "days"),
+            CountdownSegment(value: 9, label: "hours"),
+        ])
+    }
+
+    @Test func segmentsAreEmptyForTimedEventsUnderADay() {
+        let countdown = Countdown(title: "Dinner", date: date("2026-10-02T19:00:00"), isAllDay: false)
+        #expect(countdown.segments(at: now, calendar: calendar).isEmpty)
+    }
 }
