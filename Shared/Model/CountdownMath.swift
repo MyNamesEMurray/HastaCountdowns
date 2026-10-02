@@ -12,13 +12,30 @@ struct CountdownStatus: Equatable {
 
         func label(_ value: Int) -> String {
             switch self {
-            case .years: String(localized: "label.years \(value)")
-            case .months: String(localized: "label.months \(value)")
-            case .weeks: String(localized: "label.weeks \(value)")
-            case .days: String(localized: "label.days \(value)")
-            case .hours: String(localized: "label.hours \(value)")
-            case .minutes: String(localized: "label.minutes \(value)")
+            case .years: Self.word(String(localized: "label.years \(value)"), value)
+            case .months: Self.word(String(localized: "label.months \(value)"), value)
+            case .weeks: Self.word(String(localized: "label.weeks \(value)"), value)
+            case .days: Self.word(String(localized: "label.days \(value)"), value)
+            case .hours: Self.word(String(localized: "label.hours \(value)"), value)
+            case .minutes: Self.word(String(localized: "label.minutes \(value)"), value)
             }
+        }
+
+        func pastLabel(_ value: Int) -> String {
+            switch self {
+            case .years: Self.word(String(localized: "past.years \(value)"), value)
+            case .months: Self.word(String(localized: "past.months \(value)"), value)
+            case .weeks: Self.word(String(localized: "past.weeks \(value)"), value)
+            case .days: Self.word(String(localized: "past.days \(value)"), value)
+            case .hours: Self.word(String(localized: "past.hours \(value)"), value)
+            case .minutes: Self.word(String(localized: "past.minutes \(value)"), value)
+            }
+        }
+
+        static func word(_ text: String, _ value: Int) -> String {
+            text.replacingOccurrences(of: value.formatted(), with: "")
+                .replacingOccurrences(of: String(value), with: "")
+                .trimmingCharacters(in: .whitespaces)
         }
 
         func amount(_ value: Int) -> String {
@@ -79,10 +96,8 @@ struct CountdownStatus: Equatable {
         case .upcoming:
             return remainder.map { "\(unitLabel) · \($0)" } ?? unitLabel
         case .past:
-            if let remainder {
-                return String(localized: "caption.ago \(unitLabel) \(remainder)")
-            }
-            return String(localized: "caption.ago \(unitLabel)")
+            let label = unit.pastLabel(value)
+            return remainder.map { "\(label) · \($0)" } ?? label
         }
     }
 

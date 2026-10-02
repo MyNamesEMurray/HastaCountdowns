@@ -25,11 +25,11 @@ struct ReminderRule: Codable, Hashable, Identifiable {
 
         func pickerName(for amount: Int) -> String {
             switch self {
-            case .minutes: String(localized: "picker.minutes \(amount)")
-            case .hours: String(localized: "picker.hours \(amount)")
-            case .days: String(localized: "picker.days \(amount)")
-            case .weeks: String(localized: "picker.weeks \(amount)")
-            case .months: String(localized: "picker.months \(amount)")
+            case .minutes: CountdownStatus.Unit.word(String(localized: "picker.minutes \(amount)"), amount)
+            case .hours: CountdownStatus.Unit.word(String(localized: "picker.hours \(amount)"), amount)
+            case .days: CountdownStatus.Unit.word(String(localized: "picker.days \(amount)"), amount)
+            case .weeks: CountdownStatus.Unit.word(String(localized: "picker.weeks \(amount)"), amount)
+            case .months: CountdownStatus.Unit.word(String(localized: "picker.months \(amount)"), amount)
             }
         }
 
