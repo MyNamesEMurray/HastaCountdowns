@@ -253,44 +253,86 @@ struct LargeCountdownView: View {
                 }
             }
             Spacer(minLength: 0)
-            CountdownNumberView(countdown: countdown, status: status, now: now, size: 92, palette: palette)
             Text(countdown.displayTitle)
-                .font(countdown.typeface.font(.title2, weight: .bold))
+                .font(countdown.typeface.font(size: 30, weight: .bold))
                 .foregroundStyle(palette.primary)
                 .lineLimit(2)
                 .minimumScaleFactor(0.45)
                 .allowsTightening(true)
                 .layoutPriority(1)
-                .padding(.top, 4)
             Text(countdown.formattedDate(at: now, style: .complete))
                 .font(countdown.typeface.font(.subheadline, weight: .medium))
                 .foregroundStyle(palette.secondary)
                 .lineLimit(1)
+                .padding(.top, 2)
+            if status.isPast {
+                Text("Time Since")
+                    .font(countdown.typeface.font(.caption, weight: .semibold))
+                    .textCase(.uppercase)
+                    .foregroundStyle(palette.secondary)
+                    .padding(.top, 14)
+            }
             let segments = countdown.segments(at: now)
-            if !segments.isEmpty {
-                HStack(spacing: 8) {
-                    ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
-                        VStack(spacing: 2) {
-                            Text(segment.value.formatted())
-                                .font(countdown.typeface.font(size: 24, weight: .bold))
-                                .monospacedDigit()
-                                .foregroundStyle(palette.primary)
-                                .widgetAccentable()
-                            Text(segment.label)
-                                .font(countdown.typeface.font(.caption, weight: .semibold))
-                                .foregroundStyle(palette.secondary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.7)
+            HStack(spacing: 8) {
+                if segments.isEmpty {
+                    tile(palette: palette) {
+                        if !countdown.isAllDay && status.target > now && status.target.timeIntervalSince(now) < 86_400 {
+                            Text(timerInterval: now...status.target, countsDown: true)
+                                .multilineTextAlignment(.center)
+                        } else if status.isToday {
+                            Text("Today")
+                        } else {
+                            Text(status.number)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(palette.primary.opacity(0.14), in: .rect(cornerRadius: 14, style: .continuous))
+                    } label: {
+                        if !countdown.isAllDay && status.target > now && status.target.timeIntervalSince(now) < 86_400 {
+                            Text("remaining")
+                        } else if status.isToday {
+                            Text(countdown.isAllDay ? countdown.formattedDate(at: now, style: .abbreviated) : status.target.formatted(date: .omitted, time: .shortened))
+                        } else {
+                            Text(status.unitLabel)
+                        }
+                    }
+                } else {
+                    ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                        tile(palette: palette) {
+                            Text(segment.value.formatted())
+                        } label: {
+                            Text(segment.label)
+                        }
                     }
                 }
-                .padding(.top, 16)
             }
+            .padding(.top, status.isPast ? 6 : 16)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+extension LargeCountdownView {
+    fileprivate func tile<Value: View, Caption: View>(
+        palette: CountdownPalette,
+        @ViewBuilder value: () -> Value,
+        @ViewBuilder label: () -> Caption
+    ) -> some View {
+        VStack(spacing: 3) {
+            value()
+                .font(countdown.typeface.font(size: 30, weight: .bold))
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+                .foregroundStyle(palette.primary)
+                .widgetAccentable()
+            label()
+                .font(countdown.typeface.font(.caption, weight: .semibold))
+                .foregroundStyle(palette.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .padding(.horizontal, 6)
+        .background(palette.primary.opacity(0.14), in: .rect(cornerRadius: 16, style: .continuous))
     }
 }
 
