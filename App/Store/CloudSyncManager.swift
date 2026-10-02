@@ -29,11 +29,13 @@ final class CloudSyncManager: CKSyncEngineDelegate {
     }
 
     private(set) var status: Status = .off
+    private(set) var isEnabled = CloudSyncManager.isEnabledPreference
 
     @ObservationIgnored private weak var store: CountdownStore?
     @ObservationIgnored private var engine: CKSyncEngine?
     @ObservationIgnored private var metadata = SyncMetadata.load()
     @ObservationIgnored private let zoneID = CKRecordZone.ID(zoneName: CloudSyncManager.zoneName)
+    @ObservationIgnored private var needsRequeueAfterFetch = false
 
     init(store: CountdownStore) {
         self.store = store
@@ -67,7 +69,7 @@ final class CloudSyncManager: CKSyncEngineDelegate {
     }
 
     func setEnabled(_ enabled: Bool) {
-        Self.isEnabledPreference = enabled
+        setPreference(enabled)
         if enabled {
             start()
         } else {
@@ -87,8 +89,13 @@ final class CloudSyncManager: CKSyncEngineDelegate {
         }
         metadata = SyncMetadata()
         metadata.save()
-        Self.isEnabledPreference = false
+        setPreference(false)
         status = .off
+    }
+
+    private func setPreference(_ enabled: Bool) {
+        Self.isEnabledPreference = enabled
+        isEnabled = enabled
     }
 
     func fetchChanges() async {
@@ -126,14 +133,24 @@ final class CloudSyncManager: CKSyncEngineDelegate {
         case .accountChange(let change):
             handleAccountChange(change)
         case .fetchedDatabaseChanges(let changes):
-            handleFetchedDatabaseChanges(changes)
+            await handleFetchedDatabaseChanges(changes)
+        case .sentDatabaseChanges(let sent):
+            if sent.savedZones.contains(where: { $0.zoneID == zoneID }) {
+                markZoneConfirmed()
+            }
         case .fetchedRecordZoneChanges(let changes):
             handleFetchedRecordZoneChanges(changes)
         case .sentRecordZoneChanges(let sent):
             handleSentRecordZoneChanges(sent)
         case .willFetchChanges, .willSendChanges:
             status = .syncing
-        case .didFetchChanges, .didSendChanges:
+        case .didFetchChanges:
+            if needsRequeueAfterFetch {
+                needsRequeueAfterFetch = false
+                queueEverything(on: syncEngine)
+            }
+            markUpToDate()
+        case .didSendChanges:
             markUpToDate()
         default:
             break
@@ -189,6 +206,7 @@ final class CloudSyncManager: CKSyncEngineDelegate {
         switch change.changeType {
         case .signIn, .switchAccounts:
             metadata.systemFields = [:]
+            metadata.zoneConfirmed = nil
             metadata.save()
             if let engine { queueEverything(on: engine) }
         case .signOut:
@@ -200,13 +218,39 @@ final class CloudSyncManager: CKSyncEngineDelegate {
         }
     }
 
-    private func handleFetchedDatabaseChanges(_ changes: CKSyncEngine.Event.FetchedDatabaseChanges) {
-        guard changes.deletions.contains(where: { $0.zoneID == zoneID }) else { return }
-        engine = nil
+    private func handleFetchedDatabaseChanges(_ changes: CKSyncEngine.Event.FetchedDatabaseChanges) async {
+        guard changes.deletions.contains(where: { $0.zoneID == zoneID }), let engine else { return }
+        let zoneExists = await zoneExistsOnServer()
+        guard engine === self.engine else { return }
+        if zoneExists != false || metadata.zoneConfirmed != true {
+            metadata.systemFields = [:]
+            metadata.save()
+            queueEverything(on: engine)
+            needsRequeueAfterFetch = true
+            return
+        }
+        self.engine = nil
         metadata = SyncMetadata()
         metadata.save()
-        Self.isEnabledPreference = false
+        setPreference(false)
         status = .unavailable("Hasta's iCloud data was deleted. Turn iCloud Sync on again to upload this device's countdowns.")
+    }
+
+    private func zoneExistsOnServer() async -> Bool? {
+        do {
+            _ = try await container.privateCloudDatabase.recordZone(for: zoneID)
+            return true
+        } catch let error as CKError where error.code == .zoneNotFound {
+            return false
+        } catch {
+            return nil
+        }
+    }
+
+    private func markZoneConfirmed() {
+        guard metadata.zoneConfirmed != true else { return }
+        metadata.zoneConfirmed = true
+        metadata.save()
     }
 
     private func handleFetchedRecordZoneChanges(_ changes: CKSyncEngine.Event.FetchedRecordZoneChanges) {
@@ -224,6 +268,9 @@ final class CloudSyncManager: CKSyncEngineDelegate {
             importImage(from: record, for: remote)
             upserts.append(remote)
         }
+        if !changes.modifications.isEmpty {
+            metadata.zoneConfirmed = true
+        }
         let deletions = changes.deletions.compactMap { UUID(uuidString: $0.recordID.recordName) }
         for id in deletions {
             metadata.systemFields[id.uuidString] = nil
@@ -236,6 +283,9 @@ final class CloudSyncManager: CKSyncEngineDelegate {
     private func handleSentRecordZoneChanges(_ sent: CKSyncEngine.Event.SentRecordZoneChanges) {
         for record in sent.savedRecords {
             metadata.systemFields[record.recordID.recordName] = encodedSystemFields(of: record)
+        }
+        if !sent.savedRecords.isEmpty {
+            metadata.zoneConfirmed = true
         }
         for failure in sent.failedRecordSaves {
             let recordID = failure.record.recordID
@@ -345,6 +395,7 @@ final class CloudSyncManager: CKSyncEngineDelegate {
 struct SyncMetadata: Codable {
     var stateSerialization: CKSyncEngine.State.Serialization?
     var systemFields: [String: Data] = [:]
+    var zoneConfirmed: Bool?
 
     private static var fileURL: URL {
         URL.applicationSupportDirectory.appending(path: "CloudSync.json")

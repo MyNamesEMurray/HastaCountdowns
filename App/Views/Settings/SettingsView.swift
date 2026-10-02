@@ -8,7 +8,6 @@ struct SettingsView: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.requestReview) private var requestReview
     @State private var isShowingPaywall = false
-    @State private var isSyncEnabled = CloudSyncManager.isEnabledPreference
     @State private var isConfirmingSyncOff = false
     @State private var syncError: String?
     @State private var reminderTime: Date = Calendar.current.date(from: ReminderPreferences.time) ?? .now
@@ -67,7 +66,6 @@ struct SettingsView: View {
                         get: { isSyncEnabled },
                         set: { enabled in
                             if enabled {
-                                isSyncEnabled = true
                                 store.sync?.setEnabled(true)
                             } else {
                                 isConfirmingSyncOff = true
@@ -161,14 +159,12 @@ struct SettingsView: View {
             }
             .confirmationDialog("Turn Off iCloud Sync?", isPresented: $isConfirmingSyncOff, titleVisibility: .visible) {
                 Button("Turn Off") {
-                    isSyncEnabled = false
                     store.sync?.setEnabled(false)
                 }
                 Button("Turn Off and Delete from iCloud", role: .destructive) {
                     Task {
                         do {
                             try await store.sync?.deleteCloudData()
-                            isSyncEnabled = false
                         } catch {
                             syncError = error.localizedDescription
                         }
@@ -200,6 +196,10 @@ struct SettingsView: View {
 }
 
 extension SettingsView {
+    private var isSyncEnabled: Bool {
+        store.sync?.isEnabled ?? false
+    }
+
     private var syncStatusText: String {
         switch store.sync?.status ?? .off {
         case .off: return "Off"
