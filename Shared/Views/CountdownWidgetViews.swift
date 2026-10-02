@@ -146,13 +146,13 @@ struct CountdownNumberView: View {
 
             if !status.isToday {
                 Text(status.caption.uppercased())
-                    .font(.system(size: max(10, size * 0.2), weight: .semibold))
+                    .font(countdown.typeface.font(size: max(10, size * 0.2), weight: .semibold))
                     .foregroundStyle(palette.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             } else if !countdown.isAllDay {
                 Text(status.target.formatted(date: .omitted, time: .shortened).uppercased())
-                    .font(.system(size: max(10, size * 0.2), weight: .semibold))
+                    .font(countdown.typeface.font(size: max(10, size * 0.2), weight: .semibold))
                     .foregroundStyle(palette.secondary)
                     .lineLimit(1)
             }
@@ -241,7 +241,7 @@ struct MediumCountdownView: View {
                         .allowsTightening(true)
                         .layoutPriority(1)
                     Text(countdown.formattedDate(at: now))
-                        .font(.caption.weight(.medium))
+                        .font(countdown.typeface.font(.caption, weight: .medium))
                         .foregroundStyle(palette.secondary)
                         .lineLimit(1)
                 }
@@ -275,7 +275,7 @@ struct LargeCountdownView: View {
                 Spacer(minLength: 0)
                 if countdown.repeatRule != .never {
                     Label(countdown.repeatRule.title, systemImage: "repeat")
-                        .font(.caption.weight(.semibold))
+                        .font(countdown.typeface.font(.caption, weight: .semibold))
                         .foregroundStyle(palette.secondary)
                 }
             }
@@ -290,7 +290,7 @@ struct LargeCountdownView: View {
                 .layoutPriority(1)
                 .padding(.top, 4)
             Text(countdown.formattedDate(at: now, style: .complete))
-                .font(.subheadline.weight(.medium))
+                .font(countdown.typeface.font(.subheadline, weight: .medium))
                 .foregroundStyle(palette.secondary)
                 .lineLimit(1)
             if !status.isPast {
@@ -307,13 +307,13 @@ struct LargeCountdownView: View {
                                 .frame(width: 18)
                                 .widgetAccentable()
                             Text(other.displayTitle)
-                                .font(.subheadline.weight(.medium))
+                                .font(countdown.typeface.font(.subheadline, weight: .medium))
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.7)
                                 .allowsTightening(true)
                             Spacer(minLength: 4)
                             Text(otherStatus.isToday ? "Today" : "\(otherStatus.number) \(otherStatus.unitLabel)")
-                                .font(.subheadline.weight(.semibold))
+                                .font(countdown.typeface.font(.subheadline, weight: .semibold))
                                 .monospacedDigit()
                         }
                         .foregroundStyle(palette.primary)
@@ -345,7 +345,7 @@ struct CircularCountdownView: View {
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
                     Text(status.unitLabel.uppercased())
-                        .font(.system(size: 8, weight: .bold))
+                        .font(countdown.typeface.font(size: 8, weight: .bold))
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                 }
@@ -364,12 +364,14 @@ struct RectangularCountdownView: View {
     var body: some View {
         let status = countdown.status(at: now)
         VStack(alignment: .leading, spacing: 0) {
-            Label {
-                Text(countdown.displayTitle)
-            } icon: {
+            HStack(spacing: 4) {
                 Image(systemName: countdown.symbol)
+                    .font(.system(size: 11, weight: .semibold))
+                    .imageScale(.small)
+                    .frame(width: 14, height: 14)
+                Text(countdown.displayTitle)
+                    .font(countdown.typeface.font(.subheadline, weight: .semibold))
             }
-            .font(.headline)
             .lineLimit(1)
             .minimumScaleFactor(0.6)
             .allowsTightening(true)
@@ -397,7 +399,7 @@ struct RectangularCountdownView: View {
             .minimumScaleFactor(0.6)
 
             Text(status.remainder.map { "+\($0) · \(countdown.formattedDate(at: now))" } ?? countdown.formattedDate(at: now))
-                .font(.caption)
+                .font(countdown.typeface.font(.caption, weight: .regular))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }
@@ -437,12 +439,12 @@ struct UpNextRow: View {
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(countdown.displayTitle)
-                    .font(.subheadline.weight(.semibold))
+                    .font(countdown.typeface.font(.subheadline, weight: .semibold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                     .allowsTightening(true)
                 Text(countdown.formattedDate(at: now))
-                    .font(.caption)
+                    .font(countdown.typeface.font(.caption, weight: .regular))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
@@ -460,7 +462,7 @@ struct UpNextRow: View {
                         .foregroundStyle(countdown.tint)
                         .widgetAccentable()
                     Text(status.unitLabel.uppercased())
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(countdown.typeface.font(size: 9, weight: .semibold))
                         .foregroundStyle(.secondary)
                 }
             }

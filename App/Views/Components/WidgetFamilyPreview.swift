@@ -151,6 +151,7 @@ struct LockScreenPreview: View {
                     .frame(width: metrics.rectangular.width, height: metrics.rectangular.height)
             }
             .padding(.top, 6)
+            .foregroundStyle(.white)
         }
         .tint(.white)
         .padding(.vertical, 22)

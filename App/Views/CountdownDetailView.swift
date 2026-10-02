@@ -118,7 +118,7 @@ private struct DetailHero: View {
                     .lineLimit(3)
                     .minimumScaleFactor(0.5)
                 Text(countdown.formattedDate(at: now, style: .complete))
-                    .font(.subheadline.weight(.medium))
+                    .font(countdown.typeface.font(.subheadline, weight: .medium))
                     .foregroundStyle(palette.secondary)
                     .multilineTextAlignment(.center)
                 Spacer(minLength: 16)
@@ -141,7 +141,7 @@ private struct DetailHero: View {
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
                     Text(status.caption.uppercased())
-                        .font(.subheadline.weight(.semibold))
+                        .font(countdown.typeface.font(.subheadline, weight: .semibold))
                         .foregroundStyle(palette.secondary)
                 }
             }
