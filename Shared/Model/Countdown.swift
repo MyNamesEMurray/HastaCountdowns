@@ -13,6 +13,7 @@ struct Countdown: Identifiable, Codable, Hashable {
     var style: WidgetStyle = .classic
     var typeface: Typeface = .rounded
     var backgroundImageID: String?
+    var backgroundFraming: BackgroundFraming?
     var reminders: [ReminderRule] = [.onTheDay]
     var createdAt: Date = .now
 
@@ -35,6 +36,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         style: WidgetStyle = .classic,
         typeface: Typeface = .rounded,
         backgroundImageID: String? = nil,
+        backgroundFraming: BackgroundFraming? = nil,
         reminders: [ReminderRule] = [.onTheDay],
         createdAt: Date = .now
     ) {
@@ -50,6 +52,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         self.style = style
         self.typeface = typeface
         self.backgroundImageID = backgroundImageID
+        self.backgroundFraming = backgroundFraming
         self.reminders = reminders
         self.createdAt = createdAt
     }
@@ -68,6 +71,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         style = (try? container.decodeIfPresent(WidgetStyle.self, forKey: .style)) ?? .classic
         typeface = (try? container.decodeIfPresent(Typeface.self, forKey: .typeface)) ?? .rounded
         backgroundImageID = try container.decodeIfPresent(String.self, forKey: .backgroundImageID)
+        backgroundFraming = try? container.decodeIfPresent(BackgroundFraming.self, forKey: .backgroundFraming)
         if let rules = try? container.decodeIfPresent([ReminderRule].self, forKey: .reminders) {
             reminders = rules
         } else if let legacy = try? container.decodeIfPresent([LegacyReminder].self, forKey: .reminders) {
@@ -194,6 +198,7 @@ extension Countdown {
         if copy.typeface.isPremium { copy.typeface = .rounded }
         copy.customColorHex = nil
         copy.backgroundImageID = nil
+        copy.backgroundFraming = nil
         return copy
     }
 

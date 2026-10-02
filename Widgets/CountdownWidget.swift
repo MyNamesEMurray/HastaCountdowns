@@ -63,14 +63,19 @@ struct CountdownProvider: AppIntentTimelineProvider {
         let selected = selectedCountdown(for: configuration, in: resolvedAll, at: date)
         let upNext = resolvedAll.upcoming(at: date).filter { $0.id != selected?.id }
         let image = preloadedImage ?? loadImage(for: selected, context: context)
-        return CountdownEntry(date: date, countdown: selected, upNext: upNext, image: image)
+        var displayed = selected
+        displayed?.backgroundFraming = nil
+        return CountdownEntry(date: date, countdown: displayed, upNext: upNext, image: image)
     }
 
     private func loadImage(for countdown: Countdown?, context: Context) -> UIImage? {
-        guard Premium.isUnlocked, let id = countdown?.backgroundImageID else { return nil }
-        let size = context.displaySize
-        let maxPixel = max(size.width, size.height) * 2.5
-        return BackgroundImageStore.image(for: id, maxPixelSize: max(maxPixel, 300))
+        guard Premium.isUnlocked, let countdown, let id = countdown.backgroundImageID else { return nil }
+        return BackgroundImageStore.framedImage(
+            for: id,
+            framing: countdown.backgroundFraming ?? .centered,
+            containerSize: context.displaySize,
+            pixelsPerPoint: 2.5
+        )
     }
 }
 

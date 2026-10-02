@@ -1,3 +1,4 @@
+import Photos
 import PhotosUI
 import SwiftUI
 
@@ -14,6 +15,9 @@ struct CountdownEditorView: View {
     @State private var isConfirmingDelete = false
     @State private var editingReminder: ReminderDraft?
     @State private var previewFamily: PreviewFamily = .small
+    @State private var liveSession: LivePhotoSession?
+    @State private var lastLiveSession: LivePhotoSession?
+    @State private var isFramingPhoto = false
     @FocusState private var isTitleFocused: Bool
 
     private let original: Countdown
@@ -91,6 +95,22 @@ struct CountdownEditorView: View {
             }
             .sheet(isPresented: $isShowingPaywall) {
                 PremiumView()
+            }
+            .sheet(item: $liveSession) { session in
+                LivePhotoStudioView(session: session) { image in
+                    useProcessedPhoto(image)
+                }
+            }
+            .sheet(isPresented: $isFramingPhoto) {
+                if let image = previewImage {
+                    PhotoFramingView(
+                        countdown: draft.resolved(isPremium: purchases.isPremium),
+                        image: image,
+                        upNext: previewUpNext
+                    ) { framing in
+                        withAnimation { draft.backgroundFraming = framing == .centered ? nil : framing }
+                    }
+                }
             }
             .sheet(item: $editingReminder) { request in
                 ReminderEditorView(
@@ -224,8 +244,24 @@ struct CountdownEditorView: View {
                     }
                 }
                 if draft.backgroundImageID != nil {
+                    Button {
+                        isFramingPhoto = true
+                    } label: {
+                        Label("Adjust Position & Zoom", systemImage: "crop")
+                    }
+                    if let lastLiveSession {
+                        Button {
+                            liveSession = lastLiveSession
+                        } label: {
+                            Label("Live Photo Effects", systemImage: "livephoto")
+                        }
+                    }
                     Button("Remove Photo", systemImage: "xmark.circle", role: .destructive) {
-                        withAnimation { draft.backgroundImageID = nil }
+                        withAnimation {
+                            draft.backgroundImageID = nil
+                            draft.backgroundFraming = nil
+                            lastLiveSession = nil
+                        }
                     }
                 }
             } else {
@@ -242,7 +278,7 @@ struct CountdownEditorView: View {
         } header: {
             Text("Background Photo")
         } footer: {
-            Text("Photos stay on your device and are only used for your widgets.")
+            Text("Photos stay on your device and are only used for your widgets. Choose a Live Photo to pick a different frame or make a long exposure.")
         }
     }
 
@@ -336,7 +372,29 @@ struct CountdownEditorView: View {
             guard let data = try? await item.loadTransferable(type: Data.self),
                   let id = try? BackgroundImageStore.save(data) else { return }
             createdImageIDs.append(id)
-            withAnimation { draft.backgroundImageID = id }
+            withAnimation {
+                draft.backgroundImageID = id
+                draft.backgroundFraming = nil
+            }
+            lastLiveSession = nil
+
+            if let livePhoto = try? await item.loadTransferable(type: PHLivePhoto.self),
+               let videoURL = try? await LivePhotoProcessor.pairedVideoURL(for: livePhoto),
+               let keyPhoto = ImageCache.shared.image(for: id) {
+                let session = LivePhotoSession(videoURL: videoURL, keyPhoto: keyPhoto)
+                lastLiveSession = session
+                liveSession = session
+            }
+        }
+    }
+
+    private func useProcessedPhoto(_ image: UIImage) {
+        guard let data = image.jpegData(compressionQuality: 0.92),
+              let id = try? BackgroundImageStore.save(data) else { return }
+        createdImageIDs.append(id)
+        withAnimation {
+            draft.backgroundImageID = id
+            draft.backgroundFraming = nil
         }
     }
 

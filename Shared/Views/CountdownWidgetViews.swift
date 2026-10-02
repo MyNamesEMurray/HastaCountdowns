@@ -39,10 +39,7 @@ struct CountdownBackground: View {
         if let image {
             ZStack {
                 Color.black
-                Image(uiImage: image)
-                    .resizable()
-                    .widgetAccentedRenderingMode(.desaturated)
-                    .scaledToFill()
+                FramedPhoto(image: image, framing: countdown.backgroundFraming ?? .centered)
                 LinearGradient(
                     colors: [.black.opacity(0.05), .black.opacity(0.2), .black.opacity(0.6)],
                     startPoint: .top,
@@ -69,6 +66,27 @@ struct CountdownBackground: View {
                 }
             }
         }
+    }
+}
+
+struct FramedPhoto: View {
+    let image: UIImage
+    let framing: BackgroundFraming
+
+    var body: some View {
+        GeometryReader { proxy in
+            let container = proxy.size
+            let imageSize = image.size
+            let rect = framing.visibleRect(imageSize: imageSize, containerSize: container)
+            let scale = rect.width > 0 ? container.width / (rect.width * imageSize.width) : 1
+            let displayed = CGSize(width: imageSize.width * scale, height: imageSize.height * scale)
+            Image(uiImage: image)
+                .resizable()
+                .widgetAccentedRenderingMode(.desaturated)
+                .frame(width: displayed.width, height: displayed.height)
+                .offset(x: -rect.minX * displayed.width, y: -rect.minY * displayed.height)
+        }
+        .clipped()
     }
 }
 

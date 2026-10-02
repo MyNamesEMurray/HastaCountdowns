@@ -195,4 +195,35 @@ struct CountdownMathTests {
         let countdown = Countdown(title: "Breakfast", date: date("2026-10-03T08:00:00"), isAllDay: false, unit: .days)
         #expect(countdown.status(at: now, calendar: calendar).phrase == "Tomorrow")
     }
+
+    @Test func framingCenteredFillsSquareFromLandscape() {
+        let rect = BackgroundFraming.centered.visibleRect(imageSize: CGSize(width: 2000, height: 1000), containerSize: CGSize(width: 100, height: 100))
+        #expect(abs(rect.width - 0.5) < 0.0001)
+        #expect(abs(rect.height - 1) < 0.0001)
+        #expect(abs(rect.minX - 0.25) < 0.0001)
+    }
+
+    @Test func framingZoomAndFocusStayInBounds() {
+        let framing = BackgroundFraming(focusX: 0.95, focusY: 0.05, zoom: 2)
+        let rect = framing.visibleRect(imageSize: CGSize(width: 1000, height: 1000), containerSize: CGSize(width: 200, height: 100))
+        #expect(abs(rect.width - 0.5) < 0.0001)
+        #expect(abs(rect.height - 0.25) < 0.0001)
+        #expect(abs(rect.maxX - 1) < 0.0001)
+        #expect(abs(rect.minY) < 0.0001)
+    }
+
+    @Test func framingPanMovesOppositeToDrag() {
+        let image = CGSize(width: 1000, height: 1000)
+        let container = CGSize(width: 100, height: 100)
+        let zoomed = BackgroundFraming(zoom: 2)
+        let panned = zoomed.panned(by: CGSize(width: 50, height: 0), imageSize: image, containerSize: container)
+        #expect(panned.focusX < zoomed.focusX)
+        #expect(abs(panned.focusX - 0.25) < 0.0001)
+    }
+
+    @Test func framingDecodesWhenMissing() throws {
+        let json = #"{"id":"7C9C3D5E-1C1F-4F55-9E2D-1A2B3C4D5E6F","date":800000000}"#
+        let decoded = try JSONDecoder().decode(Countdown.self, from: Data(json.utf8))
+        #expect(decoded.backgroundFraming == nil)
+    }
 }

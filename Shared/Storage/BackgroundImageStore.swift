@@ -4,7 +4,7 @@ import UIKit
 import UniformTypeIdentifiers
 
 enum BackgroundImageStore {
-    static let maxStoredPixelSize: CGFloat = 1400
+    static let maxStoredPixelSize: CGFloat = 2048
 
     static var directory: URL {
         let url = AppGroup.containerURL.appending(path: "Backgrounds", directoryHint: .isDirectory)
@@ -37,6 +37,26 @@ enum BackgroundImageStore {
     static func image(for id: String, maxPixelSize: CGFloat) -> UIImage? {
         let source = CGImageSourceCreateWithURL(url(for: id) as CFURL, nil)
         return downsample(source: source, maxPixelSize: maxPixelSize).map { UIImage(cgImage: $0) }
+    }
+
+    static func framedImage(for id: String, framing: BackgroundFraming, containerSize: CGSize, pixelsPerPoint: CGFloat) -> UIImage? {
+        guard containerSize.width > 0, containerSize.height > 0,
+              let source = CGImageSourceCreateWithURL(url(for: id) as CFURL, nil),
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let pixelWidth = properties[kCGImagePropertyPixelWidth] as? CGFloat,
+              let pixelHeight = properties[kCGImagePropertyPixelHeight] as? CGFloat else { return nil }
+
+        let rect = framing.visibleRect(imageSize: CGSize(width: pixelWidth, height: pixelHeight), containerSize: containerSize)
+        let neededWidth = containerSize.width * pixelsPerPoint / max(rect.width, 0.01)
+        let neededHeight = containerSize.height * pixelsPerPoint / max(rect.height, 0.01)
+        let maxPixel = min(1_600, max(neededWidth, neededHeight))
+        guard let decoded = downsample(source: source, maxPixelSize: maxPixel) else { return nil }
+
+        let width = CGFloat(decoded.width)
+        let height = CGFloat(decoded.height)
+        let crop = CGRect(x: rect.minX * width, y: rect.minY * height, width: rect.width * width, height: rect.height * height).integral
+        guard let cropped = decoded.cropping(to: crop) else { return UIImage(cgImage: decoded) }
+        return UIImage(cgImage: cropped)
     }
 
     static func delete(_ id: String) {
