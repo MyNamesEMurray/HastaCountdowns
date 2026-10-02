@@ -43,6 +43,7 @@ struct PremiumView: View {
                     }
                     .padding(.horizontal, 8)
                 }
+                .frame(maxWidth: .infinity)
                 .padding(.horizontal, 24)
                 .padding(.top, 12)
                 .padding(.bottom, 24)

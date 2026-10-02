@@ -35,6 +35,8 @@ final class AppRouter {
 
     var path: [UUID] = []
     var isCreatingCountdown = false
+    var isShowingSettings = false
+    var isShowingPremium = false
 
     func open(_ url: URL) {
         switch DeepLink.destination(for: url) {
@@ -44,9 +46,23 @@ final class AppRouter {
         case .newCountdown:
             path = []
             isCreatingCountdown = true
+        case .settings:
+            isShowingSettings = true
+        case .premium:
+            isShowingPremium = true
         case nil:
             break
         }
+    }
+}
+
+enum ScreenshotMode: String {
+    case samples
+    case empty
+    case welcome
+
+    static var current: ScreenshotMode? {
+        UserDefaults.standard.string(forKey: "HastaScreenshotMode").flatMap(ScreenshotMode.init(rawValue:))
     }
 }
 

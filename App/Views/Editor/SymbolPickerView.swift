@@ -48,6 +48,7 @@ struct SymbolPickerView: View {
                     }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
         }
         .background(Color(uiColor: .systemGroupedBackground))

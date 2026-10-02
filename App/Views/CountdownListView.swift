@@ -10,41 +10,15 @@ struct CountdownListView: View {
     private let columns = [GridItem(.adaptive(minimum: 156, maximum: 260), spacing: 14)]
 
     var body: some View {
-        TimelineView(.everyMinute) { context in
-            let now = context.date
-            let upcoming = store.upcoming(at: now)
-            let past = store.past(at: now)
-            ScrollView {
-                VStack(alignment: .leading, spacing: 28) {
-                    if !upcoming.isEmpty {
-                        grid(upcoming, now: now)
-                    }
-                    if !past.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Past")
-                                .font(.title3.weight(.bold))
-                            grid(past, now: now)
-                        }
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.bottom, 32)
-            }
-        }
-        .background(Color(uiColor: .systemGroupedBackground))
-        .overlay {
+        Group {
             if store.countdowns.isEmpty {
-                ContentUnavailableView {
-                    Label("No Countdowns", systemImage: "hourglass")
-                } description: {
-                    Text("Count down to a trip, a birthday, or anything you're looking forward to.")
-                } actions: {
-                    Button("Add Countdown", action: onCreate)
-                        .buttonStyle(.borderedProminent)
-                        .buttonBorderShape(.capsule)
-                }
+                emptyState
+            } else {
+                list
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle("Hasta")
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -67,6 +41,43 @@ struct CountdownListView: View {
             }
         } message: {
             Text("It will also be removed from any widgets.")
+        }
+    }
+
+    private var emptyState: some View {
+        ContentUnavailableView {
+            Label("No Countdowns", systemImage: "hourglass")
+        } description: {
+            Text("Count down to a trip, a birthday, or anything you're looking forward to.")
+        } actions: {
+            Button("Add Countdown", action: onCreate)
+                .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.capsule)
+        }
+    }
+
+    private var list: some View {
+        TimelineView(.everyMinute) { context in
+            let now = context.date
+            let upcoming = store.upcoming(at: now)
+            let past = store.past(at: now)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 28) {
+                    if !upcoming.isEmpty {
+                        grid(upcoming, now: now)
+                    }
+                    if !past.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Past")
+                                .font(.title3.weight(.bold))
+                            grid(past, now: now)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal)
+                .padding(.bottom, 32)
+            }
         }
     }
 

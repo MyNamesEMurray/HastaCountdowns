@@ -218,11 +218,12 @@ extension Countdown {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: .now)
         func days(_ n: Int) -> Date { calendar.date(byAdding: .day, value: n, to: today) ?? today }
+        func id(_ suffix: String) -> UUID { UUID(uuidString: "00000000-0000-0000-0000-0000000000\(suffix)")! }
         return [
-            Countdown(title: "Tokyo Trip", date: days(42), symbol: "airplane", color: .blue, createdAt: days(-30)),
-            Countdown(title: "Maya's Birthday", date: days(9), repeatRule: .yearly, symbol: "birthday.cake.fill", color: .pink, createdAt: days(-200)),
-            Countdown(title: "Concert", date: days(17), symbol: "music.mic", color: .purple, style: .vivid, createdAt: days(-12)),
-            Countdown(title: "Marathon", date: days(88), symbol: "figure.run", color: .orange, unit: .weeks, createdAt: days(-60)),
+            Countdown(id: id("01"), title: "Tokyo Trip", date: days(42), symbol: "airplane", color: .blue, createdAt: days(-30)),
+            Countdown(id: id("02"), title: "Maya's Birthday", date: days(9), repeatRule: .yearly, symbol: "birthday.cake.fill", color: .pink, createdAt: days(-200)),
+            Countdown(id: id("03"), title: "Concert", date: days(17), symbol: "music.mic", color: .purple, style: .vivid, createdAt: days(-12)),
+            Countdown(id: id("04"), title: "Marathon", date: days(88), symbol: "figure.run", color: .orange, unit: .weeks, createdAt: days(-60)),
         ]
     }()
 }

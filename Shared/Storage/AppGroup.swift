@@ -52,6 +52,8 @@ enum DeepLink {
     enum Destination: Equatable {
         case countdown(UUID)
         case newCountdown
+        case settings
+        case premium
     }
 
     static func destination(for url: URL) -> Destination? {
@@ -62,6 +64,10 @@ enum DeepLink {
             return .countdown(id)
         case "new":
             return .newCountdown
+        case "settings":
+            return .settings
+        case "premium":
+            return .premium
         default:
             return nil
         }

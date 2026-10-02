@@ -5,7 +5,6 @@ struct RootView: View {
     @Environment(AppRouter.self) private var router
     @AppStorage("hasSeenWelcome") private var hasSeenWelcome = false
     @State private var editing: EditorRequest?
-    @State private var isShowingSettings = false
 
     var body: some View {
         @Bindable var router = router
@@ -13,7 +12,7 @@ struct RootView: View {
             CountdownListView(
                 onCreate: { editing = EditorRequest(countdown: Countdown(), isNew: true) },
                 onEdit: { editing = EditorRequest(countdown: $0, isNew: false) },
-                onShowSettings: { isShowingSettings = true }
+                onShowSettings: { router.isShowingSettings = true }
             )
             .navigationDestination(for: UUID.self) { id in
                 CountdownDetailView(id: id) { countdown in
@@ -24,10 +23,13 @@ struct RootView: View {
         .sheet(item: $editing) { request in
             CountdownEditorView(countdown: request.countdown, isNew: request.isNew)
         }
-        .sheet(isPresented: $isShowingSettings) {
+        .sheet(isPresented: $router.isShowingSettings) {
             SettingsView()
         }
-        .sheet(isPresented: Binding(get: { !hasSeenWelcome }, set: { if !$0 { hasSeenWelcome = true } })) {
+        .sheet(isPresented: $router.isShowingPremium) {
+            PremiumView()
+        }
+        .sheet(isPresented: Binding(get: { shouldShowWelcome }, set: { if !$0 { hasSeenWelcome = true } })) {
             WelcomeView { hasSeenWelcome = true }
                 .interactiveDismissDisabled()
         }
@@ -37,10 +39,18 @@ struct RootView: View {
         .onAppear(perform: handlePendingCreation)
     }
 
+    private var shouldShowWelcome: Bool {
+        switch ScreenshotMode.current {
+        case .welcome: true
+        case .samples, .empty: false
+        case nil: !hasSeenWelcome
+        }
+    }
+
     private func handlePendingCreation() {
         guard router.isCreatingCountdown else { return }
         router.isCreatingCountdown = false
-        isShowingSettings = false
+        router.isShowingSettings = false
         editing = EditorRequest(countdown: Countdown(), isNew: true)
     }
 }

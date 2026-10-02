@@ -57,6 +57,21 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             | "${FORMATTER[@]}"
 
+      - name: Capture screenshots
+        env:
+          SIMULATOR_ID: ${{ steps.sim.outputs.udid }}
+        run: |
+          .github/scripts/capture_screenshots.sh "$SIMULATOR_ID" \
+            DerivedData/Build/Products/Debug-iphonesimulator/Hasta.app Screenshots
+
+      - name: Upload screenshots
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: Screenshots
+          path: Screenshots
+          retention-days: 14
+
       - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v7

@@ -7,8 +7,20 @@ import WidgetKit
 final class CountdownStore {
     private(set) var countdowns: [Countdown] = []
 
+    private let isScreenshotMode: Bool
+
     init() {
-        countdowns = CountdownRepository.load()
+        switch ScreenshotMode.current {
+        case .samples:
+            countdowns = Countdown.samples
+            isScreenshotMode = true
+        case .empty, .welcome:
+            countdowns = []
+            isScreenshotMode = true
+        case nil:
+            countdowns = CountdownRepository.load()
+            isScreenshotMode = false
+        }
     }
 
     func countdown(with id: UUID) -> Countdown? {
@@ -55,6 +67,7 @@ final class CountdownStore {
     }
 
     func reload() {
+        guard !isScreenshotMode else { return }
         countdowns = CountdownRepository.load()
     }
 
@@ -64,6 +77,7 @@ final class CountdownStore {
     }
 
     private func persist() {
+        guard !isScreenshotMode else { return }
         do {
             try CountdownRepository.save(countdowns)
         } catch {

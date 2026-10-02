@@ -31,6 +31,7 @@ struct CountdownDetailView: View {
                 DetailInfoView(countdown: countdown)
                 widgetSection(countdown: countdown, image: image)
             }
+            .frame(maxWidth: .infinity)
             .padding(.horizontal)
             .padding(.bottom, 32)
         }
