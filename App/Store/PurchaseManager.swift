@@ -16,7 +16,7 @@ final class PurchaseManager {
     init() {
         isPremium = Premium.isUnlocked
         updatesTask = Task { [weak self] in
-            for await result in Transaction.updates {
+            for await result in StoreKit.Transaction.updates {
                 await self?.handle(result)
             }
         }
@@ -80,7 +80,7 @@ final class PurchaseManager {
 
     func refreshEntitlements() async {
         var unlocked = false
-        for await result in Transaction.currentEntitlements {
+        for await result in StoreKit.Transaction.currentEntitlements {
             if case .verified(let transaction) = result,
                transaction.productID == Premium.productID,
                transaction.revocationDate == nil {
@@ -90,7 +90,7 @@ final class PurchaseManager {
         setPremium(unlocked)
     }
 
-    private func handle(_ result: VerificationResult<Transaction>) async {
+    private func handle(_ result: VerificationResult<StoreKit.Transaction>) async {
         guard case .verified(let transaction) = result else { return }
         if transaction.productID == Premium.productID {
             setPremium(transaction.revocationDate == nil)

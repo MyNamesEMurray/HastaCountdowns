@@ -40,8 +40,8 @@ enum ReminderScheduler {
         for countdown in countdowns where !countdown.reminders.isEmpty {
             let target = countdown.nextOccurrence(after: now, calendar: calendar)
             for reminder in countdown.reminders {
-                guard let fireDate = fireDate(for: reminder, target: target, isAllDay: countdown.isAllDay, reminderTime: reminderTime, calendar: calendar),
-                      fireDate > now else { continue }
+                guard let date = fireDate(for: reminder, target: target, isAllDay: countdown.isAllDay, reminderTime: reminderTime, calendar: calendar),
+                      date > now else { continue }
 
                 let content = UNMutableNotificationContent()
                 content.title = countdown.displayTitle
@@ -49,10 +49,10 @@ enum ReminderScheduler {
                 content.sound = .default
                 content.userInfo = ["url": DeepLink.countdown(countdown.id).absoluteString]
 
-                let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
+                let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
                 let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
                 let identifier = "\(identifierPrefix)\(countdown.id.uuidString)-\(reminder.rawValue)"
-                scheduled.append((fireDate, UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)))
+                scheduled.append((date, UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)))
             }
         }
 
