@@ -212,7 +212,7 @@ final class CloudSyncManager: CKSyncEngineDelegate {
         case .signOut:
             metadata.systemFields = [:]
             metadata.save()
-            status = .unavailable("Sign in to iCloud to sync your countdowns.")
+            status = .unavailable(String(localized: "Sign in to iCloud to sync your countdowns."))
         @unknown default:
             break
         }
@@ -233,7 +233,7 @@ final class CloudSyncManager: CKSyncEngineDelegate {
         metadata = SyncMetadata()
         metadata.save()
         setPreference(false)
-        status = .unavailable("Hasta's iCloud data was deleted. Turn iCloud Sync on again to upload this device's countdowns.")
+        status = .unavailable(String(localized: "Hasta's iCloud data was deleted. Turn iCloud Sync on again to upload this device's countdowns."))
     }
 
     private func zoneExistsOnServer() async -> Bool? {
@@ -372,10 +372,10 @@ final class CloudSyncManager: CKSyncEngineDelegate {
 
     private static func message(for status: CKAccountStatus) -> String {
         switch status {
-        case .noAccount: "Sign in to iCloud to sync your countdowns."
-        case .restricted: "iCloud is restricted on this device."
-        case .temporarilyUnavailable: "iCloud is temporarily unavailable."
-        default: "iCloud isn't available right now."
+        case .noAccount: String(localized: "Sign in to iCloud to sync your countdowns.")
+        case .restricted: String(localized: "iCloud is restricted on this device.")
+        case .temporarilyUnavailable: String(localized: "iCloud is temporarily unavailable.")
+        default: String(localized: "iCloud isn't available right now.")
         }
     }
 

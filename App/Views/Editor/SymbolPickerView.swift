@@ -22,7 +22,7 @@ struct SymbolPickerView: View {
             LazyVStack(alignment: .leading, spacing: 20, pinnedViews: []) {
                 ForEach(filteredCategories) { category in
                     VStack(alignment: .leading, spacing: 10) {
-                        Text(category.name)
+                        Text(String(localized: category.name))
                             .font(.footnote.weight(.semibold))
                             .foregroundStyle(.secondary)
                             .textCase(.uppercase)
@@ -64,10 +64,10 @@ struct SymbolPickerView: View {
 }
 
 struct SymbolCategory: Identifiable {
-    let name: String
+    let name: String.LocalizationValue
     let symbols: [String]
 
-    var id: String { name }
+    var id: String { String(localized: name) }
 
     static let all: [SymbolCategory] = [
         SymbolCategory(name: "Celebrations", symbols: [

@@ -47,7 +47,7 @@ final class PurchaseManager {
             await loadProduct()
         }
         guard let product else {
-            errorMessage = "Hasta Premium isn't available right now. Please try again later."
+            errorMessage = String(localized: "Hasta Premium isn't available right now. Please try again later.")
             return
         }
         isPurchasing = true
@@ -57,7 +57,7 @@ final class PurchaseManager {
             case .success(let verification):
                 await handle(verification)
             case .pending:
-                errorMessage = "Your purchase is pending approval. Premium will unlock as soon as it's approved."
+                errorMessage = String(localized: "Your purchase is pending approval. Premium will unlock as soon as it's approved.")
             case .userCancelled:
                 break
             @unknown default:
@@ -78,7 +78,7 @@ final class PurchaseManager {
         }
         await refreshEntitlements()
         if !isPremium && errorMessage == nil {
-            errorMessage = "No previous purchase was found for this Apple Account."
+            errorMessage = String(localized: "No previous purchase was found for this Apple Account.")
         }
     }
 

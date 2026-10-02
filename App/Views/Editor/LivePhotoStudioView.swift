@@ -13,6 +13,14 @@ struct LivePhotoStudioView: View {
         case longExposure = "Long Exposure"
 
         var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .keyPhoto: String(localized: "Key Photo")
+            case .frame: String(localized: "Choose Frame")
+            case .longExposure: String(localized: "Long Exposure")
+            }
+        }
     }
 
     @Environment(\.dismiss) private var dismiss
@@ -57,7 +65,7 @@ struct LivePhotoStudioView: View {
 
                 Picker("Effect", selection: $mode) {
                     ForEach(Mode.allCases) { mode in
-                        Text(mode.rawValue).tag(mode)
+                        Text(mode.title).tag(mode)
                     }
                 }
                 .pickerStyle(.segmented)

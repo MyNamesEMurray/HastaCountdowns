@@ -60,10 +60,10 @@ enum PreviewFamily: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .small: "Small"
-        case .medium: "Medium"
-        case .large: "Large"
-        case .lockScreen: "Lock Screen"
+        case .small: String(localized: "Small")
+        case .medium: String(localized: "Medium")
+        case .large: String(localized: "Large")
+        case .lockScreen: String(localized: "Lock Screen")
         }
     }
 }

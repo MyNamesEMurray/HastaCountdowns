@@ -29,7 +29,7 @@ struct CountdownListView: View {
             }
         }
         .confirmationDialog(
-            "Delete \(pendingDelete?.displayTitle ?? "Countdown")?",
+            "Delete \(pendingDelete?.displayTitle ?? String(localized: "Countdown"))?",
             isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
             titleVisibility: .visible
         ) {
@@ -112,9 +112,9 @@ extension Countdown {
         let status = self.status(at: now)
         let phrase = status.phrase.prefix(1).lowercased() + status.phrase.dropFirst()
         switch status.phase {
-        case .today: return "\(displayTitle) is today! 🎉"
-        case .upcoming: return "\(displayTitle) is \(phrase)."
-        case .past: return "\(displayTitle) was \(phrase)."
+        case .today: return String(localized: "share.today \(displayTitle)")
+        case .upcoming: return String(localized: "share.upcoming \(displayTitle) \(String(phrase))")
+        case .past: return String(localized: "share.past \(displayTitle) \(String(phrase))")
         }
     }
 }

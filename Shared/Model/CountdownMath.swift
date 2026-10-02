@@ -10,14 +10,47 @@ struct CountdownStatus: Equatable {
     enum Unit: Equatable {
         case years, months, weeks, days, hours, minutes
 
-        var shortSymbol: String {
+        func label(_ value: Int) -> String {
             switch self {
-            case .years: "y"
-            case .months: "mo"
-            case .weeks: "w"
-            case .days: "d"
-            case .hours: "h"
-            case .minutes: "m"
+            case .years: String(localized: "label.years \(value)")
+            case .months: String(localized: "label.months \(value)")
+            case .weeks: String(localized: "label.weeks \(value)")
+            case .days: String(localized: "label.days \(value)")
+            case .hours: String(localized: "label.hours \(value)")
+            case .minutes: String(localized: "label.minutes \(value)")
+            }
+        }
+
+        func amount(_ value: Int) -> String {
+            switch self {
+            case .years: String(localized: "amount.years \(value)")
+            case .months: String(localized: "amount.months \(value)")
+            case .weeks: String(localized: "amount.weeks \(value)")
+            case .days: String(localized: "amount.days \(value)")
+            case .hours: String(localized: "amount.hours \(value)")
+            case .minutes: String(localized: "amount.minutes \(value)")
+            }
+        }
+
+        func duration(_ value: Int) -> String {
+            switch self {
+            case .years: String(localized: "duration.years \(value)")
+            case .months: String(localized: "duration.months \(value)")
+            case .weeks: String(localized: "duration.weeks \(value)")
+            case .days: String(localized: "duration.days \(value)")
+            case .hours: String(localized: "duration.hours \(value)")
+            case .minutes: String(localized: "duration.minutes \(value)")
+            }
+        }
+
+        func short(_ value: Int) -> String {
+            switch self {
+            case .years: String(localized: "short.years \(value)")
+            case .months: String(localized: "short.months \(value)")
+            case .weeks: String(localized: "short.weeks \(value)")
+            case .days: String(localized: "short.days \(value)")
+            case .hours: String(localized: "short.hours \(value)")
+            case .minutes: String(localized: "short.minutes \(value)")
             }
         }
     }
@@ -26,36 +59,51 @@ struct CountdownStatus: Equatable {
     let phase: Phase
     let days: Int
     let unit: Unit
-    let number: String
-    let unitLabel: String
-    let remainder: String?
+    let value: Int
+    var remainderUnit: Unit?
+    var remainderValue = 0
 
     var isPast: Bool { phase == .past }
     var isToday: Bool { phase == .today }
 
+    var number: String { value.formatted() }
+
+    var unitLabel: String { unit.label(value) }
+
+    var remainder: String? { remainderUnit.map { $0.amount(remainderValue) } }
+
     var caption: String {
         switch phase {
-        case .today: return "Today"
-        case .upcoming: return remainder.map { "\(unitLabel) · \($0)" } ?? unitLabel
-        case .past: return remainder.map { "\(unitLabel) · \($0) ago" } ?? "\(unitLabel) ago"
+        case .today:
+            return String(localized: "Today")
+        case .upcoming:
+            return remainder.map { "\(unitLabel) · \($0)" } ?? unitLabel
+        case .past:
+            if let remainder {
+                return String(localized: "caption.ago \(unitLabel) \(remainder)")
+            }
+            return String(localized: "caption.ago \(unitLabel)")
         }
     }
 
     var phrase: String {
-        let amount = remainder.map { "\(number) \(unitLabel), \($0)" } ?? "\(number) \(unitLabel)"
+        var duration = unit.duration(value)
+        if let remainderUnit {
+            duration = String(localized: "list.pair \(duration) \(remainderUnit.duration(remainderValue))")
+        }
         let isSingleDay = unit == .days && days == 1
         switch phase {
-        case .today: return "Today"
-        case .upcoming: return isSingleDay ? "Tomorrow" : "in \(amount)"
-        case .past: return isSingleDay ? "Yesterday" : "\(amount) ago"
+        case .today: return String(localized: "Today")
+        case .upcoming: return isSingleDay ? String(localized: "Tomorrow") : String(localized: "phrase.in \(duration)")
+        case .past: return isSingleDay ? String(localized: "Yesterday") : String(localized: "phrase.ago \(duration)")
         }
     }
 
     var compactPhrase: String {
         switch phase {
-        case .today: return "Today"
-        case .upcoming: return "\(number)\(unit.shortSymbol)"
-        case .past: return "\(number)\(unit.shortSymbol) ago"
+        case .today: return String(localized: "Today")
+        case .upcoming: return unit.short(value)
+        case .past: return String(localized: "compact.ago \(unit.short(value))")
         }
     }
 }
@@ -128,41 +176,37 @@ extension Countdown {
             to = max(now, target)
         }
 
-        func make(_ unit: CountdownStatus.Unit, _ value: Int, _ singular: String, _ plural: String, remainder: String? = nil) -> CountdownStatus {
+        func make(_ unit: CountdownStatus.Unit, _ value: Int, remainder: CountdownStatus.Unit? = nil, _ remainderValue: Int = 0) -> CountdownStatus {
             CountdownStatus(
                 target: target,
                 phase: phase,
                 days: days,
                 unit: unit,
-                number: value.formatted(),
-                unitLabel: Self.label(value, singular, plural),
-                remainder: remainder
+                value: value,
+                remainderUnit: remainderValue > 0 ? remainder : nil,
+                remainderValue: remainderValue > 0 ? remainderValue : 0
             )
-        }
-
-        func extra(_ value: Int, _ singular: String, _ plural: String) -> String? {
-            value > 0 ? Self.label(value, singular, plural, includeNumber: true) : nil
         }
 
         switch resolvedUnit(days: days, target: target, now: now, from: from, to: to, calendar: calendar) {
         case .years:
             let parts = calendar.dateComponents([.year, .month], from: from, to: to)
-            return make(.years, parts.year ?? 0, "year", "years", remainder: extra(parts.month ?? 0, "month", "months"))
+            return make(.years, parts.year ?? 0, remainder: .months, parts.month ?? 0)
         case .months:
             let parts = calendar.dateComponents([.month, .day], from: from, to: to)
-            return make(.months, parts.month ?? 0, "month", "months", remainder: extra(parts.day ?? 0, "day", "days"))
+            return make(.months, parts.month ?? 0, remainder: .days, parts.day ?? 0)
         case .weeks:
-            return make(.weeks, days / 7, "week", "weeks", remainder: extra(days % 7, "day", "days"))
+            return make(.weeks, days / 7, remainder: .days, days % 7)
         case .days:
-            return make(.days, days, "day", "days")
+            return make(.days, days)
         case .hours:
             let interval = abs(target.timeIntervalSince(now))
             let hours = Int(interval / 3_600)
             let minutes = Int(interval.truncatingRemainder(dividingBy: 3_600) / 60)
-            return make(.hours, hours, "hour", "hours", remainder: extra(minutes, "minute", "minutes"))
+            return make(.hours, hours, remainder: .minutes, minutes)
         case .minutes:
             let interval = abs(target.timeIntervalSince(now))
-            return make(.minutes, max(1, Int((interval / 60).rounded(.up))), "minute", "minutes")
+            return make(.minutes, max(1, Int((interval / 60).rounded(.up))))
         }
     }
 
@@ -206,11 +250,6 @@ extension Countdown {
         }
         return target.formatted(date: style, time: .shortened)
     }
-
-    private static func label(_ value: Int, _ singular: String, _ plural: String, includeNumber: Bool = false) -> String {
-        let word = value == 1 ? singular : plural
-        return includeNumber ? "\(value) \(word)" : word
-    }
 }
 
 struct CountdownSegment: Equatable {
@@ -234,17 +273,17 @@ extension Countdown {
         let days = parts.day ?? 0
         let hours = parts.hour ?? 0
 
-        func segment(_ value: Int, _ singular: String, _ plural: String) -> CountdownSegment {
-            CountdownSegment(value: value, label: value == 1 ? singular : plural)
+        func segment(_ unit: CountdownStatus.Unit, _ value: Int) -> CountdownSegment {
+            CountdownSegment(value: value, label: unit.label(value))
         }
 
         if years > 0 {
-            return [segment(years, "year", "years"), segment(months, "month", "months"), segment(days, "day", "days")]
+            return [segment(.years, years), segment(.months, months), segment(.days, days)]
         }
         if months > 0 {
-            return [segment(months, "month", "months"), segment(days, "day", "days"), segment(hours, "hour", "hours")]
+            return [segment(.months, months), segment(.days, days), segment(.hours, hours)]
         }
-        return [segment(days, "day", "days"), segment(hours, "hour", "hours")]
+        return [segment(.days, days), segment(.hours, hours)]
     }
 }
 

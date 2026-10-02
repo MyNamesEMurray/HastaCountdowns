@@ -133,8 +133,8 @@ struct PremiumView: View {
 struct FeatureRow: View {
     let symbol: String
     let color: Color
-    let title: String
-    let detail: String
+    let title: LocalizedStringKey
+    let detail: LocalizedStringKey
 
     var body: some View {
         HStack(alignment: .top, spacing: 16) {

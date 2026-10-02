@@ -99,6 +99,23 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
 
+      - name: Collect localizable strings
+        if: success()
+        continue-on-error: true
+        run: |
+          mkdir -p LocalizableStrings
+          find DerivedData/Build/Intermediates.noindex -name "*.stringsdata" -exec cp {} LocalizableStrings/ \;
+          ls LocalizableStrings | wc -l
+
+      - name: Upload localizable strings
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: LocalizableStrings
+          path: LocalizableStrings
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v7

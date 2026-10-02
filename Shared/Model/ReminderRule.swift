@@ -23,16 +23,34 @@ struct ReminderRule: Codable, Hashable, Identifiable {
             }
         }
 
-        func name(for amount: Int) -> String {
-            let singular: String
+        func pickerName(for amount: Int) -> String {
             switch self {
-            case .minutes: singular = "minute"
-            case .hours: singular = "hour"
-            case .days: singular = "day"
-            case .weeks: singular = "week"
-            case .months: singular = "month"
+            case .minutes: String(localized: "picker.minutes \(amount)")
+            case .hours: String(localized: "picker.hours \(amount)")
+            case .days: String(localized: "picker.days \(amount)")
+            case .weeks: String(localized: "picker.weeks \(amount)")
+            case .months: String(localized: "picker.months \(amount)")
             }
-            return amount == 1 ? singular : singular + "s"
+        }
+
+        func before(_ amount: Int) -> String {
+            switch self {
+            case .minutes: String(localized: "before.minutes \(amount)")
+            case .hours: String(localized: "before.hours \(amount)")
+            case .days: String(localized: "before.days \(amount)")
+            case .weeks: String(localized: "before.weeks \(amount)")
+            case .months: String(localized: "before.months \(amount)")
+            }
+        }
+
+        func toGo(_ amount: Int) -> String {
+            switch self {
+            case .minutes: String(localized: "togo.minutes \(amount)")
+            case .hours: String(localized: "togo.hours \(amount)")
+            case .days: String(localized: "togo.days \(amount)")
+            case .weeks: String(localized: "togo.weeks \(amount)")
+            case .months: String(localized: "togo.months \(amount)")
+            }
         }
 
         static func available(isAllDay: Bool) -> [Unit] {
@@ -92,16 +110,18 @@ struct ReminderRule: Codable, Hashable, Identifiable {
     func title(isAllDay: Bool, defaultTime: DateComponents, calendar: Calendar = .current) -> String {
         let offset: String
         if amount == 0 {
-            offset = isAllDay || hasCustomTime ? "On the day" : "At time of event"
+            offset = isAllDay || hasCustomTime ? String(localized: "On the day") : String(localized: "At time of event")
         } else {
-            offset = "\(amount) \(unit.name(for: amount)) before"
+            offset = unit.before(amount)
         }
         guard unit.usesTimeOfDay else { return offset }
         if let hour {
-            return "\(offset) at \(Self.timeText(hour: hour, minute: minute ?? 0, calendar: calendar))"
+            let time = Self.timeText(hour: hour, minute: minute ?? 0, calendar: calendar)
+            return String(localized: "reminder.at \(offset) \(time)")
         }
         if isAllDay {
-            return "\(offset) at \(Self.timeText(hour: defaultTime.hour ?? 9, minute: defaultTime.minute ?? 0, calendar: calendar))"
+            let time = Self.timeText(hour: defaultTime.hour ?? 9, minute: defaultTime.minute ?? 0, calendar: calendar)
+            return String(localized: "reminder.at \(offset) \(time)")
         }
         return offset
     }
@@ -116,12 +136,12 @@ struct ReminderRule: Codable, Hashable, Identifiable {
 
     var notificationBody: String {
         if amount == 0 {
-            return unit.usesTimeOfDay ? "Today's the day! 🎉" : "It's time! 🎉"
+            return unit.usesTimeOfDay ? String(localized: "Today's the day! 🎉") : String(localized: "It's time! 🎉")
         }
         if amount == 1 && unit == .days {
-            return "Tomorrow!"
+            return String(localized: "Tomorrow!")
         }
-        return "\(amount) \(unit.name(for: amount)) to go."
+        return unit.toGo(amount)
     }
 
     static func timeText(hour: Int, minute: Int, calendar: Calendar = .current) -> String {

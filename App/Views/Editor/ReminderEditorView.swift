@@ -59,7 +59,7 @@ struct ReminderEditorView: View {
 
                         Picker("Unit", selection: $rule.unit) {
                             ForEach(units) { unit in
-                                Text(unit.name(for: rule.amount).capitalized).tag(unit)
+                                Text(unit.pickerName(for: rule.amount)).tag(unit)
                             }
                         }
                         .pickerStyle(.wheel)

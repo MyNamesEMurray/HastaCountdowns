@@ -61,7 +61,7 @@ final class CountdownStore {
     func duplicate(_ countdown: Countdown) {
         var copy = countdown
         copy.id = UUID()
-        copy.title = "\(countdown.displayTitle) Copy"
+        copy.title = String(localized: "\(countdown.displayTitle) Copy")
         copy.createdAt = .now
         copy.modifiedAt = .now
         copy.backgroundImageID = nil

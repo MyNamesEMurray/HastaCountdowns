@@ -98,10 +98,10 @@ enum RepeatRule: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .never: "Never"
-        case .weekly: "Every Week"
-        case .monthly: "Every Month"
-        case .yearly: "Every Year"
+        case .never: String(localized: "Never")
+        case .weekly: String(localized: "Every Week")
+        case .monthly: String(localized: "Every Month")
+        case .yearly: String(localized: "Every Year")
         }
     }
 
@@ -122,21 +122,21 @@ enum DisplayUnit: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .automatic: "Auto"
-        case .days: "Days"
-        case .weeks: "Weeks"
-        case .months: "Months"
-        case .years: "Years"
+        case .automatic: String(localized: "Auto")
+        case .days: String(localized: "Days")
+        case .weeks: String(localized: "Weeks")
+        case .months: String(localized: "Months")
+        case .years: String(localized: "Years")
         }
     }
 
     var detail: String {
         switch self {
-        case .automatic: "Picks years, months, weeks, days, hours, or minutes depending on how far away it is."
-        case .days: "Always counts in days."
-        case .weeks: "Weeks and days, once it's at least a week away."
-        case .months: "Months and days, once it's at least a month away."
-        case .years: "Years and months, once it's at least a year away."
+        case .automatic: String(localized: "Picks years, months, weeks, days, hours, or minutes depending on how far away it is.")
+        case .days: String(localized: "Always counts in days.")
+        case .weeks: String(localized: "Weeks and days, once it's at least a week away.")
+        case .months: String(localized: "Months and days, once it's at least a month away.")
+        case .years: String(localized: "Years and months, once it's at least a year away.")
         }
     }
 }
@@ -146,7 +146,23 @@ enum CountdownColor: String, Codable, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String { rawValue.capitalized }
+    var title: String {
+        switch self {
+        case .red: String(localized: "Red")
+        case .orange: String(localized: "Orange")
+        case .yellow: String(localized: "Yellow")
+        case .green: String(localized: "Green")
+        case .mint: String(localized: "Mint")
+        case .teal: String(localized: "Teal")
+        case .cyan: String(localized: "Cyan")
+        case .blue: String(localized: "Blue")
+        case .indigo: String(localized: "Indigo")
+        case .purple: String(localized: "Purple")
+        case .pink: String(localized: "Pink")
+        case .brown: String(localized: "Brown")
+        case .graphite: String(localized: "Graphite")
+        }
+    }
 }
 
 enum WidgetStyle: String, Codable, CaseIterable, Identifiable {
@@ -156,10 +172,10 @@ enum WidgetStyle: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .classic: "Classic"
-        case .minimal: "Minimal"
-        case .vivid: "Vivid"
-        case .night: "Night"
+        case .classic: String(localized: "Classic")
+        case .minimal: String(localized: "Minimal")
+        case .vivid: String(localized: "Vivid")
+        case .night: String(localized: "Night")
         }
     }
 
@@ -178,11 +194,11 @@ enum Typeface: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .rounded: "Rounded"
-        case .standard: "Standard"
-        case .serif: "Serif"
-        case .mono: "Mono"
-        case .condensed: "Condensed"
+        case .rounded: String(localized: "Rounded")
+        case .standard: String(localized: "Standard")
+        case .serif: String(localized: "Serif")
+        case .mono: String(localized: "Mono")
+        case .condensed: String(localized: "Condensed")
         }
     }
 
@@ -212,7 +228,7 @@ extension Countdown {
 
     var displayTitle: String {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? "Untitled" : trimmed
+        return trimmed.isEmpty ? String(localized: "Untitled") : trimmed
     }
 }
 
@@ -223,11 +239,11 @@ extension Countdown {
         func days(_ n: Int) -> Date { calendar.date(byAdding: .day, value: n, to: today) ?? today }
         func id(_ suffix: String) -> UUID { UUID(uuidString: "00000000-0000-0000-0000-0000000000\(suffix)")! }
         return [
-            Countdown(id: id("01"), title: "Tokyo Trip", date: days(42), symbol: "airplane", color: .blue, createdAt: days(-30)),
-            Countdown(id: id("02"), title: "Maya's Birthday", date: days(9), repeatRule: .yearly, symbol: "birthday.cake.fill", color: .pink, createdAt: days(-200)),
-            Countdown(id: id("03"), title: "Concert", date: days(17), symbol: "music.mic", color: .purple, style: .vivid, createdAt: days(-12)),
-            Countdown(id: id("04"), title: "Marathon", date: days(88), symbol: "figure.run", color: .orange, unit: .weeks, createdAt: days(-60)),
-            Countdown(id: id("05"), title: "Dinner Reservation at Lucia's Trattoria", date: Date.now.addingTimeInterval(5 * 3_600 + 20 * 60), isAllDay: false, symbol: "fork.knife", color: .green, createdAt: days(-3)),
+            Countdown(id: id("01"), title: String(localized: "Tokyo Trip"), date: days(42), symbol: "airplane", color: .blue, createdAt: days(-30)),
+            Countdown(id: id("02"), title: String(localized: "Maya's Birthday"), date: days(9), repeatRule: .yearly, symbol: "birthday.cake.fill", color: .pink, createdAt: days(-200)),
+            Countdown(id: id("03"), title: String(localized: "Concert"), date: days(17), symbol: "music.mic", color: .purple, style: .vivid, createdAt: days(-12)),
+            Countdown(id: id("04"), title: String(localized: "Marathon"), date: days(88), symbol: "figure.run", color: .orange, unit: .weeks, createdAt: days(-60)),
+            Countdown(id: id("05"), title: String(localized: "Dinner Reservation at Lucia's Trattoria"), date: Date.now.addingTimeInterval(5 * 3_600 + 20 * 60), isAllDay: false, symbol: "fork.knife", color: .green, createdAt: days(-3)),
         ]
     }()
 }

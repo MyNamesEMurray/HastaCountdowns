@@ -8,11 +8,11 @@ struct AppIconOption: Identifiable, Hashable {
     let previewName: String
 
     static let all: [AppIconOption] = [
-        AppIconOption(id: "default", title: "Sunrise", iconName: nil, previewName: "IconPreview-Default"),
-        AppIconOption(id: "midnight", title: "Midnight", iconName: "AppIcon-Midnight", previewName: "IconPreview-Midnight"),
-        AppIconOption(id: "ocean", title: "Ocean", iconName: "AppIcon-Ocean", previewName: "IconPreview-Ocean"),
-        AppIconOption(id: "mint", title: "Mint", iconName: "AppIcon-Mint", previewName: "IconPreview-Mint"),
-        AppIconOption(id: "mono", title: "Mono", iconName: "AppIcon-Mono", previewName: "IconPreview-Mono"),
+        AppIconOption(id: "default", title: String(localized: "Sunrise"), iconName: nil, previewName: "IconPreview-Default"),
+        AppIconOption(id: "midnight", title: String(localized: "Midnight"), iconName: "AppIcon-Midnight", previewName: "IconPreview-Midnight"),
+        AppIconOption(id: "ocean", title: String(localized: "Ocean"), iconName: "AppIcon-Ocean", previewName: "IconPreview-Ocean"),
+        AppIconOption(id: "mint", title: String(localized: "Mint"), iconName: "AppIcon-Mint", previewName: "IconPreview-Mint"),
+        AppIconOption(id: "mono", title: String(localized: "Mono"), iconName: "AppIcon-Mono", previewName: "IconPreview-Mono"),
     ]
 }
 

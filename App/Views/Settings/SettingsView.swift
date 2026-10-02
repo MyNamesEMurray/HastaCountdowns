@@ -202,12 +202,12 @@ extension SettingsView {
 
     private var syncStatusText: String {
         switch store.sync?.status ?? .off {
-        case .off: return "Off"
-        case .checking: return "Checking iCloud…"
+        case .off: return String(localized: "Off")
+        case .checking: return String(localized: "Checking iCloud…")
         case .unavailable(let message): return message
-        case .syncing: return "Syncing…"
-        case .upToDate(let date): return "Up to date · \(date.formatted(date: .omitted, time: .shortened))"
-        case .failed(let message): return "Couldn't sync. \(message)"
+        case .syncing: return String(localized: "Syncing…")
+        case .upToDate(let date): return String(localized: "Up to date · \(date.formatted(date: .omitted, time: .shortened))")
+        case .failed(let message): return String(localized: "Couldn't sync. \(message)")
         }
     }
 }

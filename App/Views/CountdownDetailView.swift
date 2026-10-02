@@ -183,7 +183,7 @@ private struct TimeBreakdownView: View {
         .background(Color(uiColor: .secondarySystemGroupedBackground), in: .rect(cornerRadius: 20, style: .continuous))
     }
 
-    private func unit(_ value: Int, _ label: String) -> some View {
+    private func unit(_ value: Int, _ label: LocalizedStringKey) -> some View {
         VStack(spacing: 2) {
             Text(value.formatted())
                 .font(.system(size: 28, weight: .semibold, design: .rounded))
@@ -214,8 +214,8 @@ private struct DetailInfoView: View {
 
     private var reminderSummary: String {
         let rules = countdown.reminders.sortedByLeadTime
-        guard let first = rules.first else { return "None" }
-        if rules.count > 1 { return "\(rules.count) reminders" }
+        guard let first = rules.first else { return String(localized: "None") }
+        if rules.count > 1 { return String(localized: "reminders.count \(rules.count)") }
         return first.title(isAllDay: countdown.isAllDay, defaultTime: ReminderPreferences.time)
     }
 

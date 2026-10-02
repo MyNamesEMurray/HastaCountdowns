@@ -282,7 +282,7 @@ struct LargeCountdownView: View {
                                 .minimumScaleFactor(0.7)
                                 .allowsTightening(true)
                             Spacer(minLength: 4)
-                            Text(otherStatus.isToday ? "Today" : "\(otherStatus.number) \(otherStatus.unitLabel)")
+                            Text(otherStatus.isToday ? String(localized: "Today") : otherStatus.unit.amount(otherStatus.value))
                                 .font(countdown.typeface.font(.subheadline, weight: .semibold))
                                 .monospacedDigit()
                         }
@@ -371,7 +371,7 @@ struct RectangularCountdownView: View {
             } else if countdown.isLiveToday(at: now) {
                 SegmentTile(
                     timerInterval: now...status.target,
-                    label: "remaining",
+                    label: String(localized: "remaining"),
                     typeface: countdown.typeface
                 )
             } else {
