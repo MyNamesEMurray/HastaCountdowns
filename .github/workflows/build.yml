@@ -13,6 +13,11 @@ on:
       - "docs/**"
       - "site/**"
   workflow_dispatch:
+    inputs:
+      upload_screenshots:
+        description: Upload the App Store screenshots to App Store Connect
+        type: boolean
+        default: false
 
 concurrency:
   group: build-${{ github.ref }}
@@ -80,6 +85,17 @@ jobs:
           python3 -m venv "$RUNNER_TEMP/venv"
           "$RUNNER_TEMP/venv/bin/pip" install --quiet pillow
           "$RUNNER_TEMP/venv/bin/python" .github/scripts/compose_app_store_screenshots.py Screenshots AppStoreScreenshots
+
+      - name: Upload screenshots to App Store Connect
+        if: success() && inputs.upload_screenshots
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.APP_STORE_CONNECT_KEY_P8 }}
+          BUNDLE_ID: com.exaltedpixels.Hasta
+        run: |
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet pyjwt cryptography
+          "$RUNNER_TEMP/venv/bin/python" .github/scripts/upload_app_store_screenshots.py AppStoreScreenshots
 
       - name: Upload screenshots
         if: success()
