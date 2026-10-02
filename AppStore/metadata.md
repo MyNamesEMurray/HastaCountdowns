@@ -14,6 +14,9 @@ Source of truth for the Hasta listing. Keep in sync with App Store Connect.
 | Widget bundle ID | com.exaltedpixels.Hasta.widgets |
 | App Group | group.com.exaltedpixels.Hasta |
 | Premium product ID | com.exaltedpixels.Hasta.premium (Non-Consumable) |
+| Primary category | Utilities |
+| Secondary category | Lifestyle |
+| Age rating | 4+ |
 
 ## Version 1.0 (en-US)
 
