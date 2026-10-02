@@ -1,0 +1,272 @@
+{
+  "en-US": {
+    "08-homescreen": {
+      "headline": "Countdowns on\nyour Home Screen",
+      "subheadline": "Small, medium, and large widgets."
+    },
+    "09-lockscreen": {
+      "headline": "Right on your\nLock Screen",
+      "subheadline": "See what's coming at a glance."
+    },
+    "03-home": {
+      "headline": "Every moment\nin one place",
+      "subheadline": "Trips, birthdays, concerts, and more."
+    },
+    "05-editor": {
+      "headline": "Make it yours",
+      "subheadline": "Colors, symbols, styles, photos,\nand typefaces."
+    },
+    "04-detail": {
+      "headline": "Down to\nthe second",
+      "subheadline": "Years, months, days, hours,\nand minutes. Automatically."
+    },
+    "06-settings": {
+      "headline": "Synced with iCloud",
+      "subheadline": "Free on all your devices,\nprivate to your account."
+    },
+    "07-premium": {
+      "headline": "No subscription",
+      "subheadline": "Everything essential is free.\nPremium is a one-time unlock."
+    }
+  },
+  "es-MX": {
+    "08-homescreen": {
+      "headline": "Cuentas regresivas\nen tu pantalla de inicio",
+      "subheadline": "Widgets pequeños, medianos y grandes."
+    },
+    "09-lockscreen": {
+      "headline": "Directo en tu\npantalla bloqueada",
+      "subheadline": "Ve lo que viene de un vistazo."
+    },
+    "03-home": {
+      "headline": "Todos tus momentos\nen un solo lugar",
+      "subheadline": "Viajes, cumpleaños, conciertos y más."
+    },
+    "05-editor": {
+      "headline": "Hazlo tuyo",
+      "subheadline": "Colores, símbolos, estilos, fotos\ny tipografías."
+    },
+    "04-detail": {
+      "headline": "Segundo\na segundo",
+      "subheadline": "Años, meses, días, horas y minutos.\nAutomáticamente."
+    },
+    "06-settings": {
+      "headline": "Sincronizado\ncon iCloud",
+      "subheadline": "Gratis en todos tus dispositivos,\nprivado en tu cuenta."
+    },
+    "07-premium": {
+      "headline": "Sin suscripción",
+      "subheadline": "Todo lo esencial es gratis.\nPremium es una compra única."
+    }
+  },
+  "es-ES": {
+    "08-homescreen": {
+      "headline": "Cuentas atrás\nen tu pantalla de inicio",
+      "subheadline": "Widgets pequeños, medianos y grandes."
+    },
+    "09-lockscreen": {
+      "headline": "Directamente en tu\npantalla de bloqueo",
+      "subheadline": "Mira lo que viene de un vistazo."
+    },
+    "03-home": {
+      "headline": "Todos tus momentos\nen un solo lugar",
+      "subheadline": "Viajes, cumpleaños, conciertos y más."
+    },
+    "05-editor": {
+      "headline": "Hazlo tuyo",
+      "subheadline": "Colores, símbolos, estilos, fotos\ny tipografías."
+    },
+    "04-detail": {
+      "headline": "Segundo\na segundo",
+      "subheadline": "Años, meses, días, horas y minutos.\nAutomáticamente."
+    },
+    "06-settings": {
+      "headline": "Sincronizado\ncon iCloud",
+      "subheadline": "Gratis en todos tus dispositivos,\nprivado en tu cuenta."
+    },
+    "07-premium": {
+      "headline": "Sin suscripción",
+      "subheadline": "Todo lo esencial es gratis.\nPremium es una compra única."
+    }
+  },
+  "de-DE": {
+    "08-homescreen": {
+      "headline": "Countdowns auf deinem\nHome-Bildschirm",
+      "subheadline": "Kleine, mittlere und große Widgets."
+    },
+    "09-lockscreen": {
+      "headline": "Direkt auf dem\nSperrbildschirm",
+      "subheadline": "Sieh auf einen Blick, was ansteht."
+    },
+    "03-home": {
+      "headline": "Alle Momente\nan einem Ort",
+      "subheadline": "Reisen, Geburtstage, Konzerte und mehr."
+    },
+    "05-editor": {
+      "headline": "Ganz nach deinem\nGeschmack",
+      "subheadline": "Farben, Symbole, Stile, Fotos\nund Schriften."
+    },
+    "04-detail": {
+      "headline": "Auf die Sekunde\ngenau",
+      "subheadline": "Jahre, Monate, Tage, Stunden\nund Minuten. Automatisch."
+    },
+    "06-settings": {
+      "headline": "Mit iCloud\nsynchronisiert",
+      "subheadline": "Kostenlos auf all deinen Geräten,\nprivat in deinem Account."
+    },
+    "07-premium": {
+      "headline": "Kein Abo",
+      "subheadline": "Alles Wichtige ist kostenlos.\nPremium ist ein Einmalkauf."
+    }
+  },
+  "fr-FR": {
+    "08-homescreen": {
+      "headline": "Vos comptes à rebours\nsur l'écran d'accueil",
+      "subheadline": "Widgets petits, moyens et grands."
+    },
+    "09-lockscreen": {
+      "headline": "Directement sur\nl'écran verrouillé",
+      "subheadline": "Voyez ce qui arrive en un coup d'œil."
+    },
+    "03-home": {
+      "headline": "Tous vos moments\nau même endroit",
+      "subheadline": "Voyages, anniversaires, concerts et plus."
+    },
+    "05-editor": {
+      "headline": "À votre image",
+      "subheadline": "Couleurs, symboles, styles, photos\net polices."
+    },
+    "04-detail": {
+      "headline": "À la seconde\nprès",
+      "subheadline": "Années, mois, jours, heures\net minutes. Automatiquement."
+    },
+    "06-settings": {
+      "headline": "Synchronisé\navec iCloud",
+      "subheadline": "Gratuit sur tous vos appareils,\nprivé sur votre compte."
+    },
+    "07-premium": {
+      "headline": "Sans abonnement",
+      "subheadline": "L'essentiel est gratuit.\nPremium est un achat unique."
+    }
+  },
+  "pt-BR": {
+    "08-homescreen": {
+      "headline": "Contagens na sua\nTela de Início",
+      "subheadline": "Widgets pequenos, médios e grandes."
+    },
+    "09-lockscreen": {
+      "headline": "Direto na\nTela Bloqueada",
+      "subheadline": "Veja o que vem por aí num relance."
+    },
+    "03-home": {
+      "headline": "Todos os momentos\nem um só lugar",
+      "subheadline": "Viagens, aniversários, shows e mais."
+    },
+    "05-editor": {
+      "headline": "Do seu jeito",
+      "subheadline": "Cores, símbolos, estilos, fotos\ne fontes."
+    },
+    "04-detail": {
+      "headline": "Segundo\na segundo",
+      "subheadline": "Anos, meses, dias, horas\ne minutos. Automaticamente."
+    },
+    "06-settings": {
+      "headline": "Sincronizado\ncom o iCloud",
+      "subheadline": "Grátis em todos os seus dispositivos,\nprivado na sua conta."
+    },
+    "07-premium": {
+      "headline": "Sem assinatura",
+      "subheadline": "Tudo o que é essencial é grátis.\nO Premium é uma compra única."
+    }
+  },
+  "ja": {
+    "08-homescreen": {
+      "headline": "ホーム画面に\nカウントダウン",
+      "subheadline": "小・中・大のウィジェット"
+    },
+    "09-lockscreen": {
+      "headline": "ロック画面で\nひと目でチェック",
+      "subheadline": "次の予定がすぐわかる"
+    },
+    "03-home": {
+      "headline": "大切な日を\nひとつの場所に",
+      "subheadline": "旅行、誕生日、ライブなど"
+    },
+    "05-editor": {
+      "headline": "自分らしく",
+      "subheadline": "カラー、シンボル、スタイル、\n写真、書体"
+    },
+    "04-detail": {
+      "headline": "秒単位まで",
+      "subheadline": "年・月・日・時間・分を\n自動で切り替え"
+    },
+    "06-settings": {
+      "headline": "iCloudで同期",
+      "subheadline": "すべてのデバイスで無料。\nデータはあなただけのもの"
+    },
+    "07-premium": {
+      "headline": "サブスクなし",
+      "subheadline": "基本機能はすべて無料。\nPremiumは買い切り"
+    }
+  },
+  "ko": {
+    "08-homescreen": {
+      "headline": "홈 화면에\n디데이를",
+      "subheadline": "소형, 중형, 대형 위젯"
+    },
+    "09-lockscreen": {
+      "headline": "잠금 화면에서\n바로 확인",
+      "subheadline": "다가오는 날을 한눈에"
+    },
+    "03-home": {
+      "headline": "모든 순간을\n한곳에",
+      "subheadline": "여행, 생일, 콘서트 그리고 더 많이"
+    },
+    "05-editor": {
+      "headline": "나만의 스타일로",
+      "subheadline": "색상, 심볼, 스타일, 사진,\n서체까지"
+    },
+    "04-detail": {
+      "headline": "초 단위까지",
+      "subheadline": "연, 월, 일, 시간, 분을\n자동으로"
+    },
+    "06-settings": {
+      "headline": "iCloud 동기화",
+      "subheadline": "모든 기기에서 무료,\n내 계정에만 안전하게"
+    },
+    "07-premium": {
+      "headline": "구독 없음",
+      "subheadline": "필수 기능은 모두 무료.\nPremium은 한 번만 구매"
+    }
+  },
+  "zh-Hans": {
+    "08-homescreen": {
+      "headline": "倒计时\n放上主屏幕",
+      "subheadline": "小、中、大尺寸小组件"
+    },
+    "09-lockscreen": {
+      "headline": "锁定屏幕\n一眼可见",
+      "subheadline": "即将到来的日子，一目了然"
+    },
+    "03-home": {
+      "headline": "所有重要时刻\n尽在一处",
+      "subheadline": "旅行、生日、演唱会等等"
+    },
+    "05-editor": {
+      "headline": "随心定制",
+      "subheadline": "颜色、符号、样式、照片\n和字体"
+    },
+    "04-detail": {
+      "headline": "精确到秒",
+      "subheadline": "年、月、日、小时和分钟\n自动切换"
+    },
+    "06-settings": {
+      "headline": "iCloud 同步",
+      "subheadline": "所有设备免费使用，\n数据仅你可见"
+    },
+    "07-premium": {
+      "headline": "没有订阅",
+      "subheadline": "基础功能全部免费。\nPremium 一次买断"
+    }
+  }
+}

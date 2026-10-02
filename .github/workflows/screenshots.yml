@@ -1,0 +1,140 @@
+name: Localized Screenshots
+
+# Renders the App Store screenshots for each listing language: the app is
+# captured with that language and region, then framed with the captions
+# from AppStore/screenshot-captions.json. Run it from the Actions tab; it
+# also runs when the captions or this workflow change on a branch.
+on:
+  workflow_dispatch:
+    inputs:
+      locales:
+        description: Locales to render, comma separated
+        default: en-US,es-MX,es-ES,de-DE,fr-FR,pt-BR,ja,ko,zh-Hans
+  push:
+    branches-ignore:
+      - main
+    paths:
+      - .github/workflows/screenshots.yml
+      - AppStore/screenshot-captions.json
+
+concurrency:
+  group: screenshots-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    name: Localized screenshots
+    runs-on: ${{ vars.MACOS_RUNNER || 'macos-26' }}
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/xcode-project
+        with:
+          xcode: ${{ vars.XCODE_VERSION }}
+
+      - name: Pick a simulator
+        id: sim
+        run: python3 .github/scripts/pick_simulator.py
+
+      - name: Prepare simulator
+        continue-on-error: true
+        env:
+          SIMULATOR_ID: ${{ steps.sim.outputs.udid }}
+        run: |
+          xcrun simctl boot "$SIMULATOR_ID" || true
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
+          xcrun simctl status_bar "$SIMULATOR_ID" override \
+            --time "9:41" --dataNetwork wifi --wifiMode active --wifiBars 3 \
+            --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
+
+      - name: Build for testing
+        env:
+          SIMULATOR_ID: ${{ steps.sim.outputs.udid }}
+        run: |
+          set -o pipefail
+          FORMATTER=(cat)
+          if command -v xcbeautify >/dev/null; then
+            FORMATTER=(xcbeautify --renderer github-actions)
+          fi
+          xcodebuild build-for-testing \
+            -project Hasta.xcodeproj \
+            -scheme Hasta \
+            -destination "id=$SIMULATOR_ID" \
+            -derivedDataPath DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            | "${FORMATTER[@]}"
+
+      - name: Install composer
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet pillow
+          mkdir -p "$RUNNER_TEMP/fonts"
+          for font in notosansjp/NotoSansJP notosanskr/NotoSansKR notosanssc/NotoSansSC; do
+            curl -fsSL --retry 3 -o "$RUNNER_TEMP/fonts/$(basename "$font")[wght].ttf" \
+              "https://github.com/google/fonts/raw/main/ofl/${font}%5Bwght%5D.ttf"
+          done
+
+      - name: Capture and compose
+        env:
+          SIMULATOR_ID: ${{ steps.sim.outputs.udid }}
+          LOCALES: ${{ inputs.locales || 'en-US,es-MX,es-ES,de-DE,fr-FR,pt-BR,ja,ko,zh-Hans' }}
+        run: |
+          set -o pipefail
+          FORMATTER=(cat)
+          if command -v xcbeautify >/dev/null; then
+            FORMATTER=(xcbeautify --renderer github-actions)
+          fi
+          SHOTS=$(python3 .github/scripts/compose_app_store_screenshots.py --list-shots)
+          failed=()
+          for locale in ${LOCALES//,/ }; do
+            case "$locale" in
+              en-US) language=en; region=US ;;
+              es-MX) language=es-419; region=MX ;;
+              es-ES) language=es; region=ES ;;
+              de-DE) language=de; region=DE ;;
+              fr-FR) language=fr; region=FR ;;
+              pt-BR) language=pt-BR; region=BR ;;
+              ja) language=ja; region=JP ;;
+              ko) language=ko; region=KR ;;
+              zh-Hans) language=zh-Hans; region=CN ;;
+              *) echo "::error::Unknown locale $locale"; failed+=("$locale"); continue ;;
+            esac
+            echo "::group::$locale"
+            if TEST_RUNNER_HASTA_SHOTS="$SHOTS" xcodebuild test-without-building \
+                -project Hasta.xcodeproj \
+                -scheme Hasta \
+                -destination "id=$SIMULATOR_ID" \
+                -derivedDataPath DerivedData \
+                -only-testing:HastaUITests/ScreenshotTests \
+                -testLanguage "$language" \
+                -testRegion "$region" \
+                -resultBundlePath "Results/$locale.xcresult" \
+                CODE_SIGNING_ALLOWED=NO \
+                | "${FORMATTER[@]}" \
+              && python3 .github/scripts/export_screenshots.py "Results/$locale.xcresult" "Raw/$locale" \
+              && "$RUNNER_TEMP/venv/bin/python" .github/scripts/compose_app_store_screenshots.py \
+                "Raw/$locale" "AppStoreScreenshots/$locale" --locale "$locale" --cjk-fonts "$RUNNER_TEMP/fonts"; then
+              echo "::endgroup::"
+            else
+              echo "::endgroup::"
+              echo "::error::Screenshots for $locale failed"
+              failed+=("$locale")
+            fi
+          done
+          if [ ${#failed[@]} -gt 0 ]; then
+            echo "::error::Failed locales: ${failed[*]}"
+            exit 1
+          fi
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: AppStoreScreenshots-Localized
+          path: AppStoreScreenshots
+          if-no-files-found: ignore
+          retention-days: 30

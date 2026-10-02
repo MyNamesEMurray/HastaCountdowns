@@ -27,8 +27,9 @@ final class ScreenshotTests: XCTestCase {
 
     @MainActor
     func testCaptureScreens() {
+        let only = ProcessInfo.processInfo.environment["HASTA_SHOTS"].map { Set($0.split(separator: ",").map(String.init)) }
         for appearance in ["light", "dark"] {
-            for shot in shots {
+            for shot in shots where only?.contains("\(appearance)-\(shot.name)") ?? true {
                 capture(shot, appearance: appearance)
             }
         }

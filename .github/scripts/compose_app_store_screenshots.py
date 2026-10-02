@@ -3,12 +3,18 @@
 
 Each slide gets a headline, a subheadline and the screenshot inside a phone
 frame, rendered at 1320 x 2868 (the App Store's 6.9" iPhone size).
+Captions come from AppStore/screenshot-captions.json.
 
 Usage: compose_app_store_screenshots.py <raw dir> <output dir>
-       [--bold FONT] [--regular FONT]
+       [--locale en-US] [--bold FONT] [--regular FONT] [--cjk-fonts DIR]
+       compose_app_store_screenshots.py --list-shots
+
+Japanese, Korean, and Chinese captions use Noto Sans JP, KR, or SC
+("NotoSansJP[wght].ttf" and so on) from --cjk-fonts.
 """
 
 import argparse
+import json
 import os
 import sys
 
@@ -20,15 +26,19 @@ BEZEL = 24
 PHONE_TOP = 640
 SUPERSAMPLE = 3
 
+CAPTIONS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "AppStore", "screenshot-captions.json")
+
 SLIDES = [
-    ("08-homescreen", "dark", "Countdowns on\nyour Home Screen", "Small, medium, and large widgets.", ("#DCE3FF", "#F4F1FF")),
-    ("09-lockscreen", "dark", "Right on your\nLock Screen", "See what's coming at a glance.", ("#FFE1D6", "#FFF3EC")),
-    ("03-home", "light", "Every moment\nin one place", "Trips, birthdays, concerts, and more.", ("#DDF3E4", "#F2FBF5")),
-    ("05-editor", "light", "Make it yours", "Colors, symbols, styles, photos,\nand typefaces.", ("#EEDDFB", "#F9F2FF")),
-    ("04-detail", "light", "Down to\nthe second", "Years, months, days, hours,\nand minutes. Automatically.", ("#D8ECFF", "#F0F7FF")),
-    ("06-settings", "light", "Synced with iCloud", "Free on all your devices,\nprivate to your account.", ("#E3E8EF", "#F6F8FB")),
-    ("07-premium", "light", "No subscription", "Everything essential is free.\nPremium is a one-time unlock.", ("#FFE9C7", "#FFF7EA")),
+    ("08-homescreen", "dark", ("#DCE3FF", "#F4F1FF")),
+    ("09-lockscreen", "dark", ("#FFE1D6", "#FFF3EC")),
+    ("03-home", "light", ("#DDF3E4", "#F2FBF5")),
+    ("05-editor", "light", ("#EEDDFB", "#F9F2FF")),
+    ("04-detail", "light", ("#D8ECFF", "#F0F7FF")),
+    ("06-settings", "light", ("#E3E8EF", "#F6F8FB")),
+    ("07-premium", "light", ("#FFE9C7", "#FFF7EA")),
 ]
+
+CJK_FONTS = {"ja": "NotoSansJP", "ko": "NotoSansKR", "zh-Hans": "NotoSansSC"}
 
 SYSTEM_FONTS = [
     "/System/Library/Fonts/SFNS.ttf",
@@ -128,30 +138,52 @@ def compose(screenshot, headline, subheadline, colors, bold, regular):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("raw")
-    parser.add_argument("output")
+    parser.add_argument("raw", nargs="?")
+    parser.add_argument("output", nargs="?")
+    parser.add_argument("--locale", default="en-US")
     parser.add_argument("--bold")
     parser.add_argument("--regular")
+    parser.add_argument("--cjk-fonts")
+    parser.add_argument("--list-shots", action="store_true")
     args = parser.parse_args()
 
-    system = next((path for path in SYSTEM_FONTS if os.path.exists(path)), None)
-    bold = args.bold or system
-    regular = args.regular or args.bold or system
-    if not bold:
+    if args.list_shots:
+        print(",".join(f"{appearance}-{name}" for name, appearance, _ in SLIDES))
+        return 0
+    if not args.raw or not args.output:
+        parser.error("raw and output folders are required")
+
+    with open(CAPTIONS) as f:
+        captions = json.load(f).get(args.locale)
+    if not captions:
+        print(f"::error::No captions for {args.locale} in {CAPTIONS}")
+        return 1
+
+    if args.locale in CJK_FONTS:
+        if not args.cjk_fonts:
+            print(f"::error::{args.locale} needs --cjk-fonts")
+            return 1
+        bold = regular = os.path.join(args.cjk_fonts, f"{CJK_FONTS[args.locale]}[wght].ttf")
+    else:
+        system = next((path for path in SYSTEM_FONTS if os.path.exists(path)), None)
+        bold = args.bold or system
+        regular = args.regular or args.bold or system
+    if not bold or not os.path.exists(bold):
         print("::error::No font found. Pass --bold and --regular.")
         return 1
 
     os.makedirs(args.output, exist_ok=True)
     count = 0
-    for index, (name, appearance, headline, subheadline, colors) in enumerate(SLIDES, start=1):
+    for index, (name, appearance, colors) in enumerate(SLIDES, start=1):
         source = os.path.join(args.raw, f"{appearance}-{name}.png")
         if not os.path.exists(source):
             print(f"skipping {name}: {source} not found")
             continue
-        image = compose(Image.open(source), headline, subheadline, colors, bold, regular)
+        caption = captions[name]
+        image = compose(Image.open(source), caption["headline"], caption["subheadline"], colors, bold, regular)
         image.save(os.path.join(args.output, f"{index:02d}-{name.split('-', 1)[1]}.png"), optimize=True)
         count += 1
-    print(f"composed {count} App Store screenshots in {args.output}")
+    print(f"composed {count} {args.locale} App Store screenshots in {args.output}")
     return 0
 
 
