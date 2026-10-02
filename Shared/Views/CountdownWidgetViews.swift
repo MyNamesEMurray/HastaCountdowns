@@ -6,7 +6,6 @@ struct CountdownPalette {
     let secondary: Color
     let number: Color
     let accent: Color
-    let track: Color
 
     init(countdown: Countdown, hasImage: Bool, renderingMode: WidgetRenderingMode = .fullColor) {
         if renderingMode != .fullColor {
@@ -14,19 +13,16 @@ struct CountdownPalette {
             secondary = .secondary
             number = .primary
             accent = .primary
-            track = .primary.opacity(0.25)
         } else if hasImage || countdown.style.usesLightForeground {
             primary = .white
             secondary = .white.opacity(0.78)
             number = .white
             accent = .white
-            track = .white.opacity(0.3)
         } else {
             primary = .primary
             secondary = .secondary
             number = countdown.tint
             accent = countdown.tint
-            track = countdown.tint.opacity(0.2)
         }
     }
 }
@@ -160,25 +156,6 @@ struct CountdownNumberView: View {
     }
 }
 
-struct ProgressCapsule: View {
-    let value: Double
-    let color: Color
-    let track: Color
-
-    var body: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .leading) {
-                Capsule().fill(track)
-                Capsule()
-                    .fill(color)
-                    .frame(width: max(proxy.size.height, proxy.size.width * value))
-                    .widgetAccentable()
-            }
-        }
-        .frame(height: 5)
-    }
-}
-
 struct SmallCountdownView: View {
     @Environment(\.widgetRenderingMode) private var renderingMode
     let countdown: Countdown
@@ -248,9 +225,6 @@ struct MediumCountdownView: View {
                 Spacer(minLength: 8)
                 CountdownNumberView(countdown: countdown, status: status, now: now, size: 62, palette: palette, alignment: .trailing)
             }
-            if !status.isPast {
-                ProgressCapsule(value: countdown.progress(at: now), color: palette.number, track: palette.track)
-            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
@@ -293,10 +267,6 @@ struct LargeCountdownView: View {
                 .font(countdown.typeface.font(.subheadline, weight: .medium))
                 .foregroundStyle(palette.secondary)
                 .lineLimit(1)
-            if !status.isPast {
-                ProgressCapsule(value: countdown.progress(at: now), color: palette.number, track: palette.track)
-                    .padding(.top, 12)
-            }
             if !upNext.isEmpty {
                 VStack(spacing: 7) {
                     ForEach(upNext.prefix(3)) { other in
@@ -327,33 +297,38 @@ struct LargeCountdownView: View {
 }
 
 struct CircularCountdownView: View {
+    @Environment(\.widgetRenderingMode) private var renderingMode
     let countdown: Countdown
     let now: Date
 
     var body: some View {
         let status = countdown.status(at: now)
-        Gauge(value: status.isPast ? 1 : countdown.progress(at: now)) {
-            Image(systemName: countdown.symbol)
-        } currentValueLabel: {
+        ZStack {
+            if renderingMode == .fullColor {
+                Circle().fill(.white.opacity(0.18))
+            } else {
+                AccessoryWidgetBackground()
+            }
             if status.isToday {
                 Image(systemName: countdown.symbol)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(.system(size: 22, weight: .semibold))
+                    .widgetAccentable()
             } else {
-                VStack(spacing: -3) {
+                VStack(spacing: -2) {
                     Text(status.number)
-                        .font(countdown.typeface.font(size: 20, weight: .bold))
+                        .font(countdown.typeface.font(size: 22, weight: .bold))
+                        .monospacedDigit()
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
+                        .widgetAccentable()
                     Text(status.unitLabel.uppercased())
                         .font(countdown.typeface.font(size: 8, weight: .bold))
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                 }
-                .padding(.horizontal, 2)
+                .padding(.horizontal, 6)
             }
         }
-        .gaugeStyle(.accessoryCircularCapacity)
-        .widgetAccentable()
     }
 }
 

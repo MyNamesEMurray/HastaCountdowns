@@ -80,11 +80,6 @@ struct CountdownMathTests {
         #expect(countdown.isLiveToday(at: now, calendar: calendar))
     }
 
-    @Test func progressIsProportional() {
-        let countdown = Countdown(title: "P", date: date("2026-10-12T00:00:00"), createdAt: date("2026-09-22T00:00:00"))
-        #expect(countdown.progress(at: date("2026-10-02T00:00:00"), calendar: calendar) == 0.5)
-    }
-
     @Test func premiumFeaturesAreStrippedWhenLocked() {
         let countdown = Countdown(title: "Fancy", customColorHex: "#123456", style: .vivid, typeface: .serif, backgroundImageID: "abc")
         let resolved = countdown.resolved(isPremium: false)

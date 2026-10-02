@@ -96,11 +96,6 @@ extension Countdown {
         return candidate
     }
 
-    func previousOccurrence(before target: Date, calendar: Calendar = .current) -> Date? {
-        guard let component = repeatRule.calendarComponent else { return nil }
-        return calendar.date(byAdding: component, value: -1, to: target)
-    }
-
     func status(at now: Date = .now, calendar: Calendar = .current) -> CountdownStatus {
         let target = nextOccurrence(after: now, calendar: calendar)
         let startOfToday = calendar.startOfDay(for: now)
@@ -196,20 +191,6 @@ extension Countdown {
             if days >= 14 { return .weeks }
             return .days
         }
-    }
-
-    func progress(at now: Date = .now, calendar: Calendar = .current) -> Double {
-        let target = nextOccurrence(after: now, calendar: calendar)
-        let end = isAllDay ? calendar.startOfDay(for: target) : target
-        let start: Date
-        if let previous = previousOccurrence(before: target, calendar: calendar) {
-            start = isAllDay ? calendar.startOfDay(for: previous) : previous
-        } else {
-            start = min(createdAt, end)
-        }
-        let total = end.timeIntervalSince(start)
-        guard total > 0 else { return now >= end ? 1 : 0 }
-        return min(1, max(0, now.timeIntervalSince(start) / total))
     }
 
     func isLiveToday(at now: Date = .now, calendar: Calendar = .current) -> Bool {

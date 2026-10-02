@@ -208,10 +208,6 @@ private struct DetailInfoView: View {
             row("Repeats", systemImage: "repeat", value: countdown.repeatRule.title)
             Divider().padding(.leading, 44)
             row("Reminders", systemImage: "bell", value: reminderSummary)
-            if !countdown.status().isPast {
-                Divider().padding(.leading, 44)
-                row("Progress", systemImage: "chart.bar.fill", value: countdown.progress().formatted(.percent.precision(.fractionLength(0))))
-            }
         }
         .background(Color(uiColor: .secondarySystemGroupedBackground), in: .rect(cornerRadius: 20, style: .continuous))
     }
