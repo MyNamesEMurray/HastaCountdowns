@@ -40,6 +40,9 @@ struct RootView: View {
             if let url = ScreenshotMode.initialURL {
                 router.open(url)
             }
+            if let id = ScreenshotMode.editingID, let countdown = store.countdown(with: id) {
+                editing = EditorRequest(countdown: countdown, isNew: false)
+            }
             handlePendingCreation()
         }
     }
@@ -47,7 +50,7 @@ struct RootView: View {
     private var shouldShowWelcome: Bool {
         switch ScreenshotMode.current {
         case .welcome: true
-        case .samples, .empty: false
+        case .samples, .empty, .homescreen, .lockscreen: false
         case nil: !hasSeenWelcome
         }
     }

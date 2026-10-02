@@ -12,7 +12,7 @@ final class CountdownStore {
 
     init() {
         switch ScreenshotMode.current {
-        case .samples:
+        case .samples, .homescreen, .lockscreen:
             countdowns = Countdown.samples
             isScreenshotMode = true
         case .empty, .welcome:

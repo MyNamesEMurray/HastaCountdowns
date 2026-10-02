@@ -12,7 +12,13 @@ struct HastaApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
+            Group {
+                if let showcase = ScreenshotMode.current?.showcase {
+                    ScreenshotShowcaseView(kind: showcase)
+                } else {
+                    RootView()
+                }
+            }
                 .preferredColorScheme(ScreenshotMode.colorScheme)
                 .environment(store)
                 .environment(purchases)
@@ -70,6 +76,25 @@ enum ScreenshotMode: String {
     case samples
     case empty
     case welcome
+    case homescreen
+    case lockscreen
+
+    var showcase: ScreenshotShowcaseView.Kind? {
+        switch self {
+        case .homescreen: .homeScreen
+        case .lockscreen: .lockScreen
+        case .samples, .empty, .welcome: nil
+        }
+    }
+
+    static var isPremium: Bool {
+        current != nil && UserDefaults.standard.bool(forKey: "HastaScreenshotPremium")
+    }
+
+    static var editingID: UUID? {
+        guard current != nil, let id = UserDefaults.standard.string(forKey: "HastaScreenshotEdit") else { return nil }
+        return UUID(uuidString: id)
+    }
 
     static var current: ScreenshotMode? {
         UserDefaults.standard.string(forKey: "HastaScreenshotMode").flatMap(ScreenshotMode.init(rawValue:))

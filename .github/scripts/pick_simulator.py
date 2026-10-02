@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Print the UDID of an iPhone simulator on the newest installed iOS runtime.
+"""Print the UDID of an iPhone simulator on the newest installed iOS runtime,
+preferring a Pro Max so screenshots match the App Store's 6.9" size.
 
 Writes `udid=<UDID>` to GITHUB_OUTPUT so the build step can target it
 without hard-coding a device name that changes between runner images.
@@ -30,14 +31,15 @@ def main():
         for device in entries:
             if not device.get("name", "").startswith("iPhone"):
                 continue
-            candidate = (version, device["name"], device["udid"])
-            if best is None or candidate[:2] > best[:2]:
+            name = device["name"]
+            candidate = (version, "Pro Max" in name, name, device["udid"])
+            if best is None or candidate[:3] > best[:3]:
                 best = candidate
     if best is None:
         print("::error::No available iPhone simulator found.")
         subprocess.run(["xcrun", "simctl", "list", "devices"])
         return 1
-    version, name, udid = best
+    version, _, name, udid = best
     print(f"Using {name} (iOS {'.'.join(map(str, version))}) {udid}")
     output = os.environ.get("GITHUB_OUTPUT")
     if output:

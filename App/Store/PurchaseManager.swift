@@ -14,6 +14,10 @@ final class PurchaseManager {
     @ObservationIgnored private var updatesTask: Task<Void, Never>?
 
     init() {
+        if ScreenshotMode.current != nil {
+            isPremium = ScreenshotMode.isPremium
+            return
+        }
         isPremium = Premium.isUnlocked
         updatesTask = Task { [weak self] in
             for await result in StoreKit.Transaction.updates {
