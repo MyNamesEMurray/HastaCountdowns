@@ -16,6 +16,7 @@ struct Countdown: Identifiable, Codable, Hashable {
     var backgroundFraming: BackgroundFraming?
     var reminders: [ReminderRule] = [.onTheDay]
     var createdAt: Date = .now
+    var modifiedAt: Date = .now
 
     static var defaultDate: Date {
         let calendar = Calendar.current
@@ -38,7 +39,8 @@ struct Countdown: Identifiable, Codable, Hashable {
         backgroundImageID: String? = nil,
         backgroundFraming: BackgroundFraming? = nil,
         reminders: [ReminderRule] = [.onTheDay],
-        createdAt: Date = .now
+        createdAt: Date = .now,
+        modifiedAt: Date? = nil
     ) {
         self.id = id
         self.title = title
@@ -55,6 +57,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         self.backgroundFraming = backgroundFraming
         self.reminders = reminders
         self.createdAt = createdAt
+        self.modifiedAt = modifiedAt ?? createdAt
     }
 
     init(from decoder: Decoder) throws {
@@ -80,6 +83,7 @@ struct Countdown: Identifiable, Codable, Hashable {
             reminders = []
         }
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? date
+        modifiedAt = try container.decodeIfPresent(Date.self, forKey: .modifiedAt) ?? createdAt
     }
 }
 

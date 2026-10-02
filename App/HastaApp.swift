@@ -24,6 +24,7 @@ struct HastaApp: App {
             if phase == .active {
                 store.reload()
                 store.refreshSideEffects()
+                Task { await store.sync?.fetchChanges() }
             }
         }
     }
@@ -84,6 +85,7 @@ enum ScreenshotMode: String {
 final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
+        application.registerForRemoteNotifications()
         return true
     }
 

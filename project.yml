@@ -42,6 +42,8 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         ITSAppUsesNonExemptEncryption: false
         LSApplicationCategoryType: public.app-category.utilities
+        UIBackgroundModes:
+          - remote-notification
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
@@ -58,6 +60,11 @@ targets:
       properties:
         com.apple.security.application-groups:
           - group.com.exaltedpixels.Hasta
+        com.apple.developer.icloud-container-identifiers:
+          - iCloud.com.exaltedpixels.Hasta
+        com.apple.developer.icloud-services:
+          - CloudKit
+        aps-environment: development
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.exaltedpixels.Hasta

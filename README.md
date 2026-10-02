@@ -44,6 +44,8 @@ Both workflows use GitHub's `macos-26` runner. To use a different runner, set th
 
 The app and widget share data through the App Group `group.com.exaltedpixels.Hasta`. Countdowns are stored as JSON in the group container, and photo backgrounds are stored as downscaled JPEGs alongside them.
 
+iCloud Sync (free, on by default) uses `CKSyncEngine` with the private database of the CloudKit container `iCloud.com.exaltedpixels.Hasta`. Each countdown is a `Countdown` record in the `Countdowns` zone with a JSON `payload`, a `modifiedAt` date, and an optional `image` asset; the newest edit wins on conflicts.
+
 ## Free vs Premium
 
 | Free | Premium |

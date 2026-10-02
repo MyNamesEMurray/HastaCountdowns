@@ -278,7 +278,7 @@ struct CountdownEditorView: View {
         } header: {
             Text("Background Photo")
         } footer: {
-            Text("Photos stay on your device and are only used for your widgets. Choose a Live Photo to pick a different frame or make a long exposure.")
+            Text("Photos stay private on your devices and iCloud, and are only used for your widgets. Choose a Live Photo to pick a different frame or make a long exposure.")
         }
     }
 

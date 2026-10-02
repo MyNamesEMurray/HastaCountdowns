@@ -8,6 +8,7 @@ final class CountdownStore {
     private(set) var countdowns: [Countdown] = []
 
     private let isScreenshotMode: Bool
+    @ObservationIgnored private(set) var sync: CloudSyncManager?
 
     init() {
         switch ScreenshotMode.current {
@@ -21,6 +22,9 @@ final class CountdownStore {
             countdowns = CountdownRepository.load()
             isScreenshotMode = false
         }
+        let sync = CloudSyncManager(store: self)
+        self.sync = sync
+        sync.start()
     }
 
     func countdown(with id: UUID) -> Countdown? {
@@ -36,6 +40,8 @@ final class CountdownStore {
     }
 
     func save(_ countdown: Countdown) {
+        var countdown = countdown
+        countdown.modifiedAt = .now
         if let index = countdowns.firstIndex(where: { $0.id == countdown.id }) {
             let previousImage = countdowns[index].backgroundImageID
             if let previousImage, previousImage != countdown.backgroundImageID {
@@ -46,6 +52,7 @@ final class CountdownStore {
             countdowns.append(countdown)
         }
         persist()
+        sync?.countdownSaved(countdown.id)
     }
 
     func duplicate(_ countdown: Countdown) {
@@ -53,9 +60,12 @@ final class CountdownStore {
         copy.id = UUID()
         copy.title = "\(countdown.displayTitle) Copy"
         copy.createdAt = .now
+        copy.modifiedAt = .now
         copy.backgroundImageID = nil
+        copy.backgroundFraming = nil
         countdowns.append(copy)
         persist()
+        sync?.countdownSaved(copy.id)
     }
 
     func delete(_ countdown: Countdown) {
@@ -63,6 +73,29 @@ final class CountdownStore {
             BackgroundImageStore.delete(imageID)
         }
         countdowns.removeAll { $0.id == countdown.id }
+        persist()
+        sync?.countdownDeleted(countdown.id)
+    }
+
+    func applyRemoteChanges(upserts: [Countdown], deletions: [UUID]) {
+        guard !upserts.isEmpty || !deletions.isEmpty else { return }
+        for remote in upserts {
+            if let index = countdowns.firstIndex(where: { $0.id == remote.id }) {
+                let previousImage = countdowns[index].backgroundImageID
+                if let previousImage, previousImage != remote.backgroundImageID {
+                    BackgroundImageStore.delete(previousImage)
+                }
+                countdowns[index] = remote
+            } else {
+                countdowns.append(remote)
+            }
+        }
+        for id in deletions {
+            if let imageID = countdown(with: id)?.backgroundImageID {
+                BackgroundImageStore.delete(imageID)
+            }
+            countdowns.removeAll { $0.id == id }
+        }
         persist()
     }
 

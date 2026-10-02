@@ -8,6 +8,7 @@ struct SettingsView: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.requestReview) private var requestReview
     @State private var isShowingPaywall = false
+    @State private var isSyncEnabled = CloudSyncManager.isEnabledPreference
     @State private var reminderTime: Date = Calendar.current.date(from: ReminderPreferences.time) ?? .now
 
     var body: some View {
@@ -57,6 +58,22 @@ struct SettingsView: View {
                         }
                         .tint(.primary)
                     }
+                }
+
+                Section {
+                    Toggle(isOn: $isSyncEnabled) {
+                        Label("iCloud Sync", systemImage: "icloud")
+                    }
+                    if isSyncEnabled {
+                        LabeledContent("Status") {
+                            Text(syncStatusText)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+                } header: {
+                    Text("iCloud")
+                } footer: {
+                    Text("Keeps your countdowns, reminders, and photos on all your devices through your private iCloud account, and brings them back on a new iPhone. Hasta can't see your data.")
                 }
 
                 Section("Appearance") {
@@ -119,7 +136,7 @@ struct SettingsView: View {
                 Section {
                     LabeledContent("Version", value: Bundle.main.versionString)
                 } footer: {
-                    Text("Your countdowns are stored only on this device. Hasta has no accounts, no ads, and no tracking.")
+                    Text("Your countdowns are stored on your devices and, with iCloud Sync on, in your private iCloud account. Hasta has no accounts, no ads, and no tracking.")
                 }
             }
             .navigationTitle("Settings")
@@ -129,6 +146,9 @@ struct SettingsView: View {
                     Button("Done") { dismiss() }
                         .fontWeight(.semibold)
                 }
+            }
+            .onChange(of: isSyncEnabled) { _, enabled in
+                store.sync?.setEnabled(enabled)
             }
             .onChange(of: reminderTime) { _, newValue in
                 ReminderPreferences.time = Calendar.current.dateComponents([.hour, .minute], from: newValue)
@@ -142,6 +162,19 @@ struct SettingsView: View {
             } message: {
                 Text(purchases.errorMessage ?? "")
             }
+        }
+    }
+}
+
+extension SettingsView {
+    private var syncStatusText: String {
+        switch store.sync?.status ?? .off {
+        case .off: return "Off"
+        case .checking: return "Checking iCloud…"
+        case .unavailable(let message): return message
+        case .syncing: return "Syncing…"
+        case .upToDate(let date): return "Up to date · \(date.formatted(date: .omitted, time: .shortened))"
+        case .failed(let message): return "Couldn't sync. \(message)"
         }
     }
 }
