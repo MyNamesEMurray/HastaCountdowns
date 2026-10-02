@@ -63,7 +63,7 @@ struct LockScreenPreview: View {
             Text(now.formatted(.dateTime.weekday(.wide).month().day()))
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.secondary)
-            Text(now.formatted(.dateTime.hour(.defaultDigits(amPM: .omitted)).minute()))
+            Text(clockText)
                 .font(.system(size: 46, weight: .bold, design: .rounded))
                 .foregroundStyle(.primary)
             HStack(spacing: 10) {
@@ -85,5 +85,15 @@ struct LockScreenPreview: View {
         }
         .clipShape(.rect(cornerRadius: 24, style: .continuous))
         .environment(\.colorScheme, .dark)
+    }
+
+    private var clockText: String {
+        let formatter = DateFormatter()
+        formatter.setLocalizedDateFormatFromTemplate("jmm")
+        var text = formatter.string(from: now)
+        for symbol in [formatter.amSymbol, formatter.pmSymbol].compactMap({ $0 }) where !symbol.isEmpty {
+            text = text.replacingOccurrences(of: symbol, with: "")
+        }
+        return text.trimmingCharacters(in: .whitespaces)
     }
 }

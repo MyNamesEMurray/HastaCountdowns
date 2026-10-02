@@ -89,7 +89,7 @@ struct CountdownEditorView: View {
                 loadPhoto(item)
             }
             .onAppear {
-                if isNew { isTitleFocused = true }
+                if isNew && ScreenshotMode.current == nil { isTitleFocused = true }
             }
         }
         .interactiveDismissDisabled(hasChanges)
