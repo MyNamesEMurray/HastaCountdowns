@@ -33,12 +33,9 @@ struct CountdownProvider: AppIntentTimelineProvider {
             }
         }
         if let selected = selectedCountdown(for: configuration, in: all, at: now), !selected.isAllDay {
-            let target = selected.nextOccurrence(after: now)
-            if target > now, let last = dates.last, target < last {
-                dates.append(target)
-            }
+            dates += WidgetRefreshSchedule.closeRangeDates(for: selected, now: now)
         }
-        dates.sort()
+        dates = Array(Set(dates)).sorted()
 
         let image = loadImage(for: selectedCountdown(for: configuration, in: all, at: now), context: context)
         let entries = dates.map { date in
@@ -170,4 +167,24 @@ struct CountdownWidget: Widget {
     CountdownWidget()
 } timeline: {
     CountdownEntry(date: .now, countdown: Countdown.samples[1], upNext: [], image: nil)
+}
+
+enum WidgetRefreshSchedule {
+    static func closeRangeDates(for countdown: Countdown, now: Date) -> [Date] {
+        let target = countdown.nextOccurrence(after: now)
+        guard target > now, target.timeIntervalSince(now) < 2 * 86_400 else { return [] }
+        var dates = [target]
+        guard countdown.unit == .automatic else { return dates }
+        var hourMark = target.addingTimeInterval(-86_400)
+        while hourMark < target.addingTimeInterval(-3_600) {
+            if hourMark > now { dates.append(hourMark) }
+            hourMark = hourMark.addingTimeInterval(3_600)
+        }
+        var minuteMark = target.addingTimeInterval(-3_600)
+        while minuteMark < target {
+            if minuteMark > now { dates.append(minuteMark) }
+            minuteMark = minuteMark.addingTimeInterval(60)
+        }
+        return dates
+    }
 }

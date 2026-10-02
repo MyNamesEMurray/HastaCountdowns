@@ -7,9 +7,25 @@ struct CountdownStatus: Equatable {
         case past
     }
 
+    enum Unit: Equatable {
+        case years, months, weeks, days, hours, minutes
+
+        var shortSymbol: String {
+            switch self {
+            case .years: "y"
+            case .months: "mo"
+            case .weeks: "w"
+            case .days: "d"
+            case .hours: "h"
+            case .minutes: "m"
+            }
+        }
+    }
+
     let target: Date
     let phase: Phase
     let days: Int
+    let unit: Unit
     let number: String
     let unitLabel: String
     let remainder: String?
@@ -27,18 +43,19 @@ struct CountdownStatus: Equatable {
 
     var phrase: String {
         let amount = remainder.map { "\(number) \(unitLabel), \($0)" } ?? "\(number) \(unitLabel)"
+        let isSingleDay = unit == .days && days == 1
         switch phase {
         case .today: return "Today"
-        case .upcoming: return days == 1 && remainder == nil ? "Tomorrow" : "in \(amount)"
-        case .past: return days == 1 && remainder == nil ? "Yesterday" : "\(amount) ago"
+        case .upcoming: return isSingleDay ? "Tomorrow" : "in \(amount)"
+        case .past: return isSingleDay ? "Yesterday" : "\(amount) ago"
         }
     }
 
     var compactPhrase: String {
         switch phase {
         case .today: return "Today"
-        case .upcoming: return "\(number)\(unitLabel.prefix(1))"
-        case .past: return "\(number)\(unitLabel.prefix(1)) ago"
+        case .upcoming: return "\(number)\(unit.shortSymbol)"
+        case .past: return "\(number)\(unit.shortSymbol) ago"
         }
     }
 }
@@ -89,42 +106,68 @@ extension Countdown {
         let from = signedDays >= 0 ? startOfToday : startOfTarget
         let to = signedDays >= 0 ? startOfTarget : startOfToday
 
-        switch unit {
-        case .weeks where days >= 7:
-            let weeks = days / 7
-            let extra = days % 7
-            return CountdownStatus(
+        func make(_ unit: CountdownStatus.Unit, _ value: Int, _ singular: String, _ plural: String, remainder: String? = nil) -> CountdownStatus {
+            CountdownStatus(
                 target: target,
                 phase: phase,
                 days: days,
-                number: "\(weeks)",
-                unitLabel: Self.label(weeks, "week", "weeks"),
-                remainder: extra > 0 ? Self.label(extra, "day", "days", includeNumber: true) : nil
+                unit: unit,
+                number: value.formatted(),
+                unitLabel: Self.label(value, singular, plural),
+                remainder: remainder
             )
+        }
+
+        func extra(_ value: Int, _ singular: String, _ plural: String) -> String? {
+            value > 0 ? Self.label(value, singular, plural, includeNumber: true) : nil
+        }
+
+        switch resolvedUnit(days: days, target: target, now: now, from: from, to: to, calendar: calendar) {
+        case .years:
+            let parts = calendar.dateComponents([.year, .month], from: from, to: to)
+            return make(.years, parts.year ?? 0, "year", "years", remainder: extra(parts.month ?? 0, "month", "months"))
         case .months:
             let parts = calendar.dateComponents([.month, .day], from: from, to: to)
-            let months = parts.month ?? 0
-            let extra = parts.day ?? 0
-            if months > 0 {
-                return CountdownStatus(
-                    target: target,
-                    phase: phase,
-                    days: days,
-                    number: "\(months)",
-                    unitLabel: Self.label(months, "month", "months"),
-                    remainder: extra > 0 ? Self.label(extra, "day", "days", includeNumber: true) : nil
-                )
+            return make(.months, parts.month ?? 0, "month", "months", remainder: extra(parts.day ?? 0, "day", "days"))
+        case .weeks:
+            return make(.weeks, days / 7, "week", "weeks", remainder: extra(days % 7, "day", "days"))
+        case .days:
+            return make(.days, days, "day", "days")
+        case .hours:
+            let interval = abs(target.timeIntervalSince(now))
+            let hours = Int(interval / 3_600)
+            let minutes = Int(interval.truncatingRemainder(dividingBy: 3_600) / 60)
+            return make(.hours, hours, "hour", "hours", remainder: extra(minutes, "minute", "minutes"))
+        case .minutes:
+            let interval = abs(target.timeIntervalSince(now))
+            return make(.minutes, max(1, Int((interval / 60).rounded(.up))), "minute", "minutes")
+        }
+    }
+
+    private func resolvedUnit(days: Int, target: Date, now: Date, from: Date, to: Date, calendar: Calendar) -> CountdownStatus.Unit {
+        let parts = calendar.dateComponents([.year, .month], from: from, to: to)
+        let years = parts.year ?? 0
+        let totalMonths = years * 12 + (parts.month ?? 0)
+        switch unit {
+        case .days:
+            return .days
+        case .weeks:
+            return days >= 7 ? .weeks : .days
+        case .months:
+            return totalMonths >= 1 ? .months : .days
+        case .years:
+            if years >= 1 { return .years }
+            return totalMonths >= 1 ? .months : .days
+        case .automatic:
+            if !isAllDay && days <= 1 {
+                let interval = abs(target.timeIntervalSince(now))
+                if interval < 3_600 { return .minutes }
+                if interval < 86_400 { return .hours }
             }
-            fallthrough
-        default:
-            return CountdownStatus(
-                target: target,
-                phase: phase,
-                days: days,
-                number: days.formatted(),
-                unitLabel: Self.label(days, "day", "days"),
-                remainder: nil
-            )
+            if years >= 1 { return .years }
+            if totalMonths >= 2 { return .months }
+            if days >= 14 { return .weeks }
+            return .days
         }
     }
 

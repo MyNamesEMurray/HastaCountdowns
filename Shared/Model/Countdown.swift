@@ -9,11 +9,11 @@ struct Countdown: Identifiable, Codable, Hashable {
     var symbol: String = "star.fill"
     var color: CountdownColor = .blue
     var customColorHex: String?
-    var unit: DisplayUnit = .days
+    var unit: DisplayUnit = .automatic
     var style: WidgetStyle = .classic
     var typeface: Typeface = .rounded
     var backgroundImageID: String?
-    var reminders: Set<Reminder> = [.dayOf]
+    var reminders: [ReminderRule] = [.onTheDay]
     var createdAt: Date = .now
 
     static var defaultDate: Date {
@@ -31,11 +31,11 @@ struct Countdown: Identifiable, Codable, Hashable {
         symbol: String = "star.fill",
         color: CountdownColor = .blue,
         customColorHex: String? = nil,
-        unit: DisplayUnit = .days,
+        unit: DisplayUnit = .automatic,
         style: WidgetStyle = .classic,
         typeface: Typeface = .rounded,
         backgroundImageID: String? = nil,
-        reminders: Set<Reminder> = [.dayOf],
+        reminders: [ReminderRule] = [.onTheDay],
         createdAt: Date = .now
     ) {
         self.id = id
@@ -68,7 +68,13 @@ struct Countdown: Identifiable, Codable, Hashable {
         style = (try? container.decodeIfPresent(WidgetStyle.self, forKey: .style)) ?? .classic
         typeface = (try? container.decodeIfPresent(Typeface.self, forKey: .typeface)) ?? .rounded
         backgroundImageID = try container.decodeIfPresent(String.self, forKey: .backgroundImageID)
-        reminders = (try? container.decodeIfPresent(Set<Reminder>.self, forKey: .reminders)) ?? []
+        if let rules = try? container.decodeIfPresent([ReminderRule].self, forKey: .reminders) {
+            reminders = rules
+        } else if let legacy = try? container.decodeIfPresent([LegacyReminder].self, forKey: .reminders) {
+            reminders = legacy.map(\.rule).sortedByLeadTime
+        } else {
+            reminders = []
+        }
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? date
     }
 }
@@ -98,44 +104,28 @@ enum RepeatRule: String, Codable, CaseIterable, Identifiable {
 }
 
 enum DisplayUnit: String, Codable, CaseIterable, Identifiable {
-    case days, weeks, months
+    case automatic, days, weeks, months, years
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
+        case .automatic: "Auto"
         case .days: "Days"
         case .weeks: "Weeks"
         case .months: "Months"
+        case .years: "Years"
         }
     }
-}
 
-enum Reminder: String, Codable, CaseIterable, Identifiable, Comparable {
-    case dayOf, dayBefore, threeDaysBefore, weekBefore
-
-    var id: String { rawValue }
-
-    var daysBefore: Int {
+    var detail: String {
         switch self {
-        case .dayOf: 0
-        case .dayBefore: 1
-        case .threeDaysBefore: 3
-        case .weekBefore: 7
+        case .automatic: "Picks years, months, weeks, days, hours, or minutes depending on how far away it is."
+        case .days: "Always counts in days."
+        case .weeks: "Weeks and days, once it's at least a week away."
+        case .months: "Months and days, once it's at least a month away."
+        case .years: "Years and months, once it's at least a year away."
         }
-    }
-
-    func title(isAllDay: Bool) -> String {
-        switch self {
-        case .dayOf: isAllDay ? "On the Day" : "At Time of Event"
-        case .dayBefore: "1 Day Before"
-        case .threeDaysBefore: "3 Days Before"
-        case .weekBefore: "1 Week Before"
-        }
-    }
-
-    static func < (lhs: Reminder, rhs: Reminder) -> Bool {
-        lhs.daysBefore < rhs.daysBefore
     }
 }
 
@@ -224,6 +214,7 @@ extension Countdown {
             Countdown(id: id("02"), title: "Maya's Birthday", date: days(9), repeatRule: .yearly, symbol: "birthday.cake.fill", color: .pink, createdAt: days(-200)),
             Countdown(id: id("03"), title: "Concert", date: days(17), symbol: "music.mic", color: .purple, style: .vivid, createdAt: days(-12)),
             Countdown(id: id("04"), title: "Marathon", date: days(88), symbol: "figure.run", color: .orange, unit: .weeks, createdAt: days(-60)),
+            Countdown(id: id("05"), title: "Dinner Reservation at Lucia's Trattoria", date: Date.now.addingTimeInterval(5 * 3_600 + 20 * 60), isAllDay: false, symbol: "fork.knife", color: .green, createdAt: days(-3)),
         ]
     }()
 }

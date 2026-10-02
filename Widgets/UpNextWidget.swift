@@ -25,12 +25,16 @@ struct UpNextProvider: TimelineProvider {
         let calendar = Calendar.current
         let now = Date.now
         let startOfToday = calendar.startOfDay(for: now)
-        var entries = [entry(at: now, countdowns: all)]
+        var dates: Set<Date> = [now]
         for offset in 1...7 {
             if let midnight = calendar.date(byAdding: .day, value: offset, to: startOfToday) {
-                entries.append(entry(at: midnight, countdowns: all))
+                dates.insert(midnight)
             }
         }
+        for countdown in all where !countdown.isAllDay {
+            dates.formUnion(WidgetRefreshSchedule.closeRangeDates(for: countdown, now: now))
+        }
+        let entries = dates.sorted().prefix(240).map { entry(at: $0, countdowns: all) }
         completion(Timeline(entries: entries, policy: .atEnd))
     }
 

@@ -77,18 +77,17 @@ struct CountdownDetailView: View {
             }
             ScrollView(.horizontal) {
                 HStack(spacing: 14) {
-                    WidgetPreviewFrame(countdown: countdown, image: image) {
+                    let metrics = WidgetMetrics.current
+                    HomeWidgetPreview(countdown: countdown, image: image, size: metrics.small, metrics: metrics) {
                         SmallCountdownView(countdown: countdown, now: .now, hasImage: image != nil)
                     }
-                    .frame(width: 158, height: 158)
 
-                    WidgetPreviewFrame(countdown: countdown, image: image) {
+                    HomeWidgetPreview(countdown: countdown, image: image, size: metrics.medium, metrics: metrics) {
                         MediumCountdownView(countdown: countdown, now: .now, hasImage: image != nil)
                     }
-                    .frame(width: 338, height: 158)
 
-                    LockScreenPreview(countdown: countdown, now: .now)
-                        .frame(width: 240)
+                    LockScreenPreview(countdown: countdown, now: .now, metrics: metrics)
+                        .frame(width: metrics.medium.width)
                 }
                 .padding(.vertical, 4)
             }
@@ -116,6 +115,8 @@ private struct DetailHero: View {
                     .font(countdown.typeface.font(.title, weight: .bold))
                     .foregroundStyle(palette.primary)
                     .multilineTextAlignment(.center)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.5)
                 Text(countdown.formattedDate(at: now, style: .complete))
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(palette.secondary)
@@ -216,8 +217,10 @@ private struct DetailInfoView: View {
     }
 
     private var reminderSummary: String {
-        guard !countdown.reminders.isEmpty else { return "None" }
-        return countdown.reminders.sorted().map { $0.title(isAllDay: countdown.isAllDay) }.joined(separator: ", ")
+        let rules = countdown.reminders.sortedByLeadTime
+        guard let first = rules.first else { return "None" }
+        if rules.count > 1 { return "\(rules.count) reminders" }
+        return first.title(isAllDay: countdown.isAllDay, defaultTime: ReminderPreferences.time)
     }
 
     private func row(_ title: String, systemImage: String, value: String) -> some View {
