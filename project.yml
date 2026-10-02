@@ -8,6 +8,10 @@ options:
   createIntermediateGroups: true
   developmentLanguage: en
   groupSortPosition: top
+  fileTypes:
+    icon:
+      file: true
+      buildPhase: resources
 
 settings:
   base:
