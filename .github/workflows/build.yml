@@ -57,14 +57,10 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             | "${FORMATTER[@]}"
 
-      - name: Capture screenshots
+      - name: Export screenshots
+        if: success()
         continue-on-error: true
-        timeout-minutes: 10
-        env:
-          SIMULATOR_ID: ${{ steps.sim.outputs.udid }}
-        run: |
-          .github/scripts/capture_screenshots.sh "$SIMULATOR_ID" \
-            DerivedData/Build/Products/Debug-iphonesimulator/Hasta.app Screenshots
+        run: python3 .github/scripts/export_screenshots.py TestResults.xcresult Screenshots
 
       - name: Upload screenshots
         if: success()

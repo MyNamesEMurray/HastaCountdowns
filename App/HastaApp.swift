@@ -12,6 +12,7 @@ struct HastaApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .preferredColorScheme(ScreenshotMode.colorScheme)
                 .environment(store)
                 .environment(purchases)
                 .environment(router)
@@ -63,6 +64,15 @@ enum ScreenshotMode: String {
 
     static var current: ScreenshotMode? {
         UserDefaults.standard.string(forKey: "HastaScreenshotMode").flatMap(ScreenshotMode.init(rawValue:))
+    }
+
+    static var colorScheme: ColorScheme? {
+        guard current != nil else { return nil }
+        switch UserDefaults.standard.string(forKey: "HastaScreenshotAppearance") {
+        case "dark": return .dark
+        case "light": return .light
+        default: return nil
+        }
     }
 
     static var initialURL: URL? {
