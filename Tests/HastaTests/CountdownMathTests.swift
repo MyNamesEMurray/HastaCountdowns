@@ -19,7 +19,7 @@ struct CountdownMathTests {
     private var now: Date { date("2026-10-02T15:00:00") }
 
     @Test func countsDaysUntilEvent() {
-        let countdown = Countdown(title: "Trip", date: date("2026-11-13T00:00:00"))
+        let countdown = Countdown(title: "Trip", date: date("2026-11-13T00:00:00"), unit: .days)
         let status = countdown.status(at: now, calendar: calendar)
         #expect(status.number == "42")
         #expect(status.phrase == "in 42 days")
@@ -42,14 +42,14 @@ struct CountdownMathTests {
     }
 
     @Test func tomorrowAndToday() {
-        let tomorrow = Countdown(title: "A", date: date("2026-10-03T00:00:00"))
+        let tomorrow = Countdown(title: "A", date: date("2026-10-03T00:00:00"), unit: .days)
         let today = Countdown(title: "B", date: date("2026-10-02T00:00:00"))
         #expect(tomorrow.status(at: now, calendar: calendar).phrase == "Tomorrow")
         #expect(today.status(at: now, calendar: calendar).phase == .today)
     }
 
     @Test func countsUpFromPastEvents() {
-        let countdown = Countdown(title: "Past", date: date("2026-09-01T00:00:00"))
+        let countdown = Countdown(title: "Past", date: date("2026-09-01T00:00:00"), unit: .days)
         let status = countdown.status(at: now, calendar: calendar)
         #expect(status.phase == .past)
         #expect(status.phrase == "31 days ago")
@@ -80,11 +80,6 @@ struct CountdownMathTests {
         #expect(countdown.isLiveToday(at: now, calendar: calendar))
     }
 
-    @Test func progressIsProportional() {
-        let countdown = Countdown(title: "P", date: date("2026-10-12T00:00:00"), createdAt: date("2026-09-22T00:00:00"))
-        #expect(countdown.progress(at: date("2026-10-02T00:00:00"), calendar: calendar) == 0.5)
-    }
-
     @Test func premiumFeaturesAreStrippedWhenLocked() {
         let countdown = Countdown(title: "Fancy", customColorHex: "#123456", style: .vivid, typeface: .serif, backgroundImageID: "abc")
         let resolved = countdown.resolved(isPremium: false)
@@ -100,5 +95,221 @@ struct CountdownMathTests {
         let decoded = try JSONDecoder().decode([Countdown].self, from: Data(json.utf8))
         #expect(decoded.count == 1)
         #expect(decoded[0].style == .classic)
+    }
+
+    @Test func autoPicksYearsForFarEvents() {
+        let countdown = Countdown(title: "Far", date: date("2028-01-15T00:00:00"))
+        #expect(countdown.status(at: now, calendar: calendar).phrase == "in 1 year, 3 months")
+    }
+
+    @Test func autoPicksMonths() {
+        let countdown = Countdown(title: "Holidays", date: date("2026-12-20T00:00:00"))
+        #expect(countdown.status(at: now, calendar: calendar).phrase == "in 2 months, 18 days")
+    }
+
+    @Test func autoPicksWeeks() {
+        let countdown = Countdown(title: "Soon", date: date("2026-10-30T00:00:00"))
+        #expect(countdown.status(at: now, calendar: calendar).phrase == "in 4 weeks")
+    }
+
+    @Test func autoPicksDays() {
+        let countdown = Countdown(title: "Next week", date: date("2026-10-10T00:00:00"))
+        #expect(countdown.status(at: now, calendar: calendar).phrase == "in 8 days")
+    }
+
+    @Test func autoPicksHoursForTimedEventsUnderADay() {
+        let countdown = Countdown(title: "Flight", date: date("2026-10-03T09:30:00"), isAllDay: false)
+        let status = countdown.status(at: now, calendar: calendar)
+        #expect(status.phrase == "in 18 hours, 30 minutes")
+        #expect(status.compactPhrase == "18h")
+    }
+
+    @Test func autoPicksMinutesForTimedEventsUnderAnHour() {
+        let countdown = Countdown(title: "New Year", date: date("2026-10-03T00:15:00"), isAllDay: false)
+        #expect(countdown.status(at: date("2026-10-02T23:30:00"), calendar: calendar).phrase == "in 45 minutes")
+    }
+
+    @Test func autoKeepsAllDayEventsInDays() {
+        let countdown = Countdown(title: "Tomorrow", date: date("2026-10-03T00:00:00"))
+        #expect(countdown.status(at: now, calendar: calendar).phrase == "Tomorrow")
+    }
+
+    @Test func yearsUnitFallsBackUnderAYear() {
+        let countdown = Countdown(title: "Close", date: date("2026-12-20T00:00:00"), unit: .years)
+        #expect(countdown.status(at: now, calendar: calendar).phrase == "in 2 months, 18 days")
+    }
+
+    @Test func reminderFireDatesForAllDayEvents() {
+        let target = date("2026-10-20T00:00:00")
+        let defaultTime = DateComponents(hour: 9, minute: 0)
+        #expect(ReminderRule(amount: 0, unit: .days).fireDate(for: target, isAllDay: true, defaultTime: defaultTime, calendar: calendar) == date("2026-10-20T09:00:00"))
+        #expect(ReminderRule(amount: 3, unit: .days, hour: 20, minute: 15).fireDate(for: target, isAllDay: true, defaultTime: defaultTime, calendar: calendar) == date("2026-10-17T20:15:00"))
+        #expect(ReminderRule(amount: 2, unit: .weeks).fireDate(for: target, isAllDay: true, defaultTime: defaultTime, calendar: calendar) == date("2026-10-06T09:00:00"))
+        #expect(ReminderRule(amount: 1, unit: .months).fireDate(for: target, isAllDay: true, defaultTime: defaultTime, calendar: calendar) == date("2026-09-20T09:00:00"))
+    }
+
+    @Test func reminderFireDatesForTimedEvents() {
+        let target = date("2026-10-20T18:30:00")
+        let defaultTime = DateComponents(hour: 9, minute: 0)
+        #expect(ReminderRule(amount: 30, unit: .minutes).fireDate(for: target, isAllDay: false, defaultTime: defaultTime, calendar: calendar) == date("2026-10-20T18:00:00"))
+        #expect(ReminderRule(amount: 2, unit: .hours).fireDate(for: target, isAllDay: false, defaultTime: defaultTime, calendar: calendar) == date("2026-10-20T16:30:00"))
+        #expect(ReminderRule(amount: 1, unit: .days).fireDate(for: target, isAllDay: false, defaultTime: defaultTime, calendar: calendar) == date("2026-10-19T18:30:00"))
+        #expect(ReminderRule(amount: 1, unit: .days, hour: 8, minute: 0).fireDate(for: target, isAllDay: false, defaultTime: defaultTime, calendar: calendar) == date("2026-10-19T08:00:00"))
+    }
+
+    @Test func reminderTitles() {
+        let defaultTime = DateComponents(hour: 9, minute: 0)
+        #expect(ReminderRule(amount: 0, unit: .minutes).title(isAllDay: false, defaultTime: defaultTime, calendar: calendar) == "At time of event")
+        #expect(ReminderRule(amount: 15, unit: .minutes).title(isAllDay: false, defaultTime: defaultTime, calendar: calendar) == "15 minutes before")
+        #expect(ReminderRule(amount: 1, unit: .weeks).title(isAllDay: false, defaultTime: defaultTime, calendar: calendar) == "1 week before")
+        #expect(ReminderRule(amount: 1, unit: .days).title(isAllDay: true, defaultTime: defaultTime, calendar: calendar).hasPrefix("1 day before at 9:00"))
+    }
+
+    @Test func decodesLegacyReminders() throws {
+        let json = #"[{"id":"7C9C3D5E-1C1F-4F55-9E2D-1A2B3C4D5E6F","date":800000000,"reminders":["weekBefore","dayOf"]}]"#
+        let decoded = try JSONDecoder().decode([Countdown].self, from: Data(json.utf8))
+        let rules = decoded[0].reminders
+        #expect(rules.count == 2)
+        #expect(rules[0].amount == 0 && rules[0].unit == .days)
+        #expect(rules[1].amount == 1 && rules[1].unit == .weeks)
+    }
+
+    @Test func remindersRoundTrip() throws {
+        let countdown = Countdown(title: "R", reminders: [ReminderRule(amount: 2, unit: .hours), ReminderRule(amount: 3, unit: .days, hour: 7, minute: 45)])
+        let data = try JSONEncoder().encode(countdown)
+        let decoded = try JSONDecoder().decode(Countdown.self, from: data)
+        #expect(decoded.reminders == countdown.reminders)
+    }
+
+    @Test func timedEventsCountElapsedDays() {
+        let countdown = Countdown(title: "Party", date: date("2027-01-09T01:00:00"), isAllDay: false, unit: .days)
+        #expect(countdown.status(at: date("2026-10-02T14:48:00"), calendar: calendar).number == "98")
+    }
+
+    @Test func timedEventTomorrowStillReadsTomorrowInDays() {
+        let countdown = Countdown(title: "Breakfast", date: date("2026-10-03T08:00:00"), isAllDay: false, unit: .days)
+        #expect(countdown.status(at: now, calendar: calendar).phrase == "Tomorrow")
+    }
+
+    @Test func framingCenteredFillsSquareFromLandscape() {
+        let rect = BackgroundFraming.centered.visibleRect(imageSize: CGSize(width: 2000, height: 1000), containerSize: CGSize(width: 100, height: 100))
+        #expect(abs(rect.width - 0.5) < 0.0001)
+        #expect(abs(rect.height - 1) < 0.0001)
+        #expect(abs(rect.minX - 0.25) < 0.0001)
+    }
+
+    @Test func framingZoomAndFocusStayInBounds() {
+        let framing = BackgroundFraming(focusX: 0.95, focusY: 0.05, zoom: 2)
+        let rect = framing.visibleRect(imageSize: CGSize(width: 1000, height: 1000), containerSize: CGSize(width: 200, height: 100))
+        #expect(abs(rect.width - 0.5) < 0.0001)
+        #expect(abs(rect.height - 0.25) < 0.0001)
+        #expect(abs(rect.maxX - 1) < 0.0001)
+        #expect(abs(rect.minY) < 0.0001)
+    }
+
+    @Test func framingPanMovesOppositeToDrag() {
+        let image = CGSize(width: 1000, height: 1000)
+        let container = CGSize(width: 100, height: 100)
+        let zoomed = BackgroundFraming(zoom: 2)
+        let panned = zoomed.panned(by: CGSize(width: 50, height: 0), imageSize: image, containerSize: container)
+        #expect(panned.focusX < zoomed.focusX)
+        #expect(abs(panned.focusX - 0.25) < 0.0001)
+    }
+
+    @Test func framingDecodesWhenMissing() throws {
+        let json = #"{"id":"7C9C3D5E-1C1F-4F55-9E2D-1A2B3C4D5E6F","date":800000000}"#
+        let decoded = try JSONDecoder().decode(Countdown.self, from: Data(json.utf8))
+        #expect(decoded.backgroundFraming == nil)
+    }
+
+    @Test func segmentsForFarEventsUseYearsMonthsDays() {
+        let countdown = Countdown(title: "Far", date: date("2028-01-15T00:00:00"))
+        #expect(countdown.segments(at: now, calendar: calendar) == [
+            CountdownSegment(value: 1, label: "year"),
+            CountdownSegment(value: 3, label: "months"),
+            CountdownSegment(value: 12, label: "days"),
+        ])
+    }
+
+    @Test func segmentsForMonthsAwayIncludeHours() {
+        let countdown = Countdown(title: "Party", date: date("2027-01-02T18:00:00"), isAllDay: false)
+        #expect(countdown.segments(at: now, calendar: calendar) == [
+            CountdownSegment(value: 3, label: "months"),
+            CountdownSegment(value: 0, label: "days"),
+            CountdownSegment(value: 3, label: "hours"),
+        ])
+    }
+
+    @Test func segmentsForDaysAwayUseDaysAndHours() {
+        let countdown = Countdown(title: "Soon", date: date("2026-10-05T00:00:00"))
+        #expect(countdown.segments(at: now, calendar: calendar) == [
+            CountdownSegment(value: 2, label: "days"),
+            CountdownSegment(value: 9, label: "hours"),
+        ])
+    }
+
+    @Test func segmentsAreEmptyForTimedEventsUnderADay() {
+        let countdown = Countdown(title: "Dinner", date: date("2026-10-02T19:00:00"), isAllDay: false)
+        #expect(countdown.segments(at: now, calendar: calendar).isEmpty)
+    }
+
+    private func calendar(_ identifier: String) -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: identifier)!
+        return calendar
+    }
+
+    private func date(_ string: String, in identifier: String) -> Date {
+        let formatter = ISO8601DateFormatter()
+        formatter.timeZone = TimeZone(identifier: identifier)!
+        formatter.formatOptions = [.withFullDate, .withTime, .withColonSeparatorInTime, .withDashSeparatorInDate]
+        return formatter.date(from: string)!
+    }
+
+    @Test func allDayDateStaysTheSameDayWhenTravelingWest() {
+        let created = Countdown(title: "Birthday", date: date("2027-04-06T00:00:00", in: "America/New_York"), timeZoneIdentifier: "America/New_York")
+        let losAngeles = calendar("America/Los_Angeles")
+        let now = date("2026-10-02T15:00:00", in: "America/Los_Angeles")
+        #expect(created.nextOccurrence(after: now, calendar: losAngeles) == date("2027-04-06T00:00:00", in: "America/Los_Angeles"))
+        #expect(created.status(at: now, calendar: losAngeles).days == 186)
+    }
+
+    @Test func allDayDateStaysTheSameDayWhenTravelingEast() {
+        let created = Countdown(title: "Trip", date: date("2026-12-24T00:00:00", in: "America/Los_Angeles"), timeZoneIdentifier: "America/Los_Angeles")
+        let tokyo = calendar("Asia/Tokyo")
+        let now = date("2026-10-03T08:00:00", in: "Asia/Tokyo")
+        #expect(created.nextOccurrence(after: now, calendar: tokyo) == date("2026-12-24T00:00:00", in: "Asia/Tokyo"))
+    }
+
+    @Test func timedEventsStayAtTheSameMomentAcrossTimeZones() {
+        let flight = Countdown(title: "Flight", date: date("2026-11-01T09:00:00", in: "America/New_York"), isAllDay: false, timeZoneIdentifier: "America/New_York")
+        let losAngeles = calendar("America/Los_Angeles")
+        let now = date("2026-10-02T12:00:00", in: "America/Los_Angeles")
+        #expect(flight.nextOccurrence(after: now, calendar: losAngeles) == date("2026-11-01T06:00:00", in: "America/Los_Angeles"))
+    }
+
+    @Test func timedDaysCountAcrossSpringForward() {
+        let newYork = calendar("America/New_York")
+        let countdown = Countdown(title: "Meeting", date: date("2027-03-11T09:00:00", in: "America/New_York"), isAllDay: false, unit: .days)
+        #expect(countdown.status(at: date("2027-03-01T09:00:00", in: "America/New_York"), calendar: newYork).number == "10")
+    }
+
+    @Test func adoptingTimeZoneKeepsTheCalendarDay() {
+        var countdown = Countdown(title: "Holiday", date: date("2026-12-25T00:00:00", in: "Europe/London"), timeZoneIdentifier: "Europe/London")
+        let losAngeles = calendar("America/Los_Angeles")
+        countdown.adoptCurrentTimeZone(calendar: losAngeles)
+        #expect(countdown.timeZoneIdentifier == "America/Los_Angeles")
+        #expect(countdown.date == date("2026-12-25T00:00:00", in: "America/Los_Angeles"))
+    }
+
+    @Test func timedReminderTriggersArePinnedToATimeZone() {
+        let newYork = calendar("America/New_York")
+        let fire = date("2026-10-20T18:00:00", in: "America/New_York")
+        let timed = ReminderRule.triggerComponents(for: fire, isAllDay: false, calendar: newYork)
+        let allDay = ReminderRule.triggerComponents(for: fire, isAllDay: true, calendar: newYork)
+        #expect(timed.timeZone == TimeZone(identifier: "America/New_York"))
+        #expect(timed.hour == 18)
+        #expect(allDay.timeZone == nil)
+        #expect(allDay.hour == 18)
     }
 }

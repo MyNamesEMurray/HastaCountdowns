@@ -22,3 +22,10 @@ for bundle in "$app" "$widget"; do
   fi
   echo "$(basename "$bundle"): App Group present"
 done
+
+app_entitlements=$(codesign -d --entitlements - --xml "$app" 2>/dev/null || true)
+if ! grep -q "iCloud.com.exaltedpixels.Hasta" <<<"$app_entitlements"; then
+  echo "::error::Hasta.app is not signed with the iCloud container, so iCloud Sync won't work."
+  exit 1
+fi
+echo "Hasta.app: iCloud container present"

@@ -1,3 +1,4 @@
+import Photos
 import PhotosUI
 import SwiftUI
 
@@ -12,14 +13,21 @@ struct CountdownEditorView: View {
     @State private var isLoadingPhoto = false
     @State private var isShowingPaywall = false
     @State private var isConfirmingDelete = false
+    @State private var editingReminder: ReminderDraft?
+    @State private var previewFamily: PreviewFamily = .small
+    @State private var liveSession: LivePhotoSession?
+    @State private var lastLiveSession: LivePhotoSession?
+    @State private var isFramingPhoto = false
     @FocusState private var isTitleFocused: Bool
 
     private let original: Countdown
     private let isNew: Bool
 
     init(countdown: Countdown, isNew: Bool) {
-        _draft = State(initialValue: countdown)
-        original = countdown
+        var normalized = countdown
+        normalized.adoptCurrentTimeZone()
+        _draft = State(initialValue: normalized)
+        original = normalized
         self.isNew = isNew
     }
 
@@ -40,7 +48,13 @@ struct CountdownEditorView: View {
         NavigationStack {
             Form {
                 Section {
-                    EditorPreview(countdown: draft.resolved(isPremium: purchases.isPremium), image: previewImage)
+                    WidgetFamilyPreview(
+                        countdown: draft.resolved(isPremium: purchases.isPremium),
+                        image: previewImage,
+                        family: $previewFamily
+                    )
+                    .padding(.vertical, 8)
+                    .animation(.snappy, value: draft)
                 }
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
@@ -77,6 +91,30 @@ struct CountdownEditorView: View {
             .sheet(isPresented: $isShowingPaywall) {
                 PremiumView()
             }
+            .sheet(item: $liveSession) { session in
+                LivePhotoStudioView(session: session) { image in
+                    useProcessedPhoto(image)
+                }
+            }
+            .sheet(isPresented: $isFramingPhoto) {
+                if let image = previewImage {
+                    PhotoFramingView(
+                        countdown: draft.resolved(isPremium: purchases.isPremium),
+                        image: image
+                    ) { framing in
+                        withAnimation { draft.backgroundFraming = framing == .centered ? nil : framing }
+                    }
+                }
+            }
+            .sheet(item: $editingReminder) { request in
+                ReminderEditorView(
+                    rule: request.rule,
+                    isAllDay: draft.isAllDay,
+                    isNew: request.isNew,
+                    onSave: saveReminder,
+                    onDelete: { deleteReminder(request.rule) }
+                )
+            }
             .confirmationDialog("Delete \(draft.displayTitle)?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
                 Button("Delete Countdown", role: .destructive) {
                     discardCreatedImages()
@@ -89,7 +127,7 @@ struct CountdownEditorView: View {
                 loadPhoto(item)
             }
             .onAppear {
-                if isNew { isTitleFocused = true }
+                if isNew && ScreenshotMode.current == nil { isTitleFocused = true }
             }
         }
         .interactiveDismissDisabled(hasChanges)
@@ -200,8 +238,24 @@ struct CountdownEditorView: View {
                     }
                 }
                 if draft.backgroundImageID != nil {
+                    Button {
+                        isFramingPhoto = true
+                    } label: {
+                        Label("Adjust Position & Zoom", systemImage: "crop")
+                    }
+                    if let lastLiveSession {
+                        Button {
+                            liveSession = lastLiveSession
+                        } label: {
+                            Label("Live Photo Effects", systemImage: "livephoto")
+                        }
+                    }
                     Button("Remove Photo", systemImage: "xmark.circle", role: .destructive) {
-                        withAnimation { draft.backgroundImageID = nil }
+                        withAnimation {
+                            draft.backgroundImageID = nil
+                            draft.backgroundFraming = nil
+                            lastLiveSession = nil
+                        }
                     }
                 }
             } else {
@@ -218,44 +272,88 @@ struct CountdownEditorView: View {
         } header: {
             Text("Background Photo")
         } footer: {
-            Text("Photos stay on your device and are only used for your widgets.")
+            Text("Photos stay private on your devices and iCloud, and are only used for your widgets. Choose a Live Photo to pick a different frame or make a long exposure.")
         }
     }
 
     private var unitSection: some View {
-        Section("Show Time In") {
-            Picker("Units", selection: $draft.unit) {
+        Section {
+            Picker("Show Time In", selection: $draft.unit) {
                 ForEach(DisplayUnit.allCases) { unit in
                     Text(unit.title).tag(unit)
                 }
             }
-            .pickerStyle(.segmented)
-            .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets())
+        } footer: {
+            Text(draft.unit.detail)
         }
     }
 
     private var remindersSection: some View {
-        Section {
-            ForEach(Reminder.allCases) { reminder in
-                Toggle(reminder.title(isAllDay: draft.isAllDay), isOn: Binding(
-                    get: { draft.reminders.contains(reminder) },
-                    set: { isOn in
-                        if isOn {
-                            draft.reminders.insert(reminder)
-                        } else {
-                            draft.reminders.remove(reminder)
+        let defaultTime = ReminderPreferences.time
+        let rules = draft.reminders.sortedByLeadTime
+        let presets = ReminderRule.presets(isAllDay: draft.isAllDay)
+            .filter { preset in !draft.reminders.contains { $0.matches(preset) } }
+        return Section {
+            ForEach(rules) { rule in
+                Button {
+                    editingReminder = ReminderDraft(rule: rule, isNew: false)
+                } label: {
+                    HStack {
+                        Label {
+                            Text(rule.title(isAllDay: draft.isAllDay, defaultTime: defaultTime))
+                        } icon: {
+                            Image(systemName: "bell.fill")
+                                .foregroundStyle(draft.tint)
                         }
+                        Spacer(minLength: 8)
+                        Image(systemName: "chevron.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.tertiary)
                     }
-                ))
+                }
+                .tint(.primary)
+            }
+            .onDelete { offsets in
+                let ids = Set(offsets.map { rules[$0].id })
+                withAnimation { draft.reminders.removeAll { ids.contains($0.id) } }
+            }
+
+            Menu {
+                ForEach(Array(presets.enumerated()), id: \.offset) { _, preset in
+                    Button(preset.title(isAllDay: draft.isAllDay, defaultTime: defaultTime)) {
+                        withAnimation { draft.reminders.append(ReminderRule(amount: preset.amount, unit: preset.unit)) }
+                    }
+                }
+                Divider()
+                Button("Custom…", systemImage: "slider.horizontal.3") {
+                    editingReminder = ReminderDraft(rule: ReminderRule(amount: 1, unit: .days), isNew: true)
+                }
+            } label: {
+                Label("Add Reminder", systemImage: "plus")
             }
         } header: {
             Text("Reminders")
         } footer: {
-            if draft.isAllDay {
-                Text("All-day reminders arrive at \(ReminderPreferences.formattedTime). You can change this in Settings.")
+            if draft.reminders.isEmpty {
+                Text("No reminders for this countdown.")
+            } else if draft.isAllDay {
+                Text("Reminders without a custom time arrive at \(ReminderPreferences.formattedTime), which you can change in Settings.")
             }
         }
+    }
+
+    private func saveReminder(_ rule: ReminderRule) {
+        withAnimation {
+            if let index = draft.reminders.firstIndex(where: { $0.id == rule.id }) {
+                draft.reminders[index] = rule
+            } else {
+                draft.reminders.append(rule)
+            }
+        }
+    }
+
+    private func deleteReminder(_ rule: ReminderRule) {
+        withAnimation { draft.reminders.removeAll { $0.id == rule.id } }
     }
 
     private func loadPhoto(_ item: PhotosPickerItem) {
@@ -268,7 +366,29 @@ struct CountdownEditorView: View {
             guard let data = try? await item.loadTransferable(type: Data.self),
                   let id = try? BackgroundImageStore.save(data) else { return }
             createdImageIDs.append(id)
-            withAnimation { draft.backgroundImageID = id }
+            withAnimation {
+                draft.backgroundImageID = id
+                draft.backgroundFraming = nil
+            }
+            lastLiveSession = nil
+
+            if let livePhoto = try? await item.loadTransferable(type: PHLivePhoto.self),
+               let videoURL = try? await LivePhotoProcessor.pairedVideoURL(for: livePhoto),
+               let keyPhoto = ImageCache.shared.image(for: id) {
+                let session = LivePhotoSession(videoURL: videoURL, keyPhoto: keyPhoto)
+                lastLiveSession = session
+                liveSession = session
+            }
+        }
+    }
+
+    private func useProcessedPhoto(_ image: UIImage) {
+        guard let data = image.jpegData(compressionQuality: 0.92),
+              let id = try? BackgroundImageStore.save(data) else { return }
+        createdImageIDs.append(id)
+        withAnimation {
+            draft.backgroundImageID = id
+            draft.backgroundFraming = nil
         }
     }
 
@@ -304,27 +424,6 @@ extension ReminderPreferences {
     static var formattedTime: String {
         let date = Calendar.current.date(from: time) ?? .now
         return date.formatted(date: .omitted, time: .shortened)
-    }
-}
-
-private struct EditorPreview: View {
-    let countdown: Countdown
-    let image: UIImage?
-
-    var body: some View {
-        HStack(spacing: 12) {
-            WidgetPreviewFrame(countdown: countdown, image: image, cornerRadius: 22, padding: 14) {
-                SmallCountdownView(countdown: countdown, now: .now, hasImage: image != nil)
-            }
-            .frame(width: 150, height: 150)
-            .shadow(color: .black.opacity(0.1), radius: 10, y: 4)
-
-            LockScreenPreview(countdown: countdown, now: .now, height: 150)
-                .frame(maxWidth: 220)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        .animation(.snappy, value: countdown)
     }
 }
 
@@ -432,4 +531,11 @@ struct PremiumBadge: View {
                 in: .capsule
             )
     }
+}
+
+struct ReminderDraft: Identifiable {
+    let rule: ReminderRule
+    let isNew: Bool
+
+    var id: UUID { rule.id }
 }

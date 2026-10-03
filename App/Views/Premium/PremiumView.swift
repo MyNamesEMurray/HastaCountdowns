@@ -43,6 +43,7 @@ struct PremiumView: View {
                     }
                     .padding(.horizontal, 8)
                 }
+                .frame(maxWidth: .infinity)
                 .padding(.horizontal, 24)
                 .padding(.top, 12)
                 .padding(.bottom, 24)
@@ -132,8 +133,8 @@ struct PremiumView: View {
 struct FeatureRow: View {
     let symbol: String
     let color: Color
-    let title: String
-    let detail: String
+    let title: LocalizedStringKey
+    let detail: LocalizedStringKey
 
     var body: some View {
         HStack(alignment: .top, spacing: 16) {

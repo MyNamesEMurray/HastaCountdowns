@@ -5,16 +5,19 @@ struct Countdown: Identifiable, Codable, Hashable {
     var title: String = ""
     var date: Date = Countdown.defaultDate
     var isAllDay: Bool = true
+    var timeZoneIdentifier: String?
     var repeatRule: RepeatRule = .never
     var symbol: String = "star.fill"
     var color: CountdownColor = .blue
     var customColorHex: String?
-    var unit: DisplayUnit = .days
+    var unit: DisplayUnit = .automatic
     var style: WidgetStyle = .classic
     var typeface: Typeface = .rounded
     var backgroundImageID: String?
-    var reminders: Set<Reminder> = [.dayOf]
+    var backgroundFraming: BackgroundFraming?
+    var reminders: [ReminderRule] = [.onTheDay]
     var createdAt: Date = .now
+    var modifiedAt: Date = .now
 
     static var defaultDate: Date {
         let calendar = Calendar.current
@@ -27,21 +30,25 @@ struct Countdown: Identifiable, Codable, Hashable {
         title: String = "",
         date: Date = Countdown.defaultDate,
         isAllDay: Bool = true,
+        timeZoneIdentifier: String? = nil,
         repeatRule: RepeatRule = .never,
         symbol: String = "star.fill",
         color: CountdownColor = .blue,
         customColorHex: String? = nil,
-        unit: DisplayUnit = .days,
+        unit: DisplayUnit = .automatic,
         style: WidgetStyle = .classic,
         typeface: Typeface = .rounded,
         backgroundImageID: String? = nil,
-        reminders: Set<Reminder> = [.dayOf],
-        createdAt: Date = .now
+        backgroundFraming: BackgroundFraming? = nil,
+        reminders: [ReminderRule] = [.onTheDay],
+        createdAt: Date = .now,
+        modifiedAt: Date? = nil
     ) {
         self.id = id
         self.title = title
         self.date = date
         self.isAllDay = isAllDay
+        self.timeZoneIdentifier = timeZoneIdentifier
         self.repeatRule = repeatRule
         self.symbol = symbol
         self.color = color
@@ -50,8 +57,10 @@ struct Countdown: Identifiable, Codable, Hashable {
         self.style = style
         self.typeface = typeface
         self.backgroundImageID = backgroundImageID
+        self.backgroundFraming = backgroundFraming
         self.reminders = reminders
         self.createdAt = createdAt
+        self.modifiedAt = modifiedAt ?? createdAt
     }
 
     init(from decoder: Decoder) throws {
@@ -60,6 +69,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         title = try container.decodeIfPresent(String.self, forKey: .title) ?? ""
         date = try container.decode(Date.self, forKey: .date)
         isAllDay = try container.decodeIfPresent(Bool.self, forKey: .isAllDay) ?? true
+        timeZoneIdentifier = try container.decodeIfPresent(String.self, forKey: .timeZoneIdentifier)
         repeatRule = (try? container.decodeIfPresent(RepeatRule.self, forKey: .repeatRule)) ?? .never
         symbol = try container.decodeIfPresent(String.self, forKey: .symbol) ?? "star.fill"
         color = (try? container.decodeIfPresent(CountdownColor.self, forKey: .color)) ?? .blue
@@ -68,8 +78,16 @@ struct Countdown: Identifiable, Codable, Hashable {
         style = (try? container.decodeIfPresent(WidgetStyle.self, forKey: .style)) ?? .classic
         typeface = (try? container.decodeIfPresent(Typeface.self, forKey: .typeface)) ?? .rounded
         backgroundImageID = try container.decodeIfPresent(String.self, forKey: .backgroundImageID)
-        reminders = (try? container.decodeIfPresent(Set<Reminder>.self, forKey: .reminders)) ?? []
+        backgroundFraming = try? container.decodeIfPresent(BackgroundFraming.self, forKey: .backgroundFraming)
+        if let rules = try? container.decodeIfPresent([ReminderRule].self, forKey: .reminders) {
+            reminders = rules
+        } else if let legacy = try? container.decodeIfPresent([LegacyReminder].self, forKey: .reminders) {
+            reminders = legacy.map(\.rule).sortedByLeadTime
+        } else {
+            reminders = []
+        }
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? date
+        modifiedAt = try container.decodeIfPresent(Date.self, forKey: .modifiedAt) ?? createdAt
     }
 }
 
@@ -80,10 +98,10 @@ enum RepeatRule: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .never: "Never"
-        case .weekly: "Every Week"
-        case .monthly: "Every Month"
-        case .yearly: "Every Year"
+        case .never: String(localized: "Never")
+        case .weekly: String(localized: "Every Week")
+        case .monthly: String(localized: "Every Month")
+        case .yearly: String(localized: "Every Year")
         }
     }
 
@@ -98,44 +116,28 @@ enum RepeatRule: String, Codable, CaseIterable, Identifiable {
 }
 
 enum DisplayUnit: String, Codable, CaseIterable, Identifiable {
-    case days, weeks, months
+    case automatic, days, weeks, months, years
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .days: "Days"
-        case .weeks: "Weeks"
-        case .months: "Months"
+        case .automatic: String(localized: "Auto")
+        case .days: String(localized: "Days")
+        case .weeks: String(localized: "Weeks")
+        case .months: String(localized: "Months")
+        case .years: String(localized: "Years")
         }
     }
-}
 
-enum Reminder: String, Codable, CaseIterable, Identifiable, Comparable {
-    case dayOf, dayBefore, threeDaysBefore, weekBefore
-
-    var id: String { rawValue }
-
-    var daysBefore: Int {
+    var detail: String {
         switch self {
-        case .dayOf: 0
-        case .dayBefore: 1
-        case .threeDaysBefore: 3
-        case .weekBefore: 7
+        case .automatic: String(localized: "Picks years, months, weeks, days, hours, or minutes depending on how far away it is.")
+        case .days: String(localized: "Always counts in days.")
+        case .weeks: String(localized: "Weeks and days, once it's at least a week away.")
+        case .months: String(localized: "Months and days, once it's at least a month away.")
+        case .years: String(localized: "Years and months, once it's at least a year away.")
         }
-    }
-
-    func title(isAllDay: Bool) -> String {
-        switch self {
-        case .dayOf: isAllDay ? "On the Day" : "At Time of Event"
-        case .dayBefore: "1 Day Before"
-        case .threeDaysBefore: "3 Days Before"
-        case .weekBefore: "1 Week Before"
-        }
-    }
-
-    static func < (lhs: Reminder, rhs: Reminder) -> Bool {
-        lhs.daysBefore < rhs.daysBefore
     }
 }
 
@@ -144,7 +146,23 @@ enum CountdownColor: String, Codable, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String { rawValue.capitalized }
+    var title: String {
+        switch self {
+        case .red: String(localized: "Red")
+        case .orange: String(localized: "Orange")
+        case .yellow: String(localized: "Yellow")
+        case .green: String(localized: "Green")
+        case .mint: String(localized: "Mint")
+        case .teal: String(localized: "Teal")
+        case .cyan: String(localized: "Cyan")
+        case .blue: String(localized: "Blue")
+        case .indigo: String(localized: "Indigo")
+        case .purple: String(localized: "Purple")
+        case .pink: String(localized: "Pink")
+        case .brown: String(localized: "Brown")
+        case .graphite: String(localized: "Graphite")
+        }
+    }
 }
 
 enum WidgetStyle: String, Codable, CaseIterable, Identifiable {
@@ -154,10 +172,10 @@ enum WidgetStyle: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .classic: "Classic"
-        case .minimal: "Minimal"
-        case .vivid: "Vivid"
-        case .night: "Night"
+        case .classic: String(localized: "Classic")
+        case .minimal: String(localized: "Minimal")
+        case .vivid: String(localized: "Vivid")
+        case .night: String(localized: "Night")
         }
     }
 
@@ -176,11 +194,11 @@ enum Typeface: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .rounded: "Rounded"
-        case .standard: "Standard"
-        case .serif: "Serif"
-        case .mono: "Mono"
-        case .condensed: "Condensed"
+        case .rounded: String(localized: "Rounded")
+        case .standard: String(localized: "Standard")
+        case .serif: String(localized: "Serif")
+        case .mono: String(localized: "Mono")
+        case .condensed: String(localized: "Condensed")
         }
     }
 
@@ -204,12 +222,13 @@ extension Countdown {
         if copy.typeface.isPremium { copy.typeface = .rounded }
         copy.customColorHex = nil
         copy.backgroundImageID = nil
+        copy.backgroundFraming = nil
         return copy
     }
 
     var displayTitle: String {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? "Untitled" : trimmed
+        return trimmed.isEmpty ? String(localized: "Untitled") : trimmed
     }
 }
 
@@ -218,11 +237,13 @@ extension Countdown {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: .now)
         func days(_ n: Int) -> Date { calendar.date(byAdding: .day, value: n, to: today) ?? today }
+        func id(_ suffix: String) -> UUID { UUID(uuidString: "00000000-0000-0000-0000-0000000000\(suffix)")! }
         return [
-            Countdown(title: "Tokyo Trip", date: days(42), symbol: "airplane", color: .blue, createdAt: days(-30)),
-            Countdown(title: "Maya's Birthday", date: days(9), repeatRule: .yearly, symbol: "birthday.cake.fill", color: .pink, createdAt: days(-200)),
-            Countdown(title: "Concert", date: days(17), symbol: "music.mic", color: .purple, style: .vivid, createdAt: days(-12)),
-            Countdown(title: "Marathon", date: days(88), symbol: "figure.run", color: .orange, unit: .weeks, createdAt: days(-60)),
+            Countdown(id: id("01"), title: String(localized: "Tokyo Trip"), date: days(42), symbol: "airplane", color: .blue, createdAt: days(-30)),
+            Countdown(id: id("02"), title: String(localized: "Maya's Birthday"), date: days(9), repeatRule: .yearly, symbol: "birthday.cake.fill", color: .pink, createdAt: days(-200)),
+            Countdown(id: id("03"), title: String(localized: "Concert"), date: days(17), symbol: "music.mic", color: .purple, style: .vivid, createdAt: days(-12)),
+            Countdown(id: id("04"), title: String(localized: "Marathon"), date: days(88), symbol: "figure.run", color: .orange, unit: .weeks, createdAt: days(-60)),
+            Countdown(id: id("05"), title: String(localized: "Dinner Reservation at Lucia's Trattoria"), date: Date.now.addingTimeInterval(5 * 3_600 + 20 * 60), isAllDay: false, symbol: "fork.knife", color: .green, createdAt: days(-3)),
         ]
     }()
 }

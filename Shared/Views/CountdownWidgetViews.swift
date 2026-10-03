@@ -6,7 +6,6 @@ struct CountdownPalette {
     let secondary: Color
     let number: Color
     let accent: Color
-    let track: Color
 
     init(countdown: Countdown, hasImage: Bool, renderingMode: WidgetRenderingMode = .fullColor) {
         if renderingMode != .fullColor {
@@ -14,19 +13,16 @@ struct CountdownPalette {
             secondary = .secondary
             number = .primary
             accent = .primary
-            track = .primary.opacity(0.25)
         } else if hasImage || countdown.style.usesLightForeground {
             primary = .white
             secondary = .white.opacity(0.78)
             number = .white
             accent = .white
-            track = .white.opacity(0.3)
         } else {
             primary = .primary
             secondary = .secondary
             number = countdown.tint
             accent = countdown.tint
-            track = countdown.tint.opacity(0.2)
         }
     }
 }
@@ -39,10 +35,7 @@ struct CountdownBackground: View {
         if let image {
             ZStack {
                 Color.black
-                Image(uiImage: image)
-                    .resizable()
-                    .widgetAccentedRenderingMode(.desaturated)
-                    .scaledToFill()
+                FramedPhoto(image: image, framing: countdown.backgroundFraming ?? .centered)
                 LinearGradient(
                     colors: [.black.opacity(0.05), .black.opacity(0.2), .black.opacity(0.6)],
                     startPoint: .top,
@@ -69,6 +62,27 @@ struct CountdownBackground: View {
                 }
             }
         }
+    }
+}
+
+struct FramedPhoto: View {
+    let image: UIImage
+    let framing: BackgroundFraming
+
+    var body: some View {
+        GeometryReader { proxy in
+            let container = proxy.size
+            let imageSize = image.size
+            let rect = framing.visibleRect(imageSize: imageSize, containerSize: container)
+            let scale = rect.width > 0 ? container.width / (rect.width * imageSize.width) : 1
+            let displayed = CGSize(width: imageSize.width * scale, height: imageSize.height * scale)
+            Image(uiImage: image)
+                .resizable()
+                .widgetAccentedRenderingMode(.desaturated)
+                .frame(width: displayed.width, height: displayed.height)
+                .offset(x: -rect.minX * displayed.width, y: -rect.minY * displayed.height)
+        }
+        .clipped()
     }
 }
 
@@ -128,36 +142,17 @@ struct CountdownNumberView: View {
 
             if !status.isToday {
                 Text(status.caption.uppercased())
-                    .font(.system(size: max(10, size * 0.2), weight: .semibold))
+                    .font(countdown.typeface.font(size: max(10, size * 0.2), weight: .semibold))
                     .foregroundStyle(palette.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             } else if !countdown.isAllDay {
                 Text(status.target.formatted(date: .omitted, time: .shortened).uppercased())
-                    .font(.system(size: max(10, size * 0.2), weight: .semibold))
+                    .font(countdown.typeface.font(size: max(10, size * 0.2), weight: .semibold))
                     .foregroundStyle(palette.secondary)
                     .lineLimit(1)
             }
         }
-    }
-}
-
-struct ProgressCapsule: View {
-    let value: Double
-    let color: Color
-    let track: Color
-
-    var body: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .leading) {
-                Capsule().fill(track)
-                Capsule()
-                    .fill(color)
-                    .frame(width: max(proxy.size.height, proxy.size.width * value))
-                    .widgetAccentable()
-            }
-        }
-        .frame(height: 5)
     }
 }
 
@@ -189,6 +184,9 @@ struct SmallCountdownView: View {
                 .font(countdown.typeface.font(.subheadline))
                 .foregroundStyle(palette.primary)
                 .lineLimit(2)
+                .minimumScaleFactor(0.4)
+                .allowsTightening(true)
+                .layoutPriority(1)
                 .padding(.top, 2)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -216,16 +214,16 @@ struct MediumCountdownView: View {
                         .font(countdown.typeface.font(.headline, weight: .bold))
                         .foregroundStyle(palette.primary)
                         .lineLimit(2)
+                        .minimumScaleFactor(0.45)
+                        .allowsTightening(true)
+                        .layoutPriority(1)
                     Text(countdown.formattedDate(at: now))
-                        .font(.caption.weight(.medium))
+                        .font(countdown.typeface.font(.caption, weight: .medium))
                         .foregroundStyle(palette.secondary)
                         .lineLimit(1)
                 }
                 Spacer(minLength: 8)
                 CountdownNumberView(countdown: countdown, status: status, now: now, size: 62, palette: palette, alignment: .trailing)
-            }
-            if !status.isPast {
-                ProgressCapsule(value: countdown.progress(at: now), color: palette.number, track: palette.track)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -235,7 +233,6 @@ struct MediumCountdownView: View {
 struct LargeCountdownView: View {
     @Environment(\.widgetRenderingMode) private var renderingMode
     let countdown: Countdown
-    let upNext: [Countdown]
     let now: Date
     var hasImage = false
 
@@ -251,80 +248,127 @@ struct LargeCountdownView: View {
                 Spacer(minLength: 0)
                 if countdown.repeatRule != .never {
                     Label(countdown.repeatRule.title, systemImage: "repeat")
-                        .font(.caption.weight(.semibold))
+                        .font(countdown.typeface.font(.caption, weight: .semibold))
                         .foregroundStyle(palette.secondary)
                 }
             }
             Spacer(minLength: 0)
-            CountdownNumberView(countdown: countdown, status: status, now: now, size: 92, palette: palette)
             Text(countdown.displayTitle)
-                .font(countdown.typeface.font(.title2, weight: .bold))
+                .font(countdown.typeface.font(size: 30, weight: .bold))
                 .foregroundStyle(palette.primary)
                 .lineLimit(2)
-                .padding(.top, 4)
+                .minimumScaleFactor(0.45)
+                .allowsTightening(true)
+                .layoutPriority(1)
             Text(countdown.formattedDate(at: now, style: .complete))
-                .font(.subheadline.weight(.medium))
+                .font(countdown.typeface.font(.subheadline, weight: .medium))
                 .foregroundStyle(palette.secondary)
                 .lineLimit(1)
-            if !status.isPast {
-                ProgressCapsule(value: countdown.progress(at: now), color: palette.number, track: palette.track)
-                    .padding(.top, 12)
+                .padding(.top, 2)
+            if status.isPast {
+                Text("Time Since")
+                    .font(countdown.typeface.font(.caption, weight: .semibold))
+                    .textCase(.uppercase)
+                    .foregroundStyle(palette.secondary)
+                    .padding(.top, 14)
             }
-            if !upNext.isEmpty {
-                VStack(spacing: 7) {
-                    ForEach(upNext.prefix(3)) { other in
-                        let otherStatus = other.status(at: now)
-                        HStack(spacing: 8) {
-                            Image(systemName: other.symbol)
-                                .font(.footnote.weight(.semibold))
-                                .frame(width: 18)
-                                .widgetAccentable()
-                            Text(other.displayTitle)
-                                .font(.subheadline.weight(.medium))
-                                .lineLimit(1)
-                            Spacer(minLength: 4)
-                            Text(otherStatus.isToday ? "Today" : "\(otherStatus.number) \(otherStatus.unitLabel)")
-                                .font(.subheadline.weight(.semibold))
-                                .monospacedDigit()
+            let segments = countdown.segments(at: now)
+            HStack(spacing: 8) {
+                if segments.isEmpty {
+                    tile(palette: palette) {
+                        if !countdown.isAllDay && status.target > now && status.target.timeIntervalSince(now) < 86_400 {
+                            Text(timerInterval: now...status.target, countsDown: true)
+                                .multilineTextAlignment(.center)
+                        } else if status.isToday {
+                            Text("Today")
+                        } else {
+                            Text(status.number)
                         }
-                        .foregroundStyle(palette.primary)
+                    } label: {
+                        if !countdown.isAllDay && status.target > now && status.target.timeIntervalSince(now) < 86_400 {
+                            Text("remaining")
+                        } else if status.isToday {
+                            Text(countdown.isAllDay ? countdown.formattedDate(at: now, style: .abbreviated) : status.target.formatted(date: .omitted, time: .shortened))
+                        } else {
+                            Text(status.unitLabel)
+                        }
+                    }
+                } else {
+                    ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                        tile(palette: palette) {
+                            Text(segment.value.formatted())
+                        } label: {
+                            Text(segment.label)
+                        }
                     }
                 }
-                .padding(.top, 14)
             }
+            .padding(.top, status.isPast ? 6 : 16)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
 
+extension LargeCountdownView {
+    fileprivate func tile<Value: View, Caption: View>(
+        palette: CountdownPalette,
+        @ViewBuilder value: () -> Value,
+        @ViewBuilder label: () -> Caption
+    ) -> some View {
+        VStack(spacing: 3) {
+            value()
+                .font(countdown.typeface.font(size: 30, weight: .bold))
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+                .foregroundStyle(palette.primary)
+                .widgetAccentable()
+            label()
+                .font(countdown.typeface.font(.caption, weight: .semibold))
+                .foregroundStyle(palette.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .padding(.horizontal, 6)
+        .background(palette.primary.opacity(0.14), in: .rect(cornerRadius: 16, style: .continuous))
+    }
+}
+
 struct CircularCountdownView: View {
+    @Environment(\.widgetRenderingMode) private var renderingMode
     let countdown: Countdown
     let now: Date
 
     var body: some View {
         let status = countdown.status(at: now)
-        Gauge(value: status.isPast ? 1 : countdown.progress(at: now)) {
-            Image(systemName: countdown.symbol)
-        } currentValueLabel: {
+        ZStack {
+            if renderingMode == .fullColor {
+                Circle().fill(.white.opacity(0.18))
+            } else {
+                AccessoryWidgetBackground()
+            }
             if status.isToday {
                 Image(systemName: countdown.symbol)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(.system(size: 22, weight: .semibold))
+                    .widgetAccentable()
             } else {
-                VStack(spacing: -3) {
+                VStack(spacing: -2) {
                     Text(status.number)
-                        .font(countdown.typeface.font(size: 20, weight: .bold))
+                        .font(countdown.typeface.font(size: 22, weight: .bold))
+                        .monospacedDigit()
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
+                        .widgetAccentable()
                     Text(status.unitLabel.uppercased())
-                        .font(.system(size: 8, weight: .bold))
+                        .font(countdown.typeface.font(size: 8, weight: .bold))
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                 }
-                .padding(.horizontal, 2)
+                .padding(.horizontal, 6)
             }
         }
-        .gaugeStyle(.accessoryCircularCapacity)
-        .widgetAccentable()
     }
 }
 
@@ -334,43 +378,95 @@ struct RectangularCountdownView: View {
 
     var body: some View {
         let status = countdown.status(at: now)
-        VStack(alignment: .leading, spacing: 0) {
-            Label {
-                Text(countdown.displayTitle)
-            } icon: {
+        let segments = countdown.segments(at: now)
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 4) {
                 Image(systemName: countdown.symbol)
-            }
-            .font(.headline)
-            .lineLimit(1)
-            .widgetAccentable()
-
-            Group {
-                if countdown.isLiveToday(at: now) {
-                    Text(timerInterval: now...status.target, countsDown: true)
-                        .font(countdown.typeface.font(size: 22))
-                        .monospacedDigit()
-                } else if status.isToday {
-                    Text("Today")
-                        .font(countdown.typeface.font(size: 22))
-                } else {
-                    HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        Text(status.number)
-                            .font(countdown.typeface.font(size: 24))
-                            .monospacedDigit()
-                        Text(status.isPast ? "\(status.unitLabel) ago" : status.unitLabel)
-                            .font(countdown.typeface.font(.subheadline))
-                    }
+                    .font(.system(size: 10, weight: .semibold))
+                    .frame(width: 13, height: 13)
+                Text(countdown.displayTitle)
+                    .font(countdown.typeface.font(.caption, weight: .bold))
+                    .minimumScaleFactor(0.7)
+                    .allowsTightening(true)
+                if status.isPast {
+                    Spacer(minLength: 2)
+                    Text("ago")
+                        .font(countdown.typeface.font(.caption2, weight: .semibold))
+                        .foregroundStyle(.secondary)
                 }
             }
             .lineLimit(1)
-            .minimumScaleFactor(0.6)
+            .widgetAccentable()
 
-            Text(status.remainder.map { "+\($0) · \(countdown.formattedDate(at: now))" } ?? countdown.formattedDate(at: now))
-                .font(.caption)
+            if !segments.isEmpty {
+                HStack(spacing: 5) {
+                    ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                        SegmentTile(
+                            text: String(format: "%02d", segment.value),
+                            label: segment.label,
+                            typeface: countdown.typeface
+                        )
+                    }
+                }
+            } else if countdown.isLiveToday(at: now) {
+                SegmentTile(
+                    timerInterval: now...status.target,
+                    label: String(localized: "remaining"),
+                    typeface: countdown.typeface
+                )
+            } else {
+                SegmentTile(text: "Today", label: countdown.formattedDate(at: now, style: .abbreviated), typeface: countdown.typeface)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+    }
+}
+
+struct SegmentTile: View {
+    private let text: String?
+    private let timerInterval: ClosedRange<Date>?
+    let label: String
+    let typeface: Typeface
+
+    init(text: String, label: String, typeface: Typeface) {
+        self.text = text
+        self.timerInterval = nil
+        self.label = label
+        self.typeface = typeface
+    }
+
+    init(timerInterval: ClosedRange<Date>, label: String, typeface: Typeface) {
+        self.text = nil
+        self.timerInterval = timerInterval
+        self.label = label
+        self.typeface = typeface
+    }
+
+    var body: some View {
+        VStack(spacing: 1) {
+            Group {
+                if let timerInterval {
+                    Text(timerInterval: timerInterval, countsDown: true)
+                        .multilineTextAlignment(.center)
+                } else if let text {
+                    Text(text)
+                }
+            }
+            .font(typeface.font(size: 19, weight: .bold))
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 3)
+            .background(Color.primary.opacity(0.16), in: .rect(cornerRadius: 8, style: .continuous))
+            .widgetAccentable()
+
+            Text(label)
+                .font(typeface.font(size: 10, weight: .medium))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -406,10 +502,12 @@ struct UpNextRow: View {
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(countdown.displayTitle)
-                    .font(.subheadline.weight(.semibold))
+                    .font(countdown.typeface.font(.subheadline, weight: .semibold))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .allowsTightening(true)
                 Text(countdown.formattedDate(at: now))
-                    .font(.caption)
+                    .font(countdown.typeface.font(.caption, weight: .regular))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
@@ -427,7 +525,7 @@ struct UpNextRow: View {
                         .foregroundStyle(countdown.tint)
                         .widgetAccentable()
                     Text(status.unitLabel.uppercased())
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(countdown.typeface.font(size: 9, weight: .semibold))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -461,6 +559,39 @@ struct UpNextView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+struct UpNextAccessoryView: View {
+    let countdowns: [Countdown]
+    let now: Date
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            if countdowns.isEmpty {
+                Label("No countdowns", systemImage: "hourglass")
+                    .font(.headline)
+            } else {
+                ForEach(countdowns.prefix(3)) { countdown in
+                    HStack(spacing: 4) {
+                        Image(systemName: countdown.symbol)
+                            .font(.system(size: 10, weight: .semibold))
+                            .frame(width: 14)
+                            .widgetAccentable()
+                        Text(countdown.displayTitle)
+                            .font(.system(.caption, design: .rounded, weight: .semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                        Spacer(minLength: 2)
+                        Text(countdown.status(at: now).compactPhrase)
+                            .font(.system(.caption, design: .rounded, weight: .bold))
+                            .monospacedDigit()
+                            .widgetAccentable()
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     }
 }
 

@@ -8,6 +8,10 @@ options:
   createIntermediateGroups: true
   developmentLanguage: en
   groupSortPosition: top
+  fileTypes:
+    icon:
+      file: true
+      buildPhase: resources
 
 settings:
   base:
@@ -18,7 +22,7 @@ settings:
     MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
-    STRING_CATALOG_GENERATE_SYMBOLS: YES
+    STRING_CATALOG_GENERATE_SYMBOLS: NO
     SWIFT_EMIT_LOC_STRINGS: YES
 
 fileGroups:
@@ -42,6 +46,8 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         ITSAppUsesNonExemptEncryption: false
         LSApplicationCategoryType: public.app-category.utilities
+        UIBackgroundModes:
+          - remote-notification
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
@@ -58,6 +64,11 @@ targets:
       properties:
         com.apple.security.application-groups:
           - group.com.exaltedpixels.Hasta
+        com.apple.developer.icloud-container-identifiers:
+          - iCloud.com.exaltedpixels.Hasta
+        com.apple.developer.icloud-services:
+          - CloudKit
+        aps-environment: development
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.exaltedpixels.Hasta
@@ -107,12 +118,27 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: YES
 
+  HastaUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - UITests
+    dependencies:
+      - target: Hasta
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.exaltedpixels.HastaUITests
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Hasta
+
 schemes:
   Hasta:
     build:
       targets:
         Hasta: all
         HastaTests: [test]
+        HastaUITests: [test]
     run:
       config: Debug
       storeKitConfiguration: Hasta.storekit
@@ -120,6 +146,7 @@ schemes:
       config: Debug
       targets:
         - HastaTests
+        - HastaUITests
     profile:
       config: Release
     analyze:

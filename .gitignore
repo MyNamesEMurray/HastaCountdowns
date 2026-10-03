@@ -12,3 +12,4 @@ build/
 *.xcodeproj
 *.xcworkspace
 TestResults.xcresult/
+__pycache__/

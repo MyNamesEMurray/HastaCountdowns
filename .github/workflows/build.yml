@@ -39,6 +39,17 @@ jobs:
         id: sim
         run: python3 .github/scripts/pick_simulator.py
 
+      - name: Prepare simulator
+        continue-on-error: true
+        env:
+          SIMULATOR_ID: ${{ steps.sim.outputs.udid }}
+        run: |
+          xcrun simctl boot "$SIMULATOR_ID" || true
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
+          xcrun simctl status_bar "$SIMULATOR_ID" override \
+            --time "9:41" --dataNetwork wifi --wifiMode active --wifiBars 3 \
+            --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
+
       - name: Build and test
         env:
           SIMULATOR_ID: ${{ steps.sim.outputs.udid }}
@@ -56,6 +67,54 @@ jobs:
             -resultBundlePath TestResults.xcresult \
             CODE_SIGNING_ALLOWED=NO \
             | "${FORMATTER[@]}"
+
+      - name: Export screenshots
+        if: success()
+        continue-on-error: true
+        run: python3 .github/scripts/export_screenshots.py TestResults.xcresult Screenshots
+
+      - name: Compose App Store screenshots
+        if: success()
+        continue-on-error: true
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet pillow
+          "$RUNNER_TEMP/venv/bin/python" .github/scripts/compose_app_store_screenshots.py Screenshots AppStoreScreenshots
+
+      - name: Upload screenshots
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: Screenshots
+          path: Screenshots
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload App Store screenshots
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: AppStoreScreenshots
+          path: AppStoreScreenshots
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Collect localizable strings
+        if: success()
+        continue-on-error: true
+        run: |
+          mkdir -p LocalizableStrings
+          find DerivedData/Build/Intermediates.noindex -name "*.stringsdata" -exec cp {} LocalizableStrings/ \;
+          ls LocalizableStrings | wc -l
+
+      - name: Upload localizable strings
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: LocalizableStrings
+          path: LocalizableStrings
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Upload test results
         if: failure()

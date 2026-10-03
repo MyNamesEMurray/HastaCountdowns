@@ -41,11 +41,12 @@ struct WelcomeView: View {
                             symbol: "lock.shield.fill",
                             color: .blue,
                             title: "Private by Design",
-                            detail: "Your countdowns stay on your device. No accounts, no ads, no tracking."
+                            detail: "Your countdowns stay on your devices and sync through your private iCloud. No accounts, no ads, no tracking."
                         )
                     }
                     .padding(.horizontal, 12)
                 }
+                .frame(maxWidth: .infinity)
                 .padding(.horizontal, 32)
             }
 

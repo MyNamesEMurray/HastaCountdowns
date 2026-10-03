@@ -36,12 +36,15 @@ Both workflows use GitHub's `macos-26` runner. To use a different runner, set th
 | `Widgets/` | WidgetKit extension: Countdown and Up Next widgets |
 | `Shared/` | Code compiled into both targets: model, date math, storage, widget views, App Intents |
 | `Tests/` | Swift Testing unit tests for the date math and premium gating |
+| `UITests/` | UI test that captures light and dark screenshots of the main screens (uploaded by the Build workflow) |
 | `AppStore/` | App Store Connect metadata |
 | `site/` | Website for hasta.day |
 | `scripts/` | Icon generator |
 | `.github/` | CI workflows and helper scripts |
 
 The app and widget share data through the App Group `group.com.exaltedpixels.Hasta`. Countdowns are stored as JSON in the group container, and photo backgrounds are stored as downscaled JPEGs alongside them.
+
+iCloud Sync (free, on by default) uses `CKSyncEngine` with the private database of the CloudKit container `iCloud.com.exaltedpixels.Hasta`. Each countdown is a `Countdown` record in the `Countdowns` zone with a JSON `payload`, a `modifiedAt` date, and an optional `image` asset; the newest edit wins on conflicts.
 
 ## Free vs Premium
 

@@ -31,6 +31,7 @@ struct CountdownDetailView: View {
                 DetailInfoView(countdown: countdown)
                 widgetSection(countdown: countdown, image: image)
             }
+            .frame(maxWidth: .infinity)
             .padding(.horizontal)
             .padding(.bottom, 32)
         }
@@ -76,18 +77,17 @@ struct CountdownDetailView: View {
             }
             ScrollView(.horizontal) {
                 HStack(spacing: 14) {
-                    WidgetPreviewFrame(countdown: countdown, image: image) {
+                    let metrics = WidgetMetrics.current
+                    HomeWidgetPreview(countdown: countdown, image: image, size: metrics.small, metrics: metrics) {
                         SmallCountdownView(countdown: countdown, now: .now, hasImage: image != nil)
                     }
-                    .frame(width: 158, height: 158)
 
-                    WidgetPreviewFrame(countdown: countdown, image: image) {
+                    HomeWidgetPreview(countdown: countdown, image: image, size: metrics.medium, metrics: metrics) {
                         MediumCountdownView(countdown: countdown, now: .now, hasImage: image != nil)
                     }
-                    .frame(width: 338, height: 158)
 
-                    LockScreenPreview(countdown: countdown, now: .now)
-                        .frame(width: 240)
+                    LockScreenPreview(countdown: countdown, now: .now, metrics: metrics)
+                        .frame(width: metrics.medium.width)
                 }
                 .padding(.vertical, 4)
             }
@@ -103,49 +103,14 @@ private struct DetailHero: View {
     let now: Date
 
     var body: some View {
-        let status = countdown.status(at: now)
-        let palette = CountdownPalette(countdown: countdown, hasImage: image != nil)
-        WidgetPreviewFrame(countdown: countdown, image: image, cornerRadius: 32, padding: 24) {
-            VStack(spacing: 6) {
-                Image(systemName: countdown.symbol)
-                    .font(.system(size: 34, weight: .semibold))
-                    .foregroundStyle(palette.accent)
-                    .padding(.bottom, 6)
-                Text(countdown.displayTitle)
-                    .font(countdown.typeface.font(.title, weight: .bold))
-                    .foregroundStyle(palette.primary)
-                    .multilineTextAlignment(.center)
-                Text(countdown.formattedDate(at: now, style: .complete))
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(palette.secondary)
-                    .multilineTextAlignment(.center)
-                Spacer(minLength: 16)
-                if status.isToday && !countdown.isLiveToday(at: now) {
-                    Text("Today")
-                        .font(countdown.typeface.font(size: 72))
-                        .foregroundStyle(palette.number)
-                } else if countdown.isLiveToday(at: now) {
-                    Text(timerInterval: now...status.target, countsDown: true)
-                        .font(countdown.typeface.font(size: 64))
-                        .monospacedDigit()
-                        .foregroundStyle(palette.number)
-                        .multilineTextAlignment(.center)
-                } else {
-                    Text(status.number)
-                        .font(countdown.typeface.font(size: 104))
-                        .monospacedDigit()
-                        .foregroundStyle(palette.number)
-                        .contentTransition(.numericText(countsDown: !status.isPast))
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
-                    Text(status.caption.uppercased())
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(palette.secondary)
-                }
+        let metrics = WidgetMetrics.current
+        GeometryReader { proxy in
+            HomeWidgetPreview(countdown: countdown, image: image, size: metrics.large, metrics: metrics) {
+                LargeCountdownView(countdown: countdown, now: now, hasImage: image != nil)
             }
-            .frame(maxWidth: .infinity)
+            .scaleEffect(proxy.size.width / metrics.large.width, anchor: .topLeading)
         }
-        .frame(height: 360)
+        .aspectRatio(metrics.large.width / metrics.large.height, contentMode: .fit)
     }
 }
 
@@ -181,13 +146,13 @@ private struct TimeBreakdownView: View {
         .background(Color(uiColor: .secondarySystemGroupedBackground), in: .rect(cornerRadius: 20, style: .continuous))
     }
 
-    private func unit(_ value: Int, _ label: String) -> some View {
+    private func unit(_ value: Int, _ label: LocalizedStringKey) -> some View {
         VStack(spacing: 2) {
             Text(value.formatted())
                 .font(.system(size: 28, weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .contentTransition(.numericText(countsDown: true))
-                .animation(.snappy, value: value)
+                .animation(ScreenshotMode.current == nil ? .snappy : nil, value: value)
             Text(label)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.secondary)
@@ -206,20 +171,18 @@ private struct DetailInfoView: View {
             row("Repeats", systemImage: "repeat", value: countdown.repeatRule.title)
             Divider().padding(.leading, 44)
             row("Reminders", systemImage: "bell", value: reminderSummary)
-            if !countdown.status().isPast {
-                Divider().padding(.leading, 44)
-                row("Progress", systemImage: "chart.bar.fill", value: countdown.progress().formatted(.percent.precision(.fractionLength(0))))
-            }
         }
         .background(Color(uiColor: .secondarySystemGroupedBackground), in: .rect(cornerRadius: 20, style: .continuous))
     }
 
     private var reminderSummary: String {
-        guard !countdown.reminders.isEmpty else { return "None" }
-        return countdown.reminders.sorted().map { $0.title(isAllDay: countdown.isAllDay) }.joined(separator: ", ")
+        let rules = countdown.reminders.sortedByLeadTime
+        guard let first = rules.first else { return String(localized: "None") }
+        if rules.count > 1 { return String(localized: "reminders.count \(rules.count)") }
+        return first.title(isAllDay: countdown.isAllDay, defaultTime: ReminderPreferences.time)
     }
 
-    private func row(_ title: String, systemImage: String, value: String) -> some View {
+    private func row(_ title: LocalizedStringKey, systemImage: String, value: String) -> some View {
         HStack(spacing: 12) {
             Image(systemName: systemImage)
                 .font(.body.weight(.medium))

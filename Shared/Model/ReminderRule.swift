@@ -1,0 +1,202 @@
+import Foundation
+
+struct ReminderRule: Codable, Hashable, Identifiable {
+    enum Unit: String, Codable, CaseIterable, Identifiable {
+        case minutes, hours, days, weeks, months
+
+        var id: String { rawValue }
+
+        var usesTimeOfDay: Bool {
+            switch self {
+            case .minutes, .hours: false
+            case .days, .weeks, .months: true
+            }
+        }
+
+        var approximateSeconds: TimeInterval {
+            switch self {
+            case .minutes: 60
+            case .hours: 3_600
+            case .days: 86_400
+            case .weeks: 604_800
+            case .months: 2_592_000
+            }
+        }
+
+        func pickerName(for amount: Int) -> String {
+            switch self {
+            case .minutes: CountdownStatus.Unit.word(String(localized: "picker.minutes \(amount)"), amount)
+            case .hours: CountdownStatus.Unit.word(String(localized: "picker.hours \(amount)"), amount)
+            case .days: CountdownStatus.Unit.word(String(localized: "picker.days \(amount)"), amount)
+            case .weeks: CountdownStatus.Unit.word(String(localized: "picker.weeks \(amount)"), amount)
+            case .months: CountdownStatus.Unit.word(String(localized: "picker.months \(amount)"), amount)
+            }
+        }
+
+        func before(_ amount: Int) -> String {
+            switch self {
+            case .minutes: String(localized: "before.minutes \(amount)")
+            case .hours: String(localized: "before.hours \(amount)")
+            case .days: String(localized: "before.days \(amount)")
+            case .weeks: String(localized: "before.weeks \(amount)")
+            case .months: String(localized: "before.months \(amount)")
+            }
+        }
+
+        func toGo(_ amount: Int) -> String {
+            switch self {
+            case .minutes: String(localized: "togo.minutes \(amount)")
+            case .hours: String(localized: "togo.hours \(amount)")
+            case .days: String(localized: "togo.days \(amount)")
+            case .weeks: String(localized: "togo.weeks \(amount)")
+            case .months: String(localized: "togo.months \(amount)")
+            }
+        }
+
+        static func available(isAllDay: Bool) -> [Unit] {
+            isAllDay ? [.days, .weeks, .months] : allCases
+        }
+    }
+
+    var id: UUID = UUID()
+    var amount: Int = 0
+    var unit: Unit = .days
+    var hour: Int?
+    var minute: Int?
+
+    init(id: UUID = UUID(), amount: Int = 0, unit: Unit = .days, hour: Int? = nil, minute: Int? = nil) {
+        self.id = id
+        self.amount = max(0, amount)
+        self.unit = unit
+        self.hour = hour
+        self.minute = minute
+    }
+
+    var hasCustomTime: Bool {
+        unit.usesTimeOfDay && hour != nil
+    }
+
+    var leadTime: TimeInterval {
+        Double(amount) * unit.approximateSeconds
+    }
+
+    func matches(_ other: ReminderRule) -> Bool {
+        amount == other.amount && unit == other.unit && hour == other.hour && minute == other.minute
+    }
+
+    func fireDate(for target: Date, isAllDay: Bool, defaultTime: DateComponents, calendar: Calendar = .current) -> Date? {
+        let defaultHour = defaultTime.hour ?? 9
+        let defaultMinute = defaultTime.minute ?? 0
+        switch unit {
+        case .minutes, .hours:
+            let base = isAllDay
+                ? calendar.date(bySettingHour: defaultHour, minute: defaultMinute, second: 0, of: calendar.startOfDay(for: target)) ?? target
+                : target
+            return base.addingTimeInterval(-leadTime)
+        case .days, .weeks, .months:
+            let component: Calendar.Component = unit == .days ? .day : unit == .weeks ? .weekOfYear : .month
+            let base = isAllDay ? calendar.startOfDay(for: target) : target
+            guard let shifted = calendar.date(byAdding: component, value: -amount, to: base) else { return nil }
+            if let hour {
+                return calendar.date(bySettingHour: hour, minute: minute ?? 0, second: 0, of: shifted)
+            }
+            if isAllDay {
+                return calendar.date(bySettingHour: defaultHour, minute: defaultMinute, second: 0, of: shifted)
+            }
+            return shifted
+        }
+    }
+
+    func title(isAllDay: Bool, defaultTime: DateComponents, calendar: Calendar = .current) -> String {
+        let offset: String
+        if amount == 0 {
+            offset = isAllDay || hasCustomTime ? String(localized: "On the day") : String(localized: "At time of event")
+        } else {
+            offset = unit.before(amount)
+        }
+        guard unit.usesTimeOfDay else { return offset }
+        if let hour {
+            let time = Self.timeText(hour: hour, minute: minute ?? 0, calendar: calendar)
+            return String(localized: "reminder.at \(offset) \(time)")
+        }
+        if isAllDay {
+            let time = Self.timeText(hour: defaultTime.hour ?? 9, minute: defaultTime.minute ?? 0, calendar: calendar)
+            return String(localized: "reminder.at \(offset) \(time)")
+        }
+        return offset
+    }
+
+    static func triggerComponents(for fireDate: Date, isAllDay: Bool, calendar: Calendar = .current) -> DateComponents {
+        var components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
+        if !isAllDay {
+            components.timeZone = calendar.timeZone
+        }
+        return components
+    }
+
+    var notificationBody: String {
+        if amount == 0 {
+            return unit.usesTimeOfDay ? String(localized: "Today's the day! 🎉") : String(localized: "It's time! 🎉")
+        }
+        if amount == 1 && unit == .days {
+            return String(localized: "Tomorrow!")
+        }
+        return unit.toGo(amount)
+    }
+
+    static func timeText(hour: Int, minute: Int, calendar: Calendar = .current) -> String {
+        var components = DateComponents()
+        components.hour = hour
+        components.minute = minute
+        let date = calendar.date(from: components) ?? .now
+        return date.formatted(Date.FormatStyle(date: .omitted, time: .shortened, calendar: calendar, timeZone: calendar.timeZone))
+    }
+
+    static let onTheDay = ReminderRule()
+
+    static func presets(isAllDay: Bool) -> [ReminderRule] {
+        if isAllDay {
+            return [
+                ReminderRule(amount: 0, unit: .days),
+                ReminderRule(amount: 1, unit: .days),
+                ReminderRule(amount: 2, unit: .days),
+                ReminderRule(amount: 3, unit: .days),
+                ReminderRule(amount: 1, unit: .weeks),
+                ReminderRule(amount: 2, unit: .weeks),
+                ReminderRule(amount: 1, unit: .months),
+            ]
+        }
+        return [
+            ReminderRule(amount: 0, unit: .minutes),
+            ReminderRule(amount: 15, unit: .minutes),
+            ReminderRule(amount: 30, unit: .minutes),
+            ReminderRule(amount: 1, unit: .hours),
+            ReminderRule(amount: 2, unit: .hours),
+            ReminderRule(amount: 1, unit: .days),
+            ReminderRule(amount: 2, unit: .days),
+            ReminderRule(amount: 1, unit: .weeks),
+        ]
+    }
+}
+
+enum LegacyReminder: String, Codable {
+    case dayOf, dayBefore, threeDaysBefore, weekBefore
+
+    var rule: ReminderRule {
+        switch self {
+        case .dayOf: ReminderRule(amount: 0, unit: .days)
+        case .dayBefore: ReminderRule(amount: 1, unit: .days)
+        case .threeDaysBefore: ReminderRule(amount: 3, unit: .days)
+        case .weekBefore: ReminderRule(amount: 1, unit: .weeks)
+        }
+    }
+}
+
+extension Array where Element == ReminderRule {
+    var sortedByLeadTime: [ReminderRule] {
+        sorted { lhs, rhs in
+            if lhs.leadTime != rhs.leadTime { return lhs.leadTime < rhs.leadTime }
+            return (lhs.hour ?? -1, lhs.minute ?? -1) < (rhs.hour ?? -1, rhs.minute ?? -1)
+        }
+    }
+}

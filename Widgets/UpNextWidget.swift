@@ -25,12 +25,16 @@ struct UpNextProvider: TimelineProvider {
         let calendar = Calendar.current
         let now = Date.now
         let startOfToday = calendar.startOfDay(for: now)
-        var entries = [entry(at: now, countdowns: all)]
+        var dates: Set<Date> = [now]
         for offset in 1...7 {
             if let midnight = calendar.date(byAdding: .day, value: offset, to: startOfToday) {
-                entries.append(entry(at: midnight, countdowns: all))
+                dates.insert(midnight)
             }
         }
+        for countdown in all where !countdown.isAllDay {
+            dates.formUnion(WidgetRefreshSchedule.closeRangeDates(for: countdown, now: now))
+        }
+        let entries = dates.sorted().prefix(240).map { entry(at: $0, countdowns: all) }
         completion(Timeline(entries: entries, policy: .atEnd))
     }
 
@@ -46,9 +50,15 @@ struct UpNextWidgetView: View {
     let entry: UpNextEntry
 
     var body: some View {
-        UpNextView(countdowns: entry.countdowns, now: entry.date, limit: family == .systemLarge ? 6 : 3)
-            .containerBackground(for: .widget) { Color(uiColor: .secondarySystemGroupedBackground) }
-            .widgetURL(entry.countdowns.isEmpty ? DeepLink.newCountdown : nil)
+        if family == .accessoryRectangular {
+            UpNextAccessoryView(countdowns: entry.countdowns, now: entry.date)
+                .containerBackground(for: .widget) { Color.clear }
+                .widgetURL(entry.countdowns.isEmpty ? DeepLink.newCountdown : nil)
+        } else {
+            UpNextView(countdowns: entry.countdowns, now: entry.date, limit: family == .systemLarge ? 6 : 3)
+                .containerBackground(for: .widget) { Color(uiColor: .secondarySystemGroupedBackground) }
+                .widgetURL(entry.countdowns.isEmpty ? DeepLink.newCountdown : nil)
+        }
     }
 }
 
@@ -61,11 +71,17 @@ struct UpNextWidget: Widget {
         }
         .configurationDisplayName("Up Next")
         .description("See your next few countdowns at a glance.")
-        .supportedFamilies([.systemMedium, .systemLarge])
+        .supportedFamilies([.systemMedium, .systemLarge, .accessoryRectangular])
     }
 }
 
 #Preview("Up Next", as: .systemMedium) {
+    UpNextWidget()
+} timeline: {
+    UpNextEntry(date: .now, countdowns: Countdown.samples.upcoming())
+}
+
+#Preview("Up Next Lock Screen", as: .accessoryRectangular) {
     UpNextWidget()
 } timeline: {
     UpNextEntry(date: .now, countdowns: Countdown.samples.upcoming())

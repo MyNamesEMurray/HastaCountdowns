@@ -52,38 +52,3 @@ struct CountdownCard: View {
         .accessibilityLabel("\(resolved.displayTitle), \(resolved.status(at: now).phrase)")
     }
 }
-
-struct LockScreenPreview: View {
-    let countdown: Countdown
-    let now: Date
-    var height: CGFloat = 158
-
-    var body: some View {
-        VStack(spacing: 6) {
-            Text(now.formatted(.dateTime.weekday(.wide).month().day()))
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(.secondary)
-            Text(now.formatted(.dateTime.hour(.defaultDigits(amPM: .omitted)).minute()))
-                .font(.system(size: 46, weight: .bold, design: .rounded))
-                .foregroundStyle(.primary)
-            HStack(spacing: 10) {
-                CircularCountdownView(countdown: countdown, now: now)
-                    .frame(width: 50, height: 50)
-                RectangularCountdownView(countdown: countdown, now: now)
-                    .frame(maxWidth: 150, minHeight: 50, maxHeight: 50)
-            }
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity)
-        .frame(height: height)
-        .background {
-            LinearGradient(
-                colors: [countdown.tint.adjusting(brightness: -0.35), .black],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
-        .clipShape(.rect(cornerRadius: 24, style: .continuous))
-        .environment(\.colorScheme, .dark)
-    }
-}

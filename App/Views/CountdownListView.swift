@@ -10,6 +10,54 @@ struct CountdownListView: View {
     private let columns = [GridItem(.adaptive(minimum: 156, maximum: 260), spacing: 14)]
 
     var body: some View {
+        Group {
+            if store.countdowns.isEmpty {
+                emptyState
+            } else {
+                list
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(uiColor: .systemGroupedBackground))
+        .navigationTitle("Hasta")
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Settings", systemImage: "gearshape", action: onShowSettings)
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button("Add Countdown", systemImage: "plus", action: onCreate)
+            }
+        }
+        .confirmationDialog(
+            "Delete \(pendingDelete?.displayTitle ?? String(localized: "Countdown"))?",
+            isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Delete Countdown", role: .destructive) {
+                if let pendingDelete {
+                    withAnimation { store.delete(pendingDelete) }
+                }
+                pendingDelete = nil
+            }
+        } message: {
+            Text("It will also be removed from any widgets.")
+        }
+    }
+
+    private var emptyState: some View {
+        ContentUnavailableView {
+            Label("No Countdowns", systemImage: "hourglass")
+        } description: {
+            Text("Count down to a trip, a birthday, or anything you're looking forward to.")
+        } actions: {
+            Button("Add Countdown", action: onCreate)
+                .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.capsule)
+                .controlSize(.large)
+        }
+    }
+
+    private var list: some View {
         TimelineView(.everyMinute) { context in
             let now = context.date
             let upcoming = store.upcoming(at: now)
@@ -27,46 +75,10 @@ struct CountdownListView: View {
                         }
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal)
                 .padding(.bottom, 32)
             }
-        }
-        .background(Color(uiColor: .systemGroupedBackground))
-        .overlay {
-            if store.countdowns.isEmpty {
-                ContentUnavailableView {
-                    Label("No Countdowns", systemImage: "hourglass")
-                } description: {
-                    Text("Count down to a trip, a birthday, or anything you're looking forward to.")
-                } actions: {
-                    Button("Add Countdown", action: onCreate)
-                        .buttonStyle(.borderedProminent)
-                        .buttonBorderShape(.capsule)
-                }
-            }
-        }
-        .navigationTitle("Hasta")
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button("Settings", systemImage: "gearshape", action: onShowSettings)
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button("Add Countdown", systemImage: "plus", action: onCreate)
-            }
-        }
-        .confirmationDialog(
-            "Delete \(pendingDelete?.displayTitle ?? "Countdown")?",
-            isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
-            titleVisibility: .visible
-        ) {
-            Button("Delete Countdown", role: .destructive) {
-                if let pendingDelete {
-                    withAnimation { store.delete(pendingDelete) }
-                }
-                pendingDelete = nil
-            }
-        } message: {
-            Text("It will also be removed from any widgets.")
         }
     }
 
@@ -100,9 +112,9 @@ extension Countdown {
         let status = self.status(at: now)
         let phrase = status.phrase.prefix(1).lowercased() + status.phrase.dropFirst()
         switch status.phase {
-        case .today: return "\(displayTitle) is today! 🎉"
-        case .upcoming: return "\(displayTitle) is \(phrase)."
-        case .past: return "\(displayTitle) was \(phrase)."
+        case .today: return String(localized: "share.today \(displayTitle)")
+        case .upcoming: return String(localized: "share.upcoming \(displayTitle) \(String(phrase))")
+        case .past: return String(localized: "share.past \(displayTitle) \(String(phrase))")
         }
     }
 }

@@ -34,25 +34,26 @@ enum ReminderScheduler {
     }
 
     static func makeRequests(for countdowns: [Countdown], now: Date, calendar: Calendar = .current) -> [UNNotificationRequest] {
-        let reminderTime = ReminderPreferences.time
+        let defaultTime = ReminderPreferences.time
         var scheduled: [(date: Date, request: UNNotificationRequest)] = []
 
         for countdown in countdowns where !countdown.reminders.isEmpty {
-            let target = countdown.nextOccurrence(after: now, calendar: calendar)
-            for reminder in countdown.reminders {
-                guard let date = fireDate(for: reminder, target: target, isAllDay: countdown.isAllDay, reminderTime: reminderTime, calendar: calendar),
-                      date > now else { continue }
+            for (index, target) in occurrences(of: countdown, after: now, calendar: calendar).enumerated() {
+                for rule in countdown.reminders {
+                    guard let date = rule.fireDate(for: target, isAllDay: countdown.isAllDay, defaultTime: defaultTime, calendar: calendar),
+                          date > now else { continue }
 
-                let content = UNMutableNotificationContent()
-                content.title = countdown.displayTitle
-                content.body = body(for: reminder, countdown: countdown, target: target)
-                content.sound = .default
-                content.userInfo = ["url": DeepLink.countdown(countdown.id).absoluteString]
+                    let content = UNMutableNotificationContent()
+                    content.title = countdown.displayTitle
+                    content.body = rule.notificationBody
+                    content.sound = .default
+                    content.userInfo = ["url": DeepLink.countdown(countdown.id).absoluteString]
 
-                let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
-                let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
-                let identifier = "\(identifierPrefix)\(countdown.id.uuidString)-\(reminder.rawValue)"
-                scheduled.append((date, UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)))
+                    let components = ReminderRule.triggerComponents(for: date, isAllDay: countdown.isAllDay, calendar: calendar)
+                    let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+                    let identifier = "\(identifierPrefix)\(countdown.id.uuidString)-\(rule.id.uuidString)-\(index)"
+                    scheduled.append((date, UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)))
+                }
             }
         }
 
@@ -62,25 +63,12 @@ enum ReminderScheduler {
             .map(\.request)
     }
 
-    private static func fireDate(for reminder: Reminder, target: Date, isAllDay: Bool, reminderTime: DateComponents, calendar: Calendar) -> Date? {
-        if isAllDay {
-            let day = calendar.startOfDay(for: target)
-            guard let reminderDay = calendar.date(byAdding: .day, value: -reminder.daysBefore, to: day) else { return nil }
-            return calendar.date(bySettingHour: reminderTime.hour ?? 9, minute: reminderTime.minute ?? 0, second: 0, of: reminderDay)
+    private static func occurrences(of countdown: Countdown, after now: Date, calendar: Calendar) -> [Date] {
+        let next = countdown.nextOccurrence(after: now, calendar: calendar)
+        guard let component = countdown.repeatRule.calendarComponent,
+              let following = calendar.date(byAdding: component, value: 1, to: next) else {
+            return [next]
         }
-        return calendar.date(byAdding: .day, value: -reminder.daysBefore, to: target)
-    }
-
-    private static func body(for reminder: Reminder, countdown: Countdown, target: Date) -> String {
-        switch reminder {
-        case .dayOf:
-            return countdown.isAllDay ? "Today's the day! 🎉" : "It's time! 🎉"
-        case .dayBefore:
-            return countdown.isAllDay ? "Tomorrow!" : "Tomorrow at \(target.formatted(date: .omitted, time: .shortened))."
-        case .threeDaysBefore:
-            return "3 days to go."
-        case .weekBefore:
-            return "One week to go."
-        }
+        return [next, following]
     }
 }
