@@ -1,0 +1,43 @@
+name: Upload Screenshots
+
+# Uploads the screenshots from a Localized Screenshots run to the
+# editable App Store version, replacing each locale's 6.9" screenshots.
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Localized Screenshots run ID to take the screenshots from
+        required: true
+      display_type:
+        description: App Store Connect screenshot display type
+        default: APP_IPHONE_67
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  upload:
+    name: Upload to App Store Connect
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download screenshots
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.run_id }}
+        run: gh run download "$RUN_ID" --name AppStoreScreenshots-Localized --dir AppStoreScreenshots
+
+      - name: Upload
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.APP_STORE_CONNECT_KEY_P8 }}
+          BUNDLE_ID: com.exaltedpixels.Hasta
+          DISPLAY_TYPE: ${{ inputs.display_type }}
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet pyjwt cryptography
+          "$RUNNER_TEMP/venv/bin/python" .github/scripts/upload_app_store_screenshots.py AppStoreScreenshots
