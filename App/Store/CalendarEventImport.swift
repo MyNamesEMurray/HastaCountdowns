@@ -1,4 +1,4 @@
-import Foundation
+import SwiftUI
 
 extension Countdown {
     init?(ics: String, calendar: Calendar = .current) {
@@ -51,21 +51,7 @@ extension Countdown {
         }
         guard let date = source.date(from: components) else { return nil }
 
-        var repeatRule = RepeatRule.never
-        if let rrule = fields["RRULE"]?.value {
-            let parts = Dictionary(rrule.uppercased().split(separator: ";").compactMap { part -> (String, String)? in
-                let pair = part.split(separator: "=", maxSplits: 1).map(String.init)
-                return pair.count == 2 ? (pair[0], pair[1]) : nil
-            }, uniquingKeysWith: { first, _ in first })
-            if (parts["INTERVAL"] ?? "1") == "1" {
-                switch parts["FREQ"] {
-                case "WEEKLY": repeatRule = .weekly
-                case "MONTHLY": repeatRule = .monthly
-                case "YEARLY": repeatRule = .yearly
-                default: break
-                }
-            }
-        }
+        let repeatRule = fields["RRULE"].map { RepeatRule(rrule: $0.value).normalized(for: date, calendar: source) } ?? .never
 
         let title = (fields["SUMMARY"]?.value ?? "")
             .replacingOccurrences(of: "\\n", with: " ", options: .caseInsensitive)
@@ -81,5 +67,74 @@ extension Countdown {
             timeZoneIdentifier: isAllDay ? calendar.timeZone.identifier : source.timeZone.identifier,
             repeatRule: repeatRule
         )
+    }
+}
+
+extension RepeatRule {
+    func normalized(for date: Date, calendar: Calendar = .current) -> RepeatRule {
+        var rule = self
+        if rule.frequency != .weekly || rule.weekdays == [calendar.component(.weekday, from: date)] {
+            rule.weekdays = []
+        }
+        if rule.frequency != .monthly {
+            rule.ordinalWeekday = nil
+        }
+        return rule
+    }
+
+    private static let weekdayCodes = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"]
+
+    init(rrule: String) {
+        let parts = Dictionary(rrule.uppercased().split(separator: ";").compactMap { part -> (String, String)? in
+            let pair = part.split(separator: "=", maxSplits: 1).map(String.init)
+            return pair.count == 2 ? (pair[0], pair[1]) : nil
+        }, uniquingKeysWith: { first, _ in first })
+        let days: [(ordinal: Int?, weekday: Int)] = (parts["BYDAY"] ?? "").split(separator: ",").compactMap { token in
+            guard let index = Self.weekdayCodes.firstIndex(of: String(token.suffix(2))) else { return nil }
+            return (Int(token.dropLast(2)), index + 1)
+        }
+        self.init(
+            frequency: parts["FREQ"].flatMap { Frequency(rawValue: $0.lowercased()) },
+            interval: parts["INTERVAL"].flatMap { Int($0) } ?? 1,
+            days: days,
+            position: parts["BYSETPOS"].flatMap { Int($0) }
+        )
+    }
+
+    init(frequency: Frequency?, interval: Int, days: [(ordinal: Int?, weekday: Int)], position: Int?) {
+        self.init(frequency: frequency, interval: max(1, interval))
+        switch frequency {
+        case .weekly:
+            weekdays = Set(days.map(\.weekday))
+        case .monthly:
+            if days.count == 1, let ordinal = days[0].ordinal ?? position, OrdinalWeekday.ordinals.contains(ordinal) {
+                ordinalWeekday = OrdinalWeekday(ordinal: ordinal, weekday: days[0].weekday)
+            }
+        default:
+            break
+        }
+    }
+}
+
+extension Countdown {
+    func justOnce(calendar: Calendar = .current) -> Countdown {
+        var copy = self
+        copy.date = nextOccurrence(calendar: calendar)
+        copy.repeatRule = .never
+        return copy
+    }
+}
+
+extension View {
+    func repeatChoice(for pending: Binding<Countdown?>, onChoose: @escaping (Countdown) -> Void) -> some View {
+        confirmationDialog(
+            pending.wrappedValue?.repeatRule.sentence ?? "",
+            isPresented: Binding(get: { pending.wrappedValue != nil }, set: { if !$0 { pending.wrappedValue = nil } }),
+            titleVisibility: .visible,
+            presenting: pending.wrappedValue
+        ) { countdown in
+            Button("Keep Repeat") { onChoose(countdown) }
+            Button("Just Once") { onChoose(countdown.justOnce()) }
+        }
     }
 }

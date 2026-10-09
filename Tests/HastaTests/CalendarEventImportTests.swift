@@ -52,7 +52,7 @@ struct CalendarEventImportTests {
         let countdown = try #require(Countdown(ics: ics, calendar: calendar))
         #expect(countdown.title == "Flight to Lisbon")
         #expect(!countdown.isAllDay)
-        #expect(countdown.repeatRule == .never)
+        #expect(countdown.repeatRule == RepeatRule(frequency: .weekly, interval: 2))
         #expect(countdown.date == date("2026-11-01T09:00:00", in: "America/New_York"))
     }
 
@@ -66,5 +66,18 @@ struct CalendarEventImportTests {
     @Test func rejectsFilesWithoutAnEvent() {
         #expect(Countdown(ics: "BEGIN:VCALENDAR\nEND:VCALENDAR", calendar: calendar) == nil)
         #expect(Countdown(ics: "BEGIN:VEVENT\nSUMMARY:No date\nEND:VEVENT", calendar: calendar) == nil)
+    }
+
+    @Test func readsWeekdaysAndOrdinalsFromRules() {
+        #expect(RepeatRule(rrule: "FREQ=WEEKLY;BYDAY=TU,TH") == RepeatRule(frequency: .weekly, weekdays: [3, 5]))
+        #expect(RepeatRule(rrule: "FREQ=MONTHLY;BYDAY=3TH") == RepeatRule(frequency: .monthly, ordinalWeekday: .init(ordinal: 3, weekday: 5)))
+        #expect(RepeatRule(rrule: "FREQ=MONTHLY;BYDAY=FR;BYSETPOS=-1") == RepeatRule(frequency: .monthly, ordinalWeekday: .init(ordinal: -1, weekday: 6)))
+        #expect(RepeatRule(rrule: "FREQ=DAILY;INTERVAL=3") == RepeatRule(frequency: .daily, interval: 3))
+    }
+
+    @Test func dropsWeekdayThatMatchesTheStartDate() throws {
+        let ics = "BEGIN:VEVENT\nDTSTART;VALUE=DATE:20261013\nRRULE:FREQ=WEEKLY;BYDAY=TU\nSUMMARY:Trash day\nEND:VEVENT"
+        let countdown = try #require(Countdown(ics: ics, calendar: calendar))
+        #expect(countdown.repeatRule == .weekly)
     }
 }

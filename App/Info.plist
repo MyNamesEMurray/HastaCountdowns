@@ -55,6 +55,8 @@
 	<string>public.app-category.utilities</string>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<false/>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Hasta lists your upcoming events so you can turn one into a countdown.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

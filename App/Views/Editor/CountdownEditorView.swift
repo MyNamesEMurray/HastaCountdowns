@@ -18,6 +18,8 @@ struct CountdownEditorView: View {
     @State private var liveSession: LivePhotoSession?
     @State private var lastLiveSession: LivePhotoSession?
     @State private var isFramingPhoto = false
+    @State private var isEditingRepeat = false
+    @State private var isImportingEvent = false
     @FocusState private var isTitleFocused: Bool
 
     private let original: Countdown
@@ -59,6 +61,14 @@ struct CountdownEditorView: View {
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
 
+                if isNew {
+                    Section {
+                        Button("Import from Calendar", systemImage: "calendar") {
+                            isImportingEvent = true
+                        }
+                    }
+                }
+
                 detailsSection
                 appearanceSection
                 styleSection
@@ -86,6 +96,22 @@ struct CountdownEditorView: View {
                     Button(isNew ? "Add" : "Done", action: save)
                         .fontWeight(.semibold)
                         .disabled(!canSave)
+                }
+            }
+            .navigationDestination(isPresented: $isEditingRepeat) {
+                RepeatRuleEditorView(rule: $draft.repeatRule, date: draft.date)
+            }
+            .sheet(isPresented: $isImportingEvent) {
+                CalendarEventPickerView { event in
+                    var imported = event
+                    imported.adoptCurrentTimeZone()
+                    withAnimation {
+                        draft.title = imported.title
+                        draft.date = imported.date
+                        draft.isAllDay = imported.isAllDay
+                        draft.timeZoneIdentifier = imported.timeZoneIdentifier
+                        draft.repeatRule = imported.repeatRule
+                    }
                 }
             }
             .sheet(isPresented: $isShowingPaywall) {
@@ -145,9 +171,26 @@ struct CountdownEditorView: View {
                 selection: $draft.date,
                 displayedComponents: draft.isAllDay ? [.date] : [.date, .hourAndMinute]
             )
-            Picker("Repeat", selection: $draft.repeatRule) {
-                ForEach(RepeatRule.allCases) { rule in
-                    Text(rule.title).tag(rule)
+            LabeledContent("Repeat") {
+                Menu {
+                    Picker("Repeat", selection: $draft.repeatRule) {
+                        ForEach(RepeatRule.presets, id: \.self) { rule in
+                            Text(rule.title).tag(rule)
+                        }
+                        if draft.repeatRule.isCustom {
+                            Text(draft.repeatRule.title).tag(draft.repeatRule)
+                        }
+                    }
+                    Divider()
+                    Button("Custom…") { isEditingRepeat = true }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(draft.repeatRule.title)
+                            .multilineTextAlignment(.trailing)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .imageScale(.small)
+                    }
+                    .foregroundStyle(.secondary)
                 }
             }
         }

@@ -5,6 +5,7 @@ struct RootView: View {
     @Environment(AppRouter.self) private var router
     @AppStorage("hasSeenWelcome") private var hasSeenWelcome = false
     @State private var editing: EditorRequest?
+    @State private var pendingRepeat: Countdown?
 
     var body: some View {
         @Bindable var router = router
@@ -33,6 +34,9 @@ struct RootView: View {
             WelcomeView { hasSeenWelcome = true }
                 .interactiveDismissDisabled()
         }
+        .repeatChoice(for: $pendingRepeat) { countdown in
+            editing = EditorRequest(countdown: countdown, isNew: true)
+        }
         .onChange(of: router.isCreatingCountdown) { _, _ in
             handlePendingCreation()
         }
@@ -59,8 +63,14 @@ struct RootView: View {
         guard router.isCreatingCountdown else { return }
         router.isCreatingCountdown = false
         router.isShowingSettings = false
-        editing = EditorRequest(countdown: router.draft ?? Countdown(), isNew: true)
+        let countdown = router.draft ?? Countdown()
         router.draft = nil
+        if countdown.repeatRule.frequency == nil {
+            editing = EditorRequest(countdown: countdown, isNew: true)
+        } else {
+            editing = nil
+            pendingRepeat = countdown
+        }
     }
 }
 

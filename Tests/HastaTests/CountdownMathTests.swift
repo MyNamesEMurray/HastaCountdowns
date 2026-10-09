@@ -75,6 +75,46 @@ struct CountdownMathTests {
         #expect(countdown.nextOccurrence(after: now, calendar: calendar) == date("2026-10-08T18:00:00"))
     }
 
+    @Test func everyOtherWeekRepeat() {
+        let countdown = Countdown(title: "Class", date: date("2026-09-03T18:00:00"), isAllDay: false, repeatRule: RepeatRule(frequency: .weekly, interval: 2))
+        #expect(countdown.nextOccurrence(after: now, calendar: calendar) == date("2026-10-15T18:00:00"))
+    }
+
+    @Test func weeklyRepeatOnSpecificDays() {
+        let countdown = Countdown(title: "Gym", date: date("2026-09-01T00:00:00"), repeatRule: RepeatRule(frequency: .weekly, weekdays: [3, 5]))
+        #expect(countdown.nextOccurrence(after: now, calendar: calendar) == date("2026-10-06T00:00:00"))
+        var biweekly = countdown
+        biweekly.repeatRule.interval = 2
+        #expect(biweekly.nextOccurrence(after: now, calendar: calendar) == date("2026-10-13T00:00:00"))
+    }
+
+    @Test func monthlyRepeatOnOrdinalWeekday() {
+        let third = Countdown(title: "Book club", date: date("2026-01-15T19:00:00"), isAllDay: false, repeatRule: RepeatRule(frequency: .monthly, ordinalWeekday: .init(ordinal: 3, weekday: 5)))
+        #expect(third.nextOccurrence(after: now, calendar: calendar) == date("2026-10-15T19:00:00"))
+        let last = Countdown(title: "Payday", date: date("2026-01-30T00:00:00"), repeatRule: RepeatRule(frequency: .monthly, ordinalWeekday: .init(ordinal: -1, weekday: 6)))
+        #expect(last.nextOccurrence(after: now, calendar: calendar) == date("2026-10-30T00:00:00"))
+    }
+
+    @Test func everyThirdDayRepeat() {
+        let countdown = Countdown(title: "Water plants", date: date("2026-09-01T00:00:00"), repeatRule: RepeatRule(frequency: .daily, interval: 3))
+        #expect(countdown.nextOccurrence(after: now, calendar: calendar) == date("2026-10-04T00:00:00"))
+    }
+
+    @Test func describesCustomRepeats() {
+        #expect(RepeatRule(frequency: .weekly, interval: 2).title == "Every 2 weeks")
+        #expect(RepeatRule(frequency: .monthly, ordinalWeekday: .init(ordinal: 3, weekday: 5)).title == "Every Month on the third Thursday")
+        #expect(RepeatRule(frequency: .daily, interval: 3).sentence == "Repeats every 3 days")
+    }
+
+    @Test func repeatRulesStayReadableByOlderVersions() throws {
+        let encoder = JSONEncoder()
+        #expect(String(data: try encoder.encode(RepeatRule.yearly), encoding: .utf8) == "\"yearly\"")
+        #expect(String(data: try encoder.encode(RepeatRule.never), encoding: .utf8) == "\"never\"")
+        let custom = RepeatRule(frequency: .monthly, ordinalWeekday: .init(ordinal: 3, weekday: 5))
+        #expect(try JSONDecoder().decode(RepeatRule.self, from: encoder.encode(custom)) == custom)
+        #expect(try JSONDecoder().decode(RepeatRule.self, from: Data("\"weekly\"".utf8)) == .weekly)
+    }
+
     @Test func liveTimerForTimedEventLaterToday() {
         let countdown = Countdown(title: "Dinner", date: date("2026-10-02T19:00:00"), isAllDay: false)
         #expect(countdown.isLiveToday(at: now, calendar: calendar))

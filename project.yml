@@ -67,6 +67,7 @@ targets:
               - com.apple.ical.ics
               - public.calendar-event
         LSSupportsOpeningDocumentsInPlace: false
+        NSCalendarsFullAccessUsageDescription: Hasta lists your upcoming events so you can turn one into a countdown.
     entitlements:
       path: App/Hasta.entitlements
       properties:
