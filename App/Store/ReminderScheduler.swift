@@ -65,10 +65,11 @@ enum ReminderScheduler {
 
     private static func occurrences(of countdown: Countdown, after now: Date, calendar: Calendar) -> [Date] {
         let next = countdown.nextOccurrence(after: now, calendar: calendar)
-        guard let component = countdown.repeatRule.calendarComponent,
-              let following = calendar.date(byAdding: component, value: 1, to: next) else {
+        guard countdown.repeatRule.frequency != nil,
+              let later = countdown.isAllDay ? calendar.date(byAdding: .day, value: 1, to: next) : next.addingTimeInterval(1) else {
             return [next]
         }
-        return [next, following]
+        let following = countdown.nextOccurrence(after: later, calendar: calendar)
+        return following > next ? [next, following] : [next]
     }
 }

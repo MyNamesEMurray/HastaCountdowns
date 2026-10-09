@@ -139,7 +139,7 @@ extension Countdown {
 
     func nextOccurrence(after now: Date = .now, calendar: Calendar = .current) -> Date {
         let anchor = anchorDate(calendar: calendar)
-        guard let component = repeatRule.calendarComponent else { return anchor }
+        guard let frequency = repeatRule.frequency else { return anchor }
         let reference = isAllDay ? calendar.startOfDay(for: now) : now
 
         func isCurrent(_ candidate: Date) -> Bool {
@@ -149,14 +149,18 @@ extension Countdown {
 
         if isCurrent(anchor) { return anchor }
 
-        let elapsed = calendar.dateComponents([component], from: anchor, to: reference).value(for: component) ?? 0
-        var step = max(0, elapsed - 1)
-        var candidate = calendar.date(byAdding: component, value: step, to: anchor) ?? anchor
-        while !isCurrent(candidate) && step < 100_000 {
-            step += 1
-            candidate = calendar.date(byAdding: component, value: step, to: anchor) ?? candidate
+        let interval = max(1, repeatRule.interval)
+        let elapsed = calendar.dateComponents([frequency.component], from: anchor, to: reference).value(for: frequency.component) ?? 0
+        var period = max(0, elapsed / interval - 1)
+        while period < 100_000 {
+            guard let start = calendar.date(byAdding: frequency.component, value: period * interval, to: anchor) else { break }
+            let candidates = repeatRule.occurrences(inPeriodStartingAt: start, calendar: calendar)
+            if let match = candidates.first(where: { $0 >= anchor && isCurrent($0) }) {
+                return match
+            }
+            period += 1
         }
-        return candidate
+        return anchor
     }
 
     func status(at now: Date = .now, calendar: Calendar = .current) -> CountdownStatus {
