@@ -70,7 +70,7 @@ extension Countdown {
         let title = (fields["SUMMARY"]?.value ?? "")
             .replacingOccurrences(of: "\\n", with: " ", options: .caseInsensitive)
             .replacingOccurrences(of: "\\,", with: ",")
-            .replacingOccurrences(of: "\;", with: "\;")
+            .replacingOccurrences(of: "\\;", with: ";")
             .replacingOccurrences(of: "\\\\", with: "\\")
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
