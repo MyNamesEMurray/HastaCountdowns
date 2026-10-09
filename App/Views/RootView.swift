@@ -59,7 +59,8 @@ struct RootView: View {
         guard router.isCreatingCountdown else { return }
         router.isCreatingCountdown = false
         router.isShowingSettings = false
-        editing = EditorRequest(countdown: Countdown(), isNew: true)
+        editing = EditorRequest(countdown: router.draft ?? Countdown(), isNew: true)
+        router.draft = nil
     }
 }
 

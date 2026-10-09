@@ -51,10 +51,15 @@ final class AppRouter {
 
     var path: [UUID] = []
     var isCreatingCountdown = false
+    var draft: Countdown?
     var isShowingSettings = false
     var isShowingPremium = false
 
     func open(_ url: URL) {
+        if url.isFileURL {
+            importCalendarEvent(from: url)
+            return
+        }
         switch DeepLink.destination(for: url) {
         case .countdown(let id):
             isCreatingCountdown = false
@@ -69,6 +74,20 @@ final class AppRouter {
         case nil:
             break
         }
+    }
+
+    private func importCalendarEvent(from url: URL) {
+        let isScoped = url.startAccessingSecurityScopedResource()
+        defer {
+            if isScoped { url.stopAccessingSecurityScopedResource() }
+            if url.deletingLastPathComponent().lastPathComponent == "Inbox" {
+                try? FileManager.default.removeItem(at: url)
+            }
+        }
+        let text = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+        draft = Countdown(ics: text)
+        path = []
+        isCreatingCountdown = true
     }
 }
 

@@ -59,6 +59,14 @@ targets:
             CFBundleURLName: com.exaltedpixels.Hasta
             CFBundleURLSchemes:
               - hasta
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Calendar Event
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - com.apple.ical.ics
+              - public.calendar-event
+        LSSupportsOpeningDocumentsInPlace: false
     entitlements:
       path: App/Hasta.entitlements
       properties:
