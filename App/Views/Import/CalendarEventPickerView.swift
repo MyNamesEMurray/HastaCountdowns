@@ -32,7 +32,7 @@ struct CalendarEventPickerView: View {
 
     private var months: [(start: Date, events: [EKEvent])] {
         let calendar = Calendar.current
-        let grouped = Dictionary(grouping: visibleEvents) { calendar.dateInterval(of: .month, for: $0.startDate)?.start ?? $0.startDate }
+        let grouped = Dictionary(grouping: visibleEvents) { calendar.dateInterval(of: .month, for: $0.start)?.start ?? $0.start }
         return grouped.keys.sorted().map { ($0, grouped[$0] ?? []) }
     }
 
@@ -137,8 +137,8 @@ struct CalendarEventPickerView: View {
     }
 
     private func detail(for event: EKEvent) -> String {
-        var parts = [event.startDate.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())]
-        parts.append(event.isAllDay ? String(localized: "All-Day") : event.startDate.formatted(date: .omitted, time: .shortened))
+        var parts = [event.start.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())]
+        parts.append(event.isAllDay ? String(localized: "All-Day") : event.start.formatted(date: .omitted, time: .shortened))
         let rule = Countdown(event: event).repeatRule
         if rule.frequency != nil {
             parts.append(rule.title)
@@ -154,7 +154,7 @@ struct CalendarEventPickerView: View {
         let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
         var seen = Set<String>()
         events = store.events(matching: predicate)
-            .sorted { $0.startDate < $1.startDate }
+            .sorted { $0.start < $1.start }
             .filter { seen.insert($0.eventIdentifier ?? UUID().uuidString).inserted }
     }
 
@@ -228,11 +228,11 @@ extension Countdown {
                 interval: rule.interval,
                 days: (rule.daysOfTheWeek ?? []).map { ($0.weekNumber == 0 ? nil : $0.weekNumber, $0.dayOfTheWeek.rawValue) },
                 position: rule.setPositions?.first?.intValue
-            ).normalized(for: event.startDate, calendar: calendar)
+            ).normalized(for: event.start, calendar: calendar)
         }
         self.init(
             title: event.title ?? "",
-            date: event.startDate,
+            date: event.start,
             isAllDay: event.isAllDay,
             timeZoneIdentifier: event.isAllDay ? calendar.timeZone.identifier : (event.timeZone ?? calendar.timeZone).identifier,
             repeatRule: rule ?? .never
@@ -250,4 +250,8 @@ private extension RepeatRule.Frequency {
         @unknown default: self = .yearly
         }
     }
+}
+
+private extension EKEvent {
+    var start: Date { startDate ?? .now }
 }
