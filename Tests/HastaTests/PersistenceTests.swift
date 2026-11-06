@@ -25,6 +25,14 @@ struct PersistenceTests {
         #expect(try Data(contentsOf: directory.appending(path: "Countdowns.bad.json")) == bad)
     }
 
+    @Test func newerEditSupersedes() {
+        let old = Countdown(modifiedAt: Date(timeIntervalSince1970: 100))
+        let new = Countdown(modifiedAt: Date(timeIntervalSince1970: 200))
+        #expect(new.supersedes(old))
+        #expect(!old.supersedes(new))
+        #expect(!old.supersedes(old))
+    }
+
     @Test func remindersAreCappedAtSixtySoonestFirst() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "America/New_York")!

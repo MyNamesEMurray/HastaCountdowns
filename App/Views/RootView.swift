@@ -42,6 +42,9 @@ struct RootView: View {
         } message: {
             Text(store.saveError ?? "")
         }
+        .alert("Couldn't read that calendar file", isPresented: $router.isShowingImportError) {
+            Button("OK", role: .cancel) {}
+        }
         .onChange(of: router.isCreatingCountdown) { _, _ in
             handlePendingCreation()
         }

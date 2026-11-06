@@ -1,9 +1,18 @@
 import SwiftUI
 
-struct LivePhotoSession: Identifiable {
+final class LivePhotoSession: Identifiable {
     let id = UUID()
     let videoURL: URL
     let keyPhoto: UIImage
+
+    init(videoURL: URL, keyPhoto: UIImage) {
+        self.videoURL = videoURL
+        self.keyPhoto = keyPhoto
+    }
+
+    deinit {
+        try? FileManager.default.removeItem(at: videoURL)
+    }
 }
 
 struct LivePhotoStudioView: View {

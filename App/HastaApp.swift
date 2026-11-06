@@ -54,6 +54,7 @@ final class AppRouter {
     var draft: Countdown?
     var isShowingSettings = false
     var isShowingPremium = false
+    var isShowingImportError = false
 
     func open(_ url: URL) {
         if url.isFileURL {
@@ -85,7 +86,11 @@ final class AppRouter {
             }
         }
         let text = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
-        draft = Countdown(ics: text)
+        guard let parsed = Countdown(ics: text) else {
+            isShowingImportError = true
+            return
+        }
+        draft = parsed
         path = []
         isCreatingCountdown = true
     }

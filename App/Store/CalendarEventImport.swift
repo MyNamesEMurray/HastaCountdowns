@@ -1,6 +1,32 @@
 import SwiftUI
 
 extension Countdown {
+    private static let windowsZones = [
+        "utc": "UTC",
+        "hawaiian standard time": "Pacific/Honolulu",
+        "alaskan standard time": "America/Anchorage",
+        "pacific standard time": "America/Los_Angeles",
+        "mountain standard time": "America/Denver",
+        "central standard time": "America/Chicago",
+        "eastern standard time": "America/New_York",
+        "atlantic standard time": "America/Halifax",
+        "gmt standard time": "Europe/London",
+        "w. europe standard time": "Europe/Berlin",
+        "romance standard time": "Europe/Paris",
+        "central europe standard time": "Europe/Budapest",
+        "central european standard time": "Europe/Warsaw",
+        "e. europe standard time": "Europe/Chisinau",
+        "india standard time": "Asia/Kolkata",
+        "china standard time": "Asia/Shanghai",
+        "tokyo standard time": "Asia/Tokyo",
+        "aus eastern standard time": "Australia/Sydney",
+        "new zealand standard time": "Pacific/Auckland",
+    ]
+
+    static func timeZone(named name: String) -> TimeZone? {
+        TimeZone(identifier: name) ?? windowsZones[name.lowercased()].flatMap(TimeZone.init(identifier:))
+    }
+
     init?(ics: String, calendar: Calendar = .current) {
         let lines = ics
             .replacingOccurrences(of: "\r\n", with: "\n")
@@ -41,7 +67,7 @@ extension Countdown {
         } else if dtstart.value.uppercased().hasSuffix("Z") {
             source.timeZone = TimeZone(identifier: "UTC")!
         } else {
-            source.timeZone = dtstart.params["TZID"].flatMap(TimeZone.init(identifier:)) ?? calendar.timeZone
+            source.timeZone = dtstart.params["TZID"].flatMap(Self.timeZone(named:)) ?? calendar.timeZone
         }
         var components = DateComponents(year: number(0..<4), month: number(4..<6), day: number(6..<8))
         if !isAllDay {

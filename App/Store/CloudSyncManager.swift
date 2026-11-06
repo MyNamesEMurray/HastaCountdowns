@@ -262,11 +262,16 @@ final class CloudSyncManager: CKSyncEngineDelegate {
         guard let store else { return }
         var upserts: [Countdown] = []
         var requeue: [UUID] = []
+        let pendingDeletes = Set((engine?.state.pendingRecordZoneChanges ?? []).compactMap { change -> String? in
+            if case .deleteRecord(let id) = change { return id.recordName }
+            return nil
+        })
         for modification in changes.modifications {
             let record = modification.record
+            guard !pendingDeletes.contains(record.recordID.recordName) else { continue }
             guard let remote = countdown(from: record) else { continue }
             metadata.systemFields[record.recordID.recordName] = encodedSystemFields(of: record)
-            if let local = store.countdown(with: remote.id), local.modifiedAt > remote.modifiedAt {
+            if let local = store.countdown(with: remote.id), local.supersedes(remote) {
                 requeue.append(local.id)
                 continue
             }
@@ -300,7 +305,7 @@ final class CloudSyncManager: CKSyncEngineDelegate {
                 metadata.systemFields[recordID.recordName] = encodedSystemFields(of: serverRecord)
                 if let remote = countdown(from: serverRecord),
                    let local = store?.countdown(with: remote.id),
-                   remote.modifiedAt > local.modifiedAt {
+                   remote.supersedes(local) {
                     importImage(from: serverRecord, for: remote)
                     store?.applyRemoteChanges(upserts: [remote], deletions: [])
                 } else {
