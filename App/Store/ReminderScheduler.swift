@@ -18,16 +18,22 @@ enum ReminderScheduler {
         }
     }
 
+    private static var current: Task<Void, Never>?
+
+    @MainActor
     static func reschedule(_ countdowns: [Countdown]) {
         let requests = makeRequests(for: countdowns, now: .now)
-        Task {
+        current?.cancel()
+        current = Task {
             let center = UNUserNotificationCenter.current()
             let settings = await center.notificationSettings()
             let pending = await center.pendingNotificationRequests()
+            guard !Task.isCancelled else { return }
             let stale = pending.map(\.identifier).filter { $0.hasPrefix(identifierPrefix) }
             center.removePendingNotificationRequests(withIdentifiers: stale)
             guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
             for request in requests {
+                guard !Task.isCancelled else { return }
                 try? await center.add(request)
             }
         }

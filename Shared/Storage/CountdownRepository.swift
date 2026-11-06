@@ -5,14 +5,19 @@ enum CountdownRepository {
         AppGroup.containerURL.appending(path: "Countdowns.json")
     }
 
-    static func load() -> [Countdown] {
-        guard let data = try? Data(contentsOf: fileURL) else { return [] }
-        return (try? decoder.decode([Countdown].self, from: data)) ?? []
+    static func load(from url: URL = CountdownRepository.fileURL) -> [Countdown] {
+        guard let data = try? Data(contentsOf: url) else { return [] }
+        do {
+            return try decoder.decode([Countdown].self, from: data)
+        } catch {
+            try? data.write(to: url.deletingLastPathComponent().appending(path: "Countdowns.bad.json"), options: .atomic)
+            return []
+        }
     }
 
-    static func save(_ countdowns: [Countdown]) throws {
+    static func save(_ countdowns: [Countdown], to url: URL = CountdownRepository.fileURL) throws {
         let data = try encoder.encode(countdowns)
-        try data.write(to: fileURL, options: .atomic)
+        try data.write(to: url, options: .atomic)
     }
 
     private static var encoder: JSONEncoder {

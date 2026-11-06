@@ -116,7 +116,11 @@ enum ScreenshotMode: String {
     }
 
     static var current: ScreenshotMode? {
+        #if DEBUG
         UserDefaults.standard.string(forKey: "HastaScreenshotMode").flatMap(ScreenshotMode.init(rawValue:))
+        #else
+        nil
+        #endif
     }
 
     static var colorScheme: ColorScheme? {

@@ -37,6 +37,11 @@ struct RootView: View {
         .repeatChoice(for: $pendingRepeat) { countdown in
             editing = EditorRequest(countdown: countdown, isNew: true)
         }
+        .alert("Couldn't save your changes", isPresented: Binding(get: { store.saveError != nil }, set: { if !$0 { store.saveError = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(store.saveError ?? "")
+        }
         .onChange(of: router.isCreatingCountdown) { _, _ in
             handlePendingCreation()
         }

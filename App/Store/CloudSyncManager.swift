@@ -58,6 +58,7 @@ final class CloudSyncManager: CKSyncEngineDelegate {
         status = .checking
         Task {
             let accountStatus = (try? await container.accountStatus()) ?? .couldNotDetermine
+            guard Self.isEnabledPreference, engine == nil else { return }
             guard accountStatus == .available else {
                 status = .unavailable(Self.message(for: accountStatus))
                 return
