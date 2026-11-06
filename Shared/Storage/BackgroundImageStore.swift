@@ -63,13 +63,6 @@ enum BackgroundImageStore {
         try? FileManager.default.removeItem(at: url(for: id))
     }
 
-    static func deleteUnused(keeping ids: Set<String>) {
-        guard let files = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) else { return }
-        for file in files where !ids.contains(file.deletingPathExtension().lastPathComponent) {
-            try? FileManager.default.removeItem(at: file)
-        }
-    }
-
     private static func downsample(source: CGImageSource?, maxPixelSize: CGFloat) -> CGImage? {
         guard let source else { return nil }
         let options: [CFString: Any] = [

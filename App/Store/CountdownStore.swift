@@ -6,6 +6,7 @@ import WidgetKit
 @Observable
 final class CountdownStore {
     private(set) var countdowns: [Countdown] = []
+    var saveError: String?
 
     private let isScreenshotMode: Bool
     @ObservationIgnored private(set) var sync: CloudSyncManager?
@@ -116,8 +117,10 @@ final class CountdownStore {
         guard !isScreenshotMode else { return }
         do {
             try CountdownRepository.save(countdowns)
+            saveError = nil
         } catch {
-            assertionFailure("Failed to save countdowns: \(error)")
+            saveError = error.localizedDescription
+            return
         }
         refreshSideEffects()
     }

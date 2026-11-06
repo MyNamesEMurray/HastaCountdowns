@@ -61,8 +61,7 @@ struct CountdownProvider: AppIntentTimelineProvider {
         preloadedImage: UIImage?? = nil
     ) -> CountdownEntry {
         let isPremium = Premium.isUnlocked
-        let resolvedAll = all.map { $0.resolved(isPremium: isPremium) }
-        let selected = selectedCountdown(for: configuration, in: resolvedAll, at: date)
+        let selected = selectedCountdown(for: configuration, in: all, at: date)?.resolved(isPremium: isPremium)
         let image = preloadedImage ?? loadImage(for: selected, context: context)
         var displayed = selected
         displayed?.backgroundFraming = nil
