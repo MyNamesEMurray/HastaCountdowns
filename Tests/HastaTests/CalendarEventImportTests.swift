@@ -63,6 +63,12 @@ struct CalendarEventImportTests {
         #expect(countdown.date == date("2026-12-15T18:00:00", in: "UTC"))
     }
 
+    @Test func readsWindowsTimeZoneNames() throws {
+        let ics = "BEGIN:VEVENT\nDTSTART;TZID=Eastern Standard Time:20261101T090000\nSUMMARY:Call\nEND:VEVENT"
+        let countdown = try #require(Countdown(ics: ics, calendar: calendar))
+        #expect(countdown.date == date("2026-11-01T09:00:00", in: "America/New_York"))
+    }
+
     @Test func rejectsFilesWithoutAnEvent() {
         #expect(Countdown(ics: "BEGIN:VCALENDAR\nEND:VCALENDAR", calendar: calendar) == nil)
         #expect(Countdown(ics: "BEGIN:VEVENT\nSUMMARY:No date\nEND:VEVENT", calendar: calendar) == nil)

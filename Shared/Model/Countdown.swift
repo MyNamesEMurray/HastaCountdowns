@@ -362,6 +362,10 @@ extension Countdown {
         return copy
     }
 
+    func supersedes(_ other: Countdown) -> Bool {
+        modifiedAt > other.modifiedAt
+    }
+
     var displayTitle: String {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? String(localized: "Untitled") : trimmed
