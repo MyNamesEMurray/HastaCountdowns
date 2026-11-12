@@ -183,6 +183,19 @@ struct CountdownMathTests {
         #expect(local.backgroundImageSlots.count == 5)
     }
 
+    @Test func liveActivityOverrideBeatsGlobalSetting() {
+        var countdown = Countdown(title: "T")
+        #expect(countdown.startsLiveActivity(globalEnabled: true))
+        #expect(!countdown.startsLiveActivity(globalEnabled: false))
+        countdown.liveActivity = .on
+        #expect(countdown.startsLiveActivity(globalEnabled: false))
+        countdown.liveActivity = .off
+        #expect(!countdown.startsLiveActivity(globalEnabled: true))
+        var remote = Countdown(id: countdown.id, title: "T")
+        remote.keepNewFields(from: countdown)
+        #expect(remote.liveActivity == .off)
+    }
+
     @Test func liveActivityStateUsesEpochSeconds() throws {
         let state = CountdownActivityAttributes.ContentState(start: Date(timeIntervalSince1970: 100), target: Date(timeIntervalSince1970: 200), revision: 5)
         let json = String(data: try JSONEncoder().encode(state), encoding: .utf8) ?? ""

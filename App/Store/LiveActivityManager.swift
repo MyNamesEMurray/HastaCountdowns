@@ -22,7 +22,8 @@ enum LiveActivityManager {
         var wanted: [UUID: CountdownActivityAttributes.ContentState] = [:]
         if isPremium {
             let window = Double(LiveActivityPreferences.leadHours) * 3_600
-            for (countdown, target) in due(countdowns, now: now, window: window)
+            let global = LiveActivityPreferences.pushEnabled
+            for (countdown, target) in due(countdowns.filter { $0.startsLiveActivity(globalEnabled: global) }, now: now, window: window)
             where !isDismissed(countdown.id, target) {
                 wanted[countdown.id] = .init(start: now, target: target, revision: countdown.modifiedAt.timeIntervalSince1970)
             }

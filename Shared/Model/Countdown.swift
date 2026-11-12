@@ -18,6 +18,7 @@ struct Countdown: Identifiable, Codable, Hashable {
     var extraBackgroundImageIDs: [String] = []
     var showsProgress: Bool = false
     var sinceLabel: String = ""
+    var liveActivity: LiveActivityOverride = .automatic
     var reminders: [ReminderRule] = [.onTheDay]
     var createdAt: Date = .now
     var modifiedAt: Date = .now
@@ -46,6 +47,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         extraBackgroundImageIDs: [String] = [],
         showsProgress: Bool = false,
         sinceLabel: String = "",
+        liveActivity: LiveActivityOverride = .automatic,
         reminders: [ReminderRule] = [.onTheDay],
         createdAt: Date = .now,
         modifiedAt: Date? = nil
@@ -67,6 +69,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         self.extraBackgroundImageIDs = extraBackgroundImageIDs
         self.showsProgress = showsProgress
         self.sinceLabel = sinceLabel
+        self.liveActivity = liveActivity
         self.reminders = reminders
         self.createdAt = createdAt
         self.modifiedAt = modifiedAt ?? createdAt
@@ -91,6 +94,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         extraBackgroundImageIDs = (try? container.decodeIfPresent([String].self, forKey: .extraBackgroundImageIDs)) ?? []
         showsProgress = (try? container.decodeIfPresent(Bool.self, forKey: .showsProgress)) ?? false
         sinceLabel = (try? container.decodeIfPresent(String.self, forKey: .sinceLabel)) ?? ""
+        liveActivity = (try? container.decodeIfPresent(LiveActivityOverride.self, forKey: .liveActivity)) ?? .automatic
         if let rules = try? container.decodeIfPresent([ReminderRule].self, forKey: .reminders) {
             reminders = rules
         } else if let legacy = try? container.decodeIfPresent([LegacyReminder].self, forKey: .reminders) {
@@ -338,6 +342,20 @@ enum WidgetStyle: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+enum LiveActivityOverride: String, Codable, CaseIterable, Identifiable {
+    case automatic, on, off
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .automatic: String(localized: "Default")
+        case .on: String(localized: "On")
+        case .off: String(localized: "Off")
+        }
+    }
+}
+
 enum Typeface: String, Codable, CaseIterable, Identifiable {
     case rounded, standard, serif, mono, condensed
 
@@ -390,6 +408,15 @@ extension Countdown {
         extraBackgroundImageIDs = local.extraBackgroundImageIDs
         showsProgress = local.showsProgress
         sinceLabel = local.sinceLabel
+        liveActivity = local.liveActivity
+    }
+
+    func startsLiveActivity(globalEnabled: Bool) -> Bool {
+        switch liveActivity {
+        case .automatic: globalEnabled
+        case .on: true
+        case .off: false
+        }
     }
 
     var trimmedSinceLabel: String {

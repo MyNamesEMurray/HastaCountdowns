@@ -29,7 +29,7 @@ enum LiveActivityPushService {
     static func update(_ countdowns: [Countdown], isPremium: Bool) {
         guard ScreenshotMode.current == nil, CloudSyncManager.isAllowedInThisProcess else { return }
         listenForToken()
-        latest = (countdowns, isPremium && LiveActivityPreferences.pushEnabled && ActivityAuthorizationInfo().areActivitiesEnabled)
+        latest = (countdowns, isPremium && ActivityAuthorizationInfo().areActivitiesEnabled)
         pending?.cancel()
         pending = Task {
             try? await Task.sleep(for: .seconds(2))
@@ -53,12 +53,13 @@ enum LiveActivityPushService {
     private static func send() async {
         let defaults = AppGroup.defaults
         let wasRegistered = defaults.bool(forKey: registeredKey)
-        guard latest.enabled || wasRegistered, let token else { return }
+        guard let token else { return }
 
         let now = Date.now
         let lead = Double(LiveActivityPreferences.leadHours) * 3_600
         let items: [Payload.Item] = latest.enabled
             ? Array(latest.countdowns
+                .filter { $0.startsLiveActivity(globalEnabled: LiveActivityPreferences.pushEnabled) }
                 .map { ($0, $0.nextOccurrence(after: now)) }
                 .filter { $0.1 > now && $0.1.timeIntervalSince(now) <= horizon }
                 .sorted { $0.1 < $1.1 }
@@ -73,6 +74,7 @@ enum LiveActivityPushService {
         #else
         let sandbox = false
         #endif
+        guard !items.isEmpty || wasRegistered else { return }
         let payload = Payload(token: token, sandbox: sandbox, countdowns: items)
         guard let body = try? JSONEncoder().encode(payload), body != lastSent else { return }
 
@@ -84,7 +86,7 @@ enum LiveActivityPushService {
         if let (_, response) = try? await URLSession.shared.data(for: request),
            (response as? HTTPURLResponse)?.statusCode == 200 {
             lastSent = body
-            defaults.set(latest.enabled, forKey: registeredKey)
+            defaults.set(!items.isEmpty, forKey: registeredKey)
         }
     }
 }

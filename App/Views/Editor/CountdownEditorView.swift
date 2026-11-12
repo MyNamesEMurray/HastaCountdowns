@@ -76,6 +76,7 @@ struct CountdownEditorView: View {
                 typefaceSection
                 progressSection
                 sinceSection
+                liveActivitySection
                 photoSection
                 unitSection
                 remindersSection
@@ -247,6 +248,30 @@ struct CountdownEditorView: View {
             .scrollIndicators(.hidden)
         } header: {
             Text("Widget Style")
+        }
+    }
+
+    private var liveActivitySection: some View {
+        Section {
+            if purchases.isPremium {
+                Picker("Live Activity", selection: $draft.liveActivity) {
+                    ForEach(LiveActivityOverride.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+            } else {
+                Button {
+                    isShowingPaywall = true
+                } label: {
+                    HStack {
+                        Text("Live Activity")
+                        Spacer()
+                        PremiumBadge()
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+        } footer: {
+            Text("Default follows the Live Activities setting in Settings. On or Off overrides it for this countdown.")
         }
     }
 

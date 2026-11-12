@@ -115,12 +115,12 @@ struct SettingsView: View {
                     } label: {
                         Label("Start", systemImage: "clock")
                     }
-                    .disabled(!purchases.isPremium || !pushEnabled)
+                    .disabled(!purchases.isPremium)
                 } header: {
                     Text("Live Activities")
                 } footer: {
                     Text(purchases.isPremium
-                        ? "Sends a notification that starts a Live Activity on your Lock Screen before the event. Only a random ID and the start and event times of upcoming countdowns are sent to Hasta's notification server for this, never names, symbols or colors."
+                        ? "Sends a notification that starts a Live Activity on your Lock Screen before the event. You can override this for each countdown. Only a random ID and the start and event times of upcoming countdowns are sent to Hasta's notification server for this, never names, symbols or colors."
                         : "Premium starts a Live Activity on your Lock Screen before the event.")
                 }
 
