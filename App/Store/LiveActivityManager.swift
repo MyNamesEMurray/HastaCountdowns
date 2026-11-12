@@ -24,13 +24,7 @@ enum LiveActivityManager {
             let window = Double(LiveActivityPreferences.leadHours) * 3_600
             for (countdown, target) in due(countdowns, now: now, window: window)
             where !isDismissed(countdown.id, target) {
-                wanted[countdown.id] = .init(
-                    title: countdown.displayTitle,
-                    symbol: countdown.symbol,
-                    tintHex: countdown.tint.hexString ?? "#0A84FF",
-                    start: now,
-                    target: target
-                )
+                wanted[countdown.id] = .init(start: now, target: target, revision: countdown.modifiedAt.timeIntervalSince1970)
             }
         }
 

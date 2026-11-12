@@ -13,5 +13,6 @@ Setup:
 Known limits:
 
 - Anyone with a device token can post a schedule for it. The token is only known to the device and Apple.
+- The server never sees names, symbols or colors. The alert text is a fixed English string.
 - No end push. The activity shows "Now" once stale and iOS removes it later.
 - Repeating events are scheduled for their next occurrence only. The app refreshes the schedule whenever it opens.

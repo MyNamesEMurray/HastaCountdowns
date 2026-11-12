@@ -184,9 +184,11 @@ struct CountdownMathTests {
     }
 
     @Test func liveActivityStateUsesEpochSeconds() throws {
-        let state = CountdownActivityAttributes.ContentState(title: "T", symbol: "star", tintHex: "#FFFFFF", start: Date(timeIntervalSince1970: 100), target: Date(timeIntervalSince1970: 200))
+        let state = CountdownActivityAttributes.ContentState(start: Date(timeIntervalSince1970: 100), target: Date(timeIntervalSince1970: 200), revision: 5)
         let json = String(data: try JSONEncoder().encode(state), encoding: .utf8) ?? ""
         #expect(json.contains("\"target\":200"))
+        #expect(!json.contains("title"))
+        #expect(try JSONDecoder().decode(CountdownActivityAttributes.ContentState.self, from: Data(#"{"start":1,"target":2}"#.utf8)).revision == 0)
         #expect(try JSONDecoder().decode(CountdownActivityAttributes.ContentState.self, from: Data(json.utf8)) == state)
     }
 

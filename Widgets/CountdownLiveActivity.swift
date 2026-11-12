@@ -6,11 +6,11 @@ struct CountdownLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: CountdownActivityAttributes.self) { context in
             let state = context.state
-            let tint = Color(hex: state.tintHex) ?? .blue
+            let display = ActivityDisplay(id: context.attributes.countdownID)
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Image(systemName: state.symbol)
-                    Text(state.title)
+                    Image(systemName: display.symbol)
+                    Text(display.title)
                         .lineLimit(1)
                     Spacer(minLength: 8)
                     RemainingLabel(state: state, isStale: context.isStale)
@@ -21,17 +21,17 @@ struct CountdownLiveActivity: Widget {
             }
             .foregroundStyle(.white)
             .padding(16)
-            .activityBackgroundTint(tint.adjusting(brightness: -0.15))
+            .activityBackgroundTint(display.tint.adjusting(brightness: -0.15))
             .activitySystemActionForegroundColor(.white)
             .widgetURL(DeepLink.countdown(context.attributes.countdownID))
         } dynamicIsland: { context in
             let state = context.state
-            let tint = Color(hex: state.tintHex) ?? .blue
+            let display = ActivityDisplay(id: context.attributes.countdownID)
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    Image(systemName: state.symbol)
+                    Image(systemName: display.symbol)
                         .font(.title2)
-                        .foregroundStyle(tint)
+                        .foregroundStyle(display.tint)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     RemainingLabel(state: state, isStale: context.isStale)
@@ -39,25 +39,38 @@ struct CountdownLiveActivity: Widget {
                         .frame(maxWidth: 110, alignment: .trailing)
                 }
                 DynamicIslandExpandedRegion(.center) {
-                    Text(state.title)
+                    Text(display.title)
                         .font(.headline)
                         .lineLimit(1)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     ProgressView(timerInterval: state.elapsedRange, countsDown: false) { EmptyView() } currentValueLabel: { EmptyView() }
-                        .tint(tint)
+                        .tint(display.tint)
                 }
             } compactLeading: {
-                Image(systemName: state.symbol).foregroundStyle(tint)
+                Image(systemName: display.symbol).foregroundStyle(display.tint)
             } compactTrailing: {
                 RemainingLabel(state: state, isStale: context.isStale)
                     .frame(maxWidth: 52)
             } minimal: {
-                Image(systemName: state.symbol).foregroundStyle(tint)
+                Image(systemName: display.symbol).foregroundStyle(display.tint)
             }
             .widgetURL(DeepLink.countdown(context.attributes.countdownID))
-            .keylineTint(tint)
+            .keylineTint(display.tint)
         }
+    }
+}
+
+private struct ActivityDisplay {
+    let title: String
+    let symbol: String
+    let tint: Color
+
+    init(id: UUID) {
+        let countdown = CountdownRepository.load().first { $0.id == id }
+        title = countdown?.displayTitle ?? String(localized: "Countdown")
+        symbol = countdown?.symbol ?? "hourglass"
+        tint = countdown?.tint ?? .blue
     }
 }
 

@@ -4,7 +4,6 @@ import Foundation
 @MainActor
 enum LiveActivityPushService {
     static let endpoint = URL(string: "https://push.hasta.day/v1/schedule")!
-    private static let deviceKey = "liveActivityDeviceID"
     private static let registeredKey = "liveActivityPushRegistered"
     private static let horizon: TimeInterval = 30 * 86_400
     private static let maxCountdowns = 50
@@ -18,16 +17,12 @@ enum LiveActivityPushService {
     private struct Payload: Encodable {
         struct Item: Encodable {
             let id: String
-            let title: String
-            let symbol: String
-            let tintHex: String
+            let fireAt: Double
             let target: Double
         }
 
-        let deviceID: String
         let token: String
         let sandbox: Bool
-        let leadHours: Int
         let countdowns: [Item]
     }
 
@@ -61,6 +56,7 @@ enum LiveActivityPushService {
         guard latest.enabled || wasRegistered, let token else { return }
 
         let now = Date.now
+        let lead = Double(LiveActivityPreferences.leadHours) * 3_600
         let items: [Payload.Item] = latest.enabled
             ? Array(latest.countdowns
                 .map { ($0, $0.nextOccurrence(after: now)) }
@@ -68,24 +64,16 @@ enum LiveActivityPushService {
                 .sorted { $0.1 < $1.1 }
                 .prefix(maxCountdowns)
                 .map { countdown, target in
-                    Payload.Item(
-                        id: countdown.id.uuidString,
-                        title: countdown.displayTitle,
-                        symbol: countdown.symbol,
-                        tintHex: countdown.tint.hexString ?? "#0A84FF",
-                        target: target.timeIntervalSince1970
-                    )
+                    Payload.Item(id: countdown.id.uuidString, fireAt: target.timeIntervalSince1970 - lead, target: target.timeIntervalSince1970)
                 })
             : []
 
-        let deviceID = defaults.string(forKey: deviceKey) ?? UUID().uuidString
-        defaults.set(deviceID, forKey: deviceKey)
         #if DEBUG
         let sandbox = true
         #else
         let sandbox = false
         #endif
-        let payload = Payload(deviceID: deviceID, token: token, sandbox: sandbox, leadHours: LiveActivityPreferences.leadHours, countdowns: items)
+        let payload = Payload(token: token, sandbox: sandbox, countdowns: items)
         guard let body = try? JSONEncoder().encode(payload), body != lastSent else { return }
 
         var request = URLRequest(url: endpoint)
