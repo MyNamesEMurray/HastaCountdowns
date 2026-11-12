@@ -155,6 +155,41 @@ struct CountdownMathTests {
         #expect(!future.subtitle(status: future.status(at: now, calendar: calendar), at: now, style: .abbreviated).contains("Together"))
     }
 
+    @Test func liveActivitiesPickSoonestWithinWindow() {
+        let soon = Countdown(title: "Soon", date: now.addingTimeInterval(3_600), isAllDay: false)
+        let later = Countdown(title: "Later", date: now.addingTimeInterval(7_200), isAllDay: false)
+        let far = Countdown(title: "Far", date: now.addingTimeInterval(86_400), isAllDay: false)
+        let past = Countdown(title: "Past", date: now.addingTimeInterval(-60), isAllDay: false)
+        let due = LiveActivityManager.due([far, later, past, soon], now: now, window: 8 * 3_600)
+        #expect(due.map(\.0.title) == ["Soon", "Later"])
+    }
+
+    @Test func slideshowIndexIsStablePerDay() {
+        let morning = date("2026-10-02T08:00:00")
+        let evening = date("2026-10-02T21:00:00")
+        #expect(Countdown.slideshowIndex(at: morning, count: 3, calendar: calendar) == Countdown.slideshowIndex(at: evening, count: 3, calendar: calendar))
+        let next = Countdown.slideshowIndex(at: date("2026-10-03T08:00:00"), count: 3, calendar: calendar)
+        #expect(next == (Countdown.slideshowIndex(at: morning, count: 3, calendar: calendar) + 1) % 3)
+        #expect(Countdown.slideshowIndex(at: morning, count: 1, calendar: calendar) == 0)
+    }
+
+    @Test func oldRecordsKeepNewFieldsFromLocalCopy() {
+        let local = Countdown(title: "Us", extraBackgroundImageIDs: ["b"], showsProgress: true, sinceLabel: "Together")
+        var remote = Countdown(id: local.id, title: "Us edited")
+        remote.keepNewFields(from: local)
+        #expect(remote.extraBackgroundImageIDs == ["b"])
+        #expect(remote.showsProgress)
+        #expect(remote.sinceLabel == "Together")
+        #expect(local.backgroundImageSlots.count == 5)
+    }
+
+    @Test func liveActivityStateUsesEpochSeconds() throws {
+        let state = CountdownActivityAttributes.ContentState(title: "T", symbol: "star", tintHex: "#FFFFFF", start: Date(timeIntervalSince1970: 100), target: Date(timeIntervalSince1970: 200))
+        let json = String(data: try JSONEncoder().encode(state), encoding: .utf8) ?? ""
+        #expect(json.contains("\"target\":200"))
+        #expect(try JSONDecoder().decode(CountdownActivityAttributes.ContentState.self, from: Data(json.utf8)) == state)
+    }
+
     @Test func progressTracksElapsedShare() {
         let countdown = Countdown(
             title: "Term",

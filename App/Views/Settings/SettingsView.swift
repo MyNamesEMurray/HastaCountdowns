@@ -10,6 +10,8 @@ struct SettingsView: View {
     @State private var isShowingPaywall = false
     @State private var isConfirmingSyncOff = false
     @State private var syncError: String?
+    @State private var pushEnabled = LiveActivityPreferences.pushEnabled
+    @State private var leadHours = LiveActivityPreferences.leadHours
     @State private var reminderTime: Date = Calendar.current.date(from: ReminderPreferences.time) ?? .now
 
     var body: some View {
@@ -84,6 +86,42 @@ struct SettingsView: View {
                     Text("iCloud")
                 } footer: {
                     Text("Keeps your countdowns, reminders, and photos on all your devices through your private iCloud account.")
+                }
+
+                Section {
+                    Toggle(isOn: Binding(
+                        get: { purchases.isPremium && pushEnabled },
+                        set: { enabled in
+                            pushEnabled = enabled
+                            LiveActivityPreferences.pushEnabled = enabled
+                            store.refreshSideEffects()
+                        }
+                    )) {
+                        Label("Start Live Activities", systemImage: "platter.filled.bottom.iphone")
+                    }
+                    .disabled(!purchases.isPremium)
+                    Picker(selection: Binding(
+                        get: { leadHours },
+                        set: { hours in
+                            leadHours = hours
+                            LiveActivityPreferences.leadHours = hours
+                            store.refreshSideEffects()
+                        }
+                    )) {
+                        ForEach(LiveActivityPreferences.leadHourOptions, id: \.self) { hours in
+                            Text(hours == 1 ? String(localized: "1 hour before") : String(localized: "\(hours) hours before"))
+                                .tag(hours)
+                        }
+                    } label: {
+                        Label("Start", systemImage: "clock")
+                    }
+                    .disabled(!purchases.isPremium || !pushEnabled)
+                } header: {
+                    Text("Live Activities")
+                } footer: {
+                    Text(purchases.isPremium
+                        ? "Sends a notification that starts a Live Activity on your Lock Screen before the event. The name, symbol, color and date of upcoming countdowns are sent to Hasta's notification server for this, and nothing else."
+                        : "Premium starts a Live Activity on your Lock Screen before the event.")
                 }
 
                 Section("Appearance") {

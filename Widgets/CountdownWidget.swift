@@ -40,8 +40,8 @@ struct CountdownProvider: AppIntentTimelineProvider {
         dates = Array(Set(dates)).sorted()
 
         let images = loadImages(for: selectedCountdown(for: configuration, in: all, at: now), context: context)
-        let entries = dates.enumerated().map { index, date in
-            entry(for: configuration, at: date, countdowns: all, context: context, preloadedImage: images.isEmpty ? nil : .some(images[index % images.count]))
+        let entries = dates.map { date in
+            entry(for: configuration, at: date, countdowns: all, context: context, preloadedImage: images.isEmpty ? nil : .some(images[Countdown.slideshowIndex(at: date, count: images.count)]))
         }
         return Timeline(entries: entries, policy: .atEnd)
     }
@@ -79,7 +79,7 @@ struct CountdownProvider: AppIntentTimelineProvider {
                 for: id,
                 framing: index == 0 ? countdown.backgroundFraming ?? .centered : .centered,
                 containerSize: context.displaySize,
-                pixelsPerPoint: 2.5
+                pixelsPerPoint: countdown.allBackgroundImageIDs.count > 1 ? 2 : 2.5
             )
         }
     }

@@ -362,10 +362,6 @@ enum Typeface: String, Codable, CaseIterable, Identifiable {
 }
 
 extension Countdown {
-    var usesPremiumFeatures: Bool {
-        style.isPremium || typeface.isPremium || customColorHex != nil || backgroundImageID != nil || showsProgress || !trimmedSinceLabel.isEmpty
-    }
-
     func resolved(isPremium: Bool) -> Countdown {
         guard !isPremium else { return self }
         var copy = self
@@ -384,6 +380,16 @@ extension Countdown {
 
     var allBackgroundImageIDs: [String] {
         (backgroundImageID.map { [$0] } ?? []) + extraBackgroundImageIDs
+    }
+
+    var backgroundImageSlots: [String?] {
+        [backgroundImageID] + (0..<Self.maxExtraBackgrounds).map { extraBackgroundImageIDs.indices.contains($0) ? extraBackgroundImageIDs[$0] : nil }
+    }
+
+    mutating func keepNewFields(from local: Countdown) {
+        extraBackgroundImageIDs = local.extraBackgroundImageIDs
+        showsProgress = local.showsProgress
+        sinceLabel = local.sinceLabel
     }
 
     var trimmedSinceLabel: String {

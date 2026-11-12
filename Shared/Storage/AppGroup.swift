@@ -40,6 +40,25 @@ enum ReminderPreferences {
     }
 }
 
+enum LiveActivityPreferences {
+    static let leadHourOptions = [1, 2, 4, 8]
+    private static let enabledKey = "liveActivityPushEnabled"
+    private static let leadKey = "liveActivityLeadHours"
+
+    static var pushEnabled: Bool {
+        get { AppGroup.defaults.object(forKey: enabledKey) as? Bool ?? true }
+        set { AppGroup.defaults.set(newValue, forKey: enabledKey) }
+    }
+
+    static var leadHours: Int {
+        get {
+            let stored = AppGroup.defaults.object(forKey: leadKey) as? Int ?? 8
+            return leadHourOptions.contains(stored) ? stored : 8
+        }
+        set { AppGroup.defaults.set(newValue, forKey: leadKey) }
+    }
+}
+
 enum DeepLink {
     static let scheme = "hasta"
 

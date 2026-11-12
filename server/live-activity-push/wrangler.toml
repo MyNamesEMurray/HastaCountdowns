@@ -1,0 +1,11 @@
+name = "hasta-live-activity-push"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+routes = [{ pattern = "push.hasta.day", custom_domain = true }]
+
+[triggers]
+crons = ["* * * * *"]
+
+[[kv_namespaces]]
+binding = "SCHEDULE"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"

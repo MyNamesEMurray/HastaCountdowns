@@ -13,9 +13,7 @@ struct CountdownLiveActivity: Widget {
                     Text(state.title)
                         .lineLimit(1)
                     Spacer(minLength: 8)
-                    Text(timerInterval: state.remainingRange, countsDown: true)
-                        .monospacedDigit()
-                        .multilineTextAlignment(.trailing)
+                    RemainingLabel(state: state, isStale: context.isStale)
                 }
                 .font(.system(.title3, design: .rounded, weight: .bold))
                 ProgressView(timerInterval: state.elapsedRange, countsDown: false) { EmptyView() } currentValueLabel: { EmptyView() }
@@ -36,10 +34,8 @@ struct CountdownLiveActivity: Widget {
                         .foregroundStyle(tint)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    Text(timerInterval: state.remainingRange, countsDown: true)
+                    RemainingLabel(state: state, isStale: context.isStale)
                         .font(.system(.title3, design: .rounded, weight: .bold))
-                        .monospacedDigit()
-                        .multilineTextAlignment(.trailing)
                         .frame(maxWidth: 110, alignment: .trailing)
                 }
                 DynamicIslandExpandedRegion(.center) {
@@ -54,9 +50,7 @@ struct CountdownLiveActivity: Widget {
             } compactLeading: {
                 Image(systemName: state.symbol).foregroundStyle(tint)
             } compactTrailing: {
-                Text(timerInterval: state.remainingRange, countsDown: true)
-                    .monospacedDigit()
-                    .multilineTextAlignment(.trailing)
+                RemainingLabel(state: state, isStale: context.isStale)
                     .frame(maxWidth: 52)
             } minimal: {
                 Image(systemName: state.symbol).foregroundStyle(tint)
@@ -64,5 +58,22 @@ struct CountdownLiveActivity: Widget {
             .widgetURL(DeepLink.countdown(context.attributes.countdownID))
             .keylineTint(tint)
         }
+    }
+}
+
+private struct RemainingLabel: View {
+    let state: CountdownActivityAttributes.ContentState
+    let isStale: Bool
+
+    var body: some View {
+        Group {
+            if isStale {
+                Text("Now")
+            } else {
+                Text(timerInterval: state.remainingRange, countsDown: true)
+            }
+        }
+        .monospacedDigit()
+        .multilineTextAlignment(.trailing)
     }
 }

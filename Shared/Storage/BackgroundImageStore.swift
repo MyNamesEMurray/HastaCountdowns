@@ -59,6 +59,13 @@ enum BackgroundImageStore {
         return UIImage(cgImage: cropped)
     }
 
+    static func removeUnreferenced(keeping ids: Set<String>) {
+        let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
+        for file in files where file.pathExtension == "jpg" && !ids.contains(file.deletingPathExtension().lastPathComponent) {
+            try? FileManager.default.removeItem(at: file)
+        }
+    }
+
     static func delete(_ id: String) {
         try? FileManager.default.removeItem(at: url(for: id))
     }

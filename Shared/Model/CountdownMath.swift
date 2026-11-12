@@ -322,6 +322,13 @@ extension Countdown {
     }
 }
 
+extension Countdown {
+    static func slideshowIndex(at date: Date, count: Int, calendar: Calendar = .current) -> Int {
+        guard count > 1 else { return 0 }
+        return (calendar.ordinality(of: .day, in: .era, for: date) ?? 0) % count
+    }
+}
+
 extension Array where Element == Countdown {
     func upcoming(at now: Date = .now) -> [Countdown] {
         filter { !$0.status(at: now).isPast }

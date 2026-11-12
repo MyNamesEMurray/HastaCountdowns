@@ -22,7 +22,8 @@ struct PersistenceTests {
         let bad = Data(#"[{"title":"no id or date"}]"#.utf8)
         try bad.write(to: url)
         #expect(CountdownRepository.load(from: url).isEmpty)
-        #expect(try Data(contentsOf: directory.appending(path: "Countdowns.bad.json")) == bad)
+        let backups = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil).filter { $0.lastPathComponent.hasPrefix("Countdowns.bad") }
+        #expect(try backups.map { try Data(contentsOf: $0) } == [bad])
     }
 
     @Test func newerEditSupersedes() {

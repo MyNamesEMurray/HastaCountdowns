@@ -22,6 +22,9 @@ final class CountdownStore {
         case nil:
             countdowns = CountdownRepository.load()
             isScreenshotMode = false
+            if !countdowns.isEmpty {
+                BackgroundImageStore.removeUnreferenced(keeping: Set(countdowns.flatMap(\.allBackgroundImageIDs)))
+            }
         }
         let sync = CloudSyncManager(store: self)
         self.sync = sync
@@ -105,6 +108,7 @@ final class CountdownStore {
         WidgetCenter.shared.reloadAllTimelines()
         ReminderScheduler.reschedule(countdowns)
         LiveActivityManager.sync(countdowns, isPremium: Premium.isUnlocked)
+        LiveActivityPushService.update(countdowns, isPremium: Premium.isUnlocked)
     }
 
     private func deleteImages(of old: Countdown, keeping new: Countdown?) {
