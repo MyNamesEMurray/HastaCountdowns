@@ -325,7 +325,9 @@ extension Countdown {
 extension Countdown {
     static func slideshowIndex(at date: Date, count: Int, calendar: Calendar = .current) -> Int {
         guard count > 1 else { return 0 }
-        return (calendar.ordinality(of: .day, in: .era, for: date) ?? 0) % count
+        let epoch = calendar.startOfDay(for: Date(timeIntervalSince1970: 0))
+        let days = calendar.dateComponents([.day], from: epoch, to: calendar.startOfDay(for: date)).day ?? 0
+        return days % count
     }
 }
 
