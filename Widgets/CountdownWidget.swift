@@ -39,9 +39,9 @@ struct CountdownProvider: AppIntentTimelineProvider {
         }
         dates = Array(Set(dates)).sorted()
 
-        let image = loadImage(for: selectedCountdown(for: configuration, in: all, at: now), context: context)
-        let entries = dates.map { date in
-            entry(for: configuration, at: date, countdowns: all, context: context, preloadedImage: image)
+        let images = loadImages(for: selectedCountdown(for: configuration, in: all, at: now), context: context)
+        let entries = dates.enumerated().map { index, date in
+            entry(for: configuration, at: date, countdowns: all, context: context, preloadedImage: images.isEmpty ? nil : .some(images[index % images.count]))
         }
         return Timeline(entries: entries, policy: .atEnd)
     }
@@ -69,13 +69,19 @@ struct CountdownProvider: AppIntentTimelineProvider {
     }
 
     private func loadImage(for countdown: Countdown?, context: Context) -> UIImage? {
-        guard Premium.isUnlocked, let countdown, let id = countdown.backgroundImageID else { return nil }
-        return BackgroundImageStore.framedImage(
-            for: id,
-            framing: countdown.backgroundFraming ?? .centered,
-            containerSize: context.displaySize,
-            pixelsPerPoint: 2.5
-        )
+        loadImages(for: countdown, context: context).first
+    }
+
+    private func loadImages(for countdown: Countdown?, context: Context) -> [UIImage] {
+        guard Premium.isUnlocked, let countdown else { return [] }
+        return countdown.allBackgroundImageIDs.enumerated().compactMap { index, id in
+            BackgroundImageStore.framedImage(
+                for: id,
+                framing: index == 0 ? countdown.backgroundFraming ?? .centered : .centered,
+                containerSize: context.displaySize,
+                pixelsPerPoint: 2.5
+            )
+        }
     }
 }
 

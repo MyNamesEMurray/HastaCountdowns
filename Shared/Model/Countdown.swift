@@ -15,7 +15,9 @@ struct Countdown: Identifiable, Codable, Hashable {
     var typeface: Typeface = .rounded
     var backgroundImageID: String?
     var backgroundFraming: BackgroundFraming?
+    var extraBackgroundImageIDs: [String] = []
     var showsProgress: Bool = false
+    var sinceLabel: String = ""
     var reminders: [ReminderRule] = [.onTheDay]
     var createdAt: Date = .now
     var modifiedAt: Date = .now
@@ -41,7 +43,9 @@ struct Countdown: Identifiable, Codable, Hashable {
         typeface: Typeface = .rounded,
         backgroundImageID: String? = nil,
         backgroundFraming: BackgroundFraming? = nil,
+        extraBackgroundImageIDs: [String] = [],
         showsProgress: Bool = false,
+        sinceLabel: String = "",
         reminders: [ReminderRule] = [.onTheDay],
         createdAt: Date = .now,
         modifiedAt: Date? = nil
@@ -60,7 +64,9 @@ struct Countdown: Identifiable, Codable, Hashable {
         self.typeface = typeface
         self.backgroundImageID = backgroundImageID
         self.backgroundFraming = backgroundFraming
+        self.extraBackgroundImageIDs = extraBackgroundImageIDs
         self.showsProgress = showsProgress
+        self.sinceLabel = sinceLabel
         self.reminders = reminders
         self.createdAt = createdAt
         self.modifiedAt = modifiedAt ?? createdAt
@@ -82,7 +88,9 @@ struct Countdown: Identifiable, Codable, Hashable {
         typeface = (try? container.decodeIfPresent(Typeface.self, forKey: .typeface)) ?? .rounded
         backgroundImageID = try container.decodeIfPresent(String.self, forKey: .backgroundImageID)
         backgroundFraming = try? container.decodeIfPresent(BackgroundFraming.self, forKey: .backgroundFraming)
+        extraBackgroundImageIDs = (try? container.decodeIfPresent([String].self, forKey: .extraBackgroundImageIDs)) ?? []
         showsProgress = (try? container.decodeIfPresent(Bool.self, forKey: .showsProgress)) ?? false
+        sinceLabel = (try? container.decodeIfPresent(String.self, forKey: .sinceLabel)) ?? ""
         if let rules = try? container.decodeIfPresent([ReminderRule].self, forKey: .reminders) {
             reminders = rules
         } else if let legacy = try? container.decodeIfPresent([LegacyReminder].self, forKey: .reminders) {
@@ -355,7 +363,7 @@ enum Typeface: String, Codable, CaseIterable, Identifiable {
 
 extension Countdown {
     var usesPremiumFeatures: Bool {
-        style.isPremium || typeface.isPremium || customColorHex != nil || backgroundImageID != nil || showsProgress
+        style.isPremium || typeface.isPremium || customColorHex != nil || backgroundImageID != nil || showsProgress || !trimmedSinceLabel.isEmpty
     }
 
     func resolved(isPremium: Bool) -> Countdown {
@@ -366,8 +374,20 @@ extension Countdown {
         copy.customColorHex = nil
         copy.backgroundImageID = nil
         copy.backgroundFraming = nil
+        copy.extraBackgroundImageIDs = []
         copy.showsProgress = false
+        copy.sinceLabel = ""
         return copy
+    }
+
+    static let maxExtraBackgrounds = 4
+
+    var allBackgroundImageIDs: [String] {
+        (backgroundImageID.map { [$0] } ?? []) + extraBackgroundImageIDs
+    }
+
+    var trimmedSinceLabel: String {
+        sinceLabel.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     func supersedes(_ other: Countdown) -> Bool {

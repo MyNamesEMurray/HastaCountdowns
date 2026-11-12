@@ -263,7 +263,7 @@ struct SmallCountdownView: View {
                 .minimumScaleFactor(0.5)
                 .allowsTightening(true)
                 .layoutPriority(1)
-            Text(countdown.formattedDate(at: now, style: .abbreviated))
+            Text(countdown.subtitle(status: status, at: now, style: .abbreviated))
                 .font(countdown.typeface.font(.caption2, weight: .medium))
                 .foregroundStyle(palette.secondary)
                 .lineLimit(1)
@@ -310,7 +310,7 @@ struct MediumCountdownView: View {
                         .lineLimit(3)
                         .minimumScaleFactor(0.5)
                         .allowsTightening(true)
-                    Text(countdown.formattedDate(at: now))
+                    Text(countdown.subtitle(status: status, at: now, style: .abbreviated))
                         .font(countdown.typeface.font(.caption, weight: .medium))
                         .foregroundStyle(palette.secondary)
                         .lineLimit(1)
@@ -366,7 +366,7 @@ struct LargeCountdownView: View {
                 .lineLimit(1)
                 .padding(.top, 2)
             if status.isPast {
-                Text("Time Since")
+                Text(countdown.trimmedSinceLabel.isEmpty ? String(localized: "Time Since") : countdown.trimmedSinceLabel)
                     .font(countdown.typeface.font(.caption, weight: .semibold))
                     .textCase(.uppercase)
                     .foregroundStyle(palette.secondary)
@@ -434,7 +434,7 @@ struct RectangularCountdownView: View {
                     .allowsTightening(true)
                 if status.isPast {
                     Spacer(minLength: 2)
-                    Text("ago")
+                    Text(countdown.trimmedSinceLabel.isEmpty ? String(localized: "ago") : countdown.trimmedSinceLabel)
                         .font(countdown.typeface.font(.caption2, weight: .semibold))
                         .foregroundStyle(.secondary)
                 }

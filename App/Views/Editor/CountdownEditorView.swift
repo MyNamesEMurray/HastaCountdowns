@@ -10,6 +10,7 @@ struct CountdownEditorView: View {
     @State private var draft: Countdown
     @State private var createdImageIDs: [String] = []
     @State private var photoItem: PhotosPickerItem?
+    @State private var slideshowItems: [PhotosPickerItem] = []
     @State private var isLoadingPhoto = false
     @State private var isShowingPaywall = false
     @State private var isConfirmingDelete = false
@@ -74,6 +75,7 @@ struct CountdownEditorView: View {
                 styleSection
                 typefaceSection
                 progressSection
+                sinceSection
                 photoSection
                 unitSection
                 remindersSection
@@ -148,6 +150,10 @@ struct CountdownEditorView: View {
                     store.delete(original)
                     dismiss()
                 }
+            }
+            .onChange(of: slideshowItems) { _, items in
+                guard !items.isEmpty else { return }
+                loadSlideshow(items)
             }
             .onChange(of: photoItem) { _, item in
                 guard let item else { return }
@@ -244,6 +250,29 @@ struct CountdownEditorView: View {
         }
     }
 
+    private var sinceSection: some View {
+        Section {
+            if purchases.isPremium {
+                TextField("Label after the date, like Together", text: $draft.sinceLabel)
+            } else {
+                Button {
+                    isShowingPaywall = true
+                } label: {
+                    HStack {
+                        Text("Since Label")
+                        Spacer()
+                        PremiumBadge()
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+        } header: {
+            Text("After the Date")
+        } footer: {
+            Text("Once the date has passed, widgets count up with this label, such as Together or Sober.")
+        }
+    }
+
     private var progressSection: some View {
         Section {
             Toggle(isOn: Binding(
@@ -316,8 +345,24 @@ struct CountdownEditorView: View {
                             Label("Live Photo Effects", systemImage: "livephoto")
                         }
                     }
+                    if draft.extraBackgroundImageIDs.count < Countdown.maxExtraBackgrounds {
+                        PhotosPicker(
+                            selection: $slideshowItems,
+                            maxSelectionCount: Countdown.maxExtraBackgrounds - draft.extraBackgroundImageIDs.count,
+                            matching: .images,
+                            photoLibrary: .shared()
+                        ) {
+                            Label("Add Slideshow Photos", systemImage: "photo.stack")
+                        }
+                    }
+                    if !draft.extraBackgroundImageIDs.isEmpty {
+                        Button("Remove Slideshow Photos", systemImage: "minus.circle", role: .destructive) {
+                            withAnimation { draft.extraBackgroundImageIDs = [] }
+                        }
+                    }
                     Button("Remove Photo", systemImage: "xmark.circle", role: .destructive) {
                         withAnimation {
+                            draft.extraBackgroundImageIDs = []
                             draft.backgroundImageID = nil
                             draft.backgroundFraming = nil
                             lastLiveSession = nil
@@ -448,6 +493,18 @@ struct CountdownEditorView: View {
         }
     }
 
+    private func loadSlideshow(_ items: [PhotosPickerItem]) {
+        Task {
+            defer { slideshowItems = [] }
+            for item in items where draft.extraBackgroundImageIDs.count < Countdown.maxExtraBackgrounds {
+                guard let data = try? await item.loadTransferable(type: Data.self),
+                      let id = try? BackgroundImageStore.save(data) else { continue }
+                createdImageIDs.append(id)
+                draft.extraBackgroundImageIDs.append(id)
+            }
+        }
+    }
+
     private func useProcessedPhoto(_ image: UIImage) {
         guard let data = image.jpegData(compressionQuality: 0.92),
               let id = try? BackgroundImageStore.save(data) else { return }
@@ -460,7 +517,7 @@ struct CountdownEditorView: View {
 
     private func save() {
         draft.title = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        for id in createdImageIDs where id != draft.backgroundImageID {
+        for id in createdImageIDs where !draft.allBackgroundImageIDs.contains(id) {
             BackgroundImageStore.delete(id)
         }
         store.save(draft)

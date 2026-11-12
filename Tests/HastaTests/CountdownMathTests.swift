@@ -139,6 +139,22 @@ struct CountdownMathTests {
         }
     }
 
+    @Test func slideshowAndSinceLabelAreStrippedWhenLocked() {
+        let countdown = Countdown(title: "Us", backgroundImageID: "a", extraBackgroundImageIDs: ["b", "c"], sinceLabel: "Together")
+        #expect(countdown.allBackgroundImageIDs == ["a", "b", "c"])
+        let resolved = countdown.resolved(isPremium: false)
+        #expect(resolved.allBackgroundImageIDs.isEmpty)
+        #expect(resolved.sinceLabel.isEmpty)
+    }
+
+    @Test func subtitleUsesSinceLabelOnlyWhenPast() {
+        let countdown = Countdown(title: "Us", date: date("2026-09-02T00:00:00"), sinceLabel: " Together ")
+        let past = countdown.status(at: now, calendar: calendar)
+        #expect(countdown.subtitle(status: past, at: now, style: .abbreviated).hasPrefix("Together · "))
+        let future = Countdown(title: "Us", date: date("2026-12-02T00:00:00"), sinceLabel: "Together")
+        #expect(!future.subtitle(status: future.status(at: now, calendar: calendar), at: now, style: .abbreviated).contains("Together"))
+    }
+
     @Test func progressTracksElapsedShare() {
         let countdown = Countdown(
             title: "Term",

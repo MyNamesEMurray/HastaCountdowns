@@ -276,6 +276,7 @@ final class CloudSyncManager: CKSyncEngineDelegate {
                 continue
             }
             importImage(from: record, for: remote)
+            importExtraImages(from: record, for: remote)
             upserts.append(remote)
         }
         if !changes.modifications.isEmpty {
@@ -307,6 +308,7 @@ final class CloudSyncManager: CKSyncEngineDelegate {
                    let local = store?.countdown(with: remote.id),
                    remote.supersedes(local) {
                     importImage(from: serverRecord, for: remote)
+                    importExtraImages(from: serverRecord, for: remote)
                     store?.applyRemoteChanges(upserts: [remote], deletions: [])
                 } else {
                     engine?.state.add(pendingRecordZoneChanges: [.saveRecord(recordID)])
@@ -348,6 +350,10 @@ final class CloudSyncManager: CKSyncEngineDelegate {
         } else {
             record["image"] = nil
         }
+        let extras = countdown.extraBackgroundImageIDs
+            .filter { FileManager.default.fileExists(atPath: BackgroundImageStore.url(for: $0).path()) }
+            .map { CKAsset(fileURL: BackgroundImageStore.url(for: $0)) }
+        record["extraImages"] = extras.isEmpty ? nil : extras
         return record
     }
 
@@ -360,6 +366,17 @@ final class CloudSyncManager: CKSyncEngineDelegate {
         guard let imageID = countdown.backgroundImageID,
               let asset = record["image"] as? CKAsset,
               let source = asset.fileURL else { return }
+        copyIfMissing(source, to: imageID)
+    }
+
+    private func importExtraImages(from record: CKRecord, for countdown: Countdown) {
+        let assets = record["extraImages"] as? [CKAsset] ?? []
+        for (id, asset) in zip(countdown.extraBackgroundImageIDs, assets) {
+            if let source = asset.fileURL { copyIfMissing(source, to: id) }
+        }
+    }
+
+    private func copyIfMissing(_ source: URL, to imageID: String) {
         let destination = BackgroundImageStore.url(for: imageID)
         guard !FileManager.default.fileExists(atPath: destination.path()) else { return }
         try? FileManager.default.copyItem(at: source, to: destination)

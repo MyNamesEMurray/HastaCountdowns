@@ -262,6 +262,12 @@ extension Countdown {
         return calendar.isDate(target, inSameDayAs: now) && target > now
     }
 
+    func subtitle(status: CountdownStatus, at now: Date, style: Date.FormatStyle.DateStyle) -> String {
+        let date = formattedDate(at: now, style: style)
+        guard status.isPast, !trimmedSinceLabel.isEmpty else { return date }
+        return "\(trimmedSinceLabel) · \(date)"
+    }
+
     func formattedDate(at now: Date = .now, style: Date.FormatStyle.DateStyle = .abbreviated) -> String {
         let target = nextOccurrence(after: now)
         if isAllDay {
