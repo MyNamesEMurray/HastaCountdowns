@@ -73,6 +73,7 @@ struct CountdownEditorView: View {
                 appearanceSection
                 styleSection
                 typefaceSection
+                progressSection
                 photoSection
                 unitSection
                 remindersSection
@@ -240,6 +241,28 @@ struct CountdownEditorView: View {
             .scrollIndicators(.hidden)
         } header: {
             Text("Widget Style")
+        }
+    }
+
+    private var progressSection: some View {
+        Section {
+            Toggle(isOn: Binding(
+                get: { draft.showsProgress && purchases.isPremium },
+                set: { isOn in
+                    if purchases.isPremium {
+                        draft.showsProgress = isOn
+                    } else {
+                        isShowingPaywall = true
+                    }
+                }
+            )) {
+                HStack {
+                    Text("Show Progress")
+                    if !purchases.isPremium { LockBadge() }
+                }
+            }
+        } footer: {
+            Text("Adds a bar showing how much time has passed since you created this countdown. Not shown on repeating events.")
         }
     }
 

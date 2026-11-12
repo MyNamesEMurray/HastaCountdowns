@@ -111,6 +111,7 @@ final class CountdownStore {
     func refreshSideEffects() {
         WidgetCenter.shared.reloadAllTimelines()
         ReminderScheduler.reschedule(countdowns)
+        LiveActivityManager.sync(countdowns, isPremium: Premium.isUnlocked)
     }
 
     private func persist() {

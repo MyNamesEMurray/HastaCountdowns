@@ -52,9 +52,12 @@ iCloud Sync (free, on by default) uses `CKSyncEngine` with the private database 
 |---|---|
 | Unlimited countdowns | Photo backgrounds |
 | Every widget size | Serif, Mono and Condensed typefaces |
-| Repeating events, count up | Vivid and Night widget styles |
+| Repeating events, count up | Vivid, Night, Glass, Gradient and Paper widget styles |
 | Days, weeks or months | Custom colors |
 | Reminders | Alternate app icons |
+| Plain share card | Styled and photo share cards |
+| | Progress bar |
+| | Live Activity and Dynamic Island for the last 24 hours |
 | Rounded and Standard typefaces, Classic and Minimal styles | |
 
 Premium is the non-consumable product `com.exaltedpixels.Hasta.premium`. The unlocked state is cached in the App Group so widgets can respect it.

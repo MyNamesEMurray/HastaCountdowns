@@ -20,7 +20,19 @@ struct PremiumView: View {
                             symbol: "textformat",
                             color: .purple,
                             title: "Typefaces & Styles",
-                            detail: "Serif, Mono and Condensed type, plus Vivid and Night widget styles."
+                            detail: "Serif, Mono and Condensed type, plus Vivid, Night, Glass, Gradient and Paper widget styles."
+                        )
+                        FeatureRow(
+                            symbol: "square.and.arrow.up.fill",
+                            color: .teal,
+                            title: "Share Cards",
+                            detail: "Share a styled card with your photo, ready for Stories and Messages."
+                        )
+                        FeatureRow(
+                            symbol: "platter.filled.bottom.iphone",
+                            color: .green,
+                            title: "Live Activities",
+                            detail: "Follow the last 24 hours on your Lock Screen and Dynamic Island."
                         )
                         FeatureRow(
                             symbol: "paintpalette.fill",

@@ -94,9 +94,7 @@ struct CountdownListView: View {
                     Button("Duplicate", systemImage: "plus.square.on.square") {
                         withAnimation { store.duplicate(countdown) }
                     }
-                    ShareLink(item: countdown.shareText(at: now)) {
-                        Label("Share", systemImage: "square.and.arrow.up")
-                    }
+                    CountdownShareLink(countdown: countdown, now: now)
                     Divider()
                     Button("Delete", systemImage: "trash", role: .destructive) {
                         pendingDelete = countdown

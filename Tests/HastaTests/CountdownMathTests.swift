@@ -130,6 +130,33 @@ struct CountdownMathTests {
         #expect(countdown.resolved(isPremium: true) == countdown)
     }
 
+    @Test func newStylesAndProgressAreStrippedWhenLocked() {
+        for style in [WidgetStyle.glass, .gradient, .paper] {
+            let countdown = Countdown(title: "Styled", style: style, showsProgress: true)
+            let resolved = countdown.resolved(isPremium: false)
+            #expect(resolved.style == .classic)
+            #expect(!resolved.showsProgress)
+        }
+    }
+
+    @Test func progressTracksElapsedShare() {
+        let countdown = Countdown(
+            title: "Term",
+            date: date("2026-10-12T00:00:00"),
+            showsProgress: true,
+            createdAt: date("2026-09-22T00:00:00")
+        )
+        let fraction = countdown.progress(at: date("2026-10-02T00:00:00"), calendar: calendar)
+        #expect(fraction == 0.5)
+        #expect(countdown.progress(at: date("2026-11-01T00:00:00"), calendar: calendar) == 1)
+        var repeating = countdown
+        repeating.repeatRule = .yearly
+        #expect(repeating.progress(at: now, calendar: calendar) == nil)
+        var off = countdown
+        off.showsProgress = false
+        #expect(off.progress(at: now, calendar: calendar) == nil)
+    }
+
     @Test func decodesOlderDataWithMissingFields() throws {
         let json = #"[{"id":"7C9C3D5E-1C1F-4F55-9E2D-1A2B3C4D5E6F","date":800000000}]"#
         let decoded = try JSONDecoder().decode([Countdown].self, from: Data(json.utf8))

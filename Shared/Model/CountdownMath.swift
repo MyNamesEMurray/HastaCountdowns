@@ -306,6 +306,16 @@ extension Countdown {
     }
 }
 
+extension Countdown {
+    func progress(at now: Date = .now, calendar: Calendar = .current) -> Double? {
+        guard showsProgress, repeatRule == .never else { return nil }
+        let end = anchorDate(calendar: calendar)
+        let total = end.timeIntervalSince(createdAt)
+        guard total > 0 else { return nil }
+        return min(1, max(0, now.timeIntervalSince(createdAt) / total))
+    }
+}
+
 extension Array where Element == Countdown {
     func upcoming(at now: Date = .now) -> [Countdown] {
         filter { !$0.status(at: now).isPast }

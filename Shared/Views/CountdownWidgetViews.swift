@@ -13,6 +13,11 @@ struct CountdownPalette {
             secondary = .secondary
             number = .primary
             accent = .primary
+        } else if countdown.style == .paper {
+            primary = Color(red: 0.22, green: 0.17, blue: 0.12)
+            secondary = Color(red: 0.22, green: 0.17, blue: 0.12).opacity(0.65)
+            number = countdown.tint
+            accent = countdown.tint
         } else if hasImage || countdown.style.usesLightForeground {
             primary = .white
             secondary = .white.opacity(0.78)
@@ -60,7 +65,54 @@ struct CountdownBackground: View {
                         endRadius: 260
                     )
                 }
+            case .glass:
+                GlassBackground(tint: countdown.tint)
+            case .gradient:
+                LinearGradient(
+                    colors: [countdown.tint.shiftingHue(by: -0.06), countdown.tint.shiftingHue(by: 0.1).adjusting(brightness: -0.2)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            case .paper:
+                Color(red: 0.97, green: 0.95, blue: 0.9)
             }
+        }
+    }
+}
+
+private struct GlassBackground: View {
+    let tint: Color
+
+    var body: some View {
+        ZStack {
+            LinearGradient(colors: [tint.opacity(0.95), tint.adjusting(brightness: -0.3)], startPoint: .top, endPoint: .bottom)
+            RadialGradient(colors: [.white.opacity(0.4), .clear], center: .topLeading, startRadius: 0, endRadius: 220)
+            Rectangle().fill(.white.opacity(0.08))
+        }
+    }
+}
+
+struct CountdownProgressBar: View {
+    let countdown: Countdown
+    let now: Date
+    let palette: CountdownPalette
+
+    var body: some View {
+        if let fraction = countdown.progress(at: now) {
+            Capsule()
+                .fill(palette.primary.opacity(0.18))
+                .frame(height: 5)
+                .overlay(alignment: .leading) {
+                    GeometryReader { proxy in
+                        Capsule()
+                            .fill(palette.primary)
+                            .frame(width: proxy.size.width * fraction)
+                            .widgetAccentable()
+                    }
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(fraction, format: .percent.precision(.fractionLength(0))))
+                .padding(.top, 8)
         }
     }
 }
@@ -221,6 +273,7 @@ struct SmallCountdownView: View {
                 valueSize: 19, labelFont: .caption2, verticalPadding: 6, cornerRadius: 11, spacing: 5
             )
             .padding(.top, 8)
+            CountdownProgressBar(countdown: countdown, now: now, palette: palette)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
@@ -271,6 +324,7 @@ struct MediumCountdownView: View {
                 )
                 .frame(width: 168)
             }
+            CountdownProgressBar(countdown: countdown, now: now, palette: palette)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
@@ -320,6 +374,7 @@ struct LargeCountdownView: View {
             }
             CountdownTileRow(countdown: countdown, status: status, now: now, palette: palette)
             .padding(.top, status.isPast ? 6 : 16)
+            CountdownProgressBar(countdown: countdown, now: now, palette: palette)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }

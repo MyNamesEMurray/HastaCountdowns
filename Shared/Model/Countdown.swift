@@ -15,6 +15,7 @@ struct Countdown: Identifiable, Codable, Hashable {
     var typeface: Typeface = .rounded
     var backgroundImageID: String?
     var backgroundFraming: BackgroundFraming?
+    var showsProgress: Bool = false
     var reminders: [ReminderRule] = [.onTheDay]
     var createdAt: Date = .now
     var modifiedAt: Date = .now
@@ -40,6 +41,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         typeface: Typeface = .rounded,
         backgroundImageID: String? = nil,
         backgroundFraming: BackgroundFraming? = nil,
+        showsProgress: Bool = false,
         reminders: [ReminderRule] = [.onTheDay],
         createdAt: Date = .now,
         modifiedAt: Date? = nil
@@ -58,6 +60,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         self.typeface = typeface
         self.backgroundImageID = backgroundImageID
         self.backgroundFraming = backgroundFraming
+        self.showsProgress = showsProgress
         self.reminders = reminders
         self.createdAt = createdAt
         self.modifiedAt = modifiedAt ?? createdAt
@@ -79,6 +82,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         typeface = (try? container.decodeIfPresent(Typeface.self, forKey: .typeface)) ?? .rounded
         backgroundImageID = try container.decodeIfPresent(String.self, forKey: .backgroundImageID)
         backgroundFraming = try? container.decodeIfPresent(BackgroundFraming.self, forKey: .backgroundFraming)
+        showsProgress = (try? container.decodeIfPresent(Bool.self, forKey: .showsProgress)) ?? false
         if let rules = try? container.decodeIfPresent([ReminderRule].self, forKey: .reminders) {
             reminders = rules
         } else if let legacy = try? container.decodeIfPresent([LegacyReminder].self, forKey: .reminders) {
@@ -302,7 +306,7 @@ enum CountdownColor: String, Codable, CaseIterable, Identifiable {
 }
 
 enum WidgetStyle: String, Codable, CaseIterable, Identifiable {
-    case classic, minimal, vivid, night
+    case classic, minimal, vivid, night, glass, gradient, paper
 
     var id: String { rawValue }
 
@@ -312,13 +316,16 @@ enum WidgetStyle: String, Codable, CaseIterable, Identifiable {
         case .minimal: String(localized: "Minimal")
         case .vivid: String(localized: "Vivid")
         case .night: String(localized: "Night")
+        case .glass: String(localized: "Glass")
+        case .gradient: String(localized: "Gradient")
+        case .paper: String(localized: "Paper")
         }
     }
 
     var isPremium: Bool {
         switch self {
         case .classic, .minimal: false
-        case .vivid, .night: true
+        case .vivid, .night, .glass, .gradient, .paper: true
         }
     }
 }
@@ -348,7 +355,7 @@ enum Typeface: String, Codable, CaseIterable, Identifiable {
 
 extension Countdown {
     var usesPremiumFeatures: Bool {
-        style.isPremium || typeface.isPremium || customColorHex != nil || backgroundImageID != nil
+        style.isPremium || typeface.isPremium || customColorHex != nil || backgroundImageID != nil || showsProgress
     }
 
     func resolved(isPremium: Bool) -> Countdown {
@@ -359,6 +366,7 @@ extension Countdown {
         copy.customColorHex = nil
         copy.backgroundImageID = nil
         copy.backgroundFraming = nil
+        copy.showsProgress = false
         return copy
     }
 

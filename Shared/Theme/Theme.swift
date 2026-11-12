@@ -53,7 +53,7 @@ extension Typeface {
 
 extension WidgetStyle {
     var usesLightForeground: Bool {
-        self != .minimal
+        self != .minimal && self != .paper
     }
 }
 
