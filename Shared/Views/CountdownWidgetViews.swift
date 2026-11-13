@@ -7,23 +7,40 @@ struct CountdownPalette {
     let number: Color
     let accent: Color
 
-    init(countdown: Countdown, hasImage: Bool, renderingMode: WidgetRenderingMode = .fullColor) {
+    init(countdown: Countdown, hasImage: Bool, renderingMode: WidgetRenderingMode = .fullColor, photoLuminance: Double? = nil) {
+        let paperInk = Color(red: 0.22, green: 0.17, blue: 0.12)
         if renderingMode != .fullColor {
             primary = .primary
             secondary = .secondary
             number = .primary
             accent = .primary
-        } else if !hasImage && countdown.usesDarkForeground {
-            let ink = countdown.style == .paper ? Color(red: 0.22, green: 0.17, blue: 0.12) : Color(white: 0.1)
+        } else if !countdown.autoFontColor {
+            let ink = countdown.fontColor
             primary = ink
-            secondary = ink.opacity(0.65)
-            number = countdown.style == .paper ? countdown.tint : ink
-            accent = countdown.style == .paper ? countdown.tint : ink
-        } else if hasImage || countdown.style.usesLightForeground {
-            primary = .white
-            secondary = .white.opacity(0.78)
-            number = .white
-            accent = .white
+            secondary = ink.opacity(0.78)
+            number = ink
+            accent = ink
+        } else if hasImage {
+            let isDark = (photoLuminance ?? 0) * ForegroundContrast.photoOverlayFactor > ForegroundContrast.darkTextThreshold
+            let ink: Color = isDark ? Color(white: 0.1) : .white
+            primary = ink
+            secondary = ink.opacity(isDark ? 0.65 : 0.78)
+            number = ink
+            accent = ink
+        } else if let luminance = countdown.backgroundLuminance {
+            if luminance > ForegroundContrast.darkTextThreshold {
+                let paper = countdown.style == .paper
+                let ink = paper ? paperInk : Color(white: 0.1)
+                primary = ink
+                secondary = ink.opacity(0.65)
+                number = paper ? countdown.tint : ink
+                accent = paper ? countdown.tint : ink
+            } else {
+                primary = .white
+                secondary = .white.opacity(0.78)
+                number = .white
+                accent = .white
+            }
         } else {
             primary = .primary
             secondary = .secondary
@@ -69,15 +86,9 @@ struct CountdownBackground: View {
             case .glass:
                 GlassBackground(tint: countdown.tint)
             case .gradient:
-                LinearGradient(
-                    colors: [countdown.tint.shiftingHue(by: -0.06), countdown.tint.shiftingHue(by: 0.1).adjusting(brightness: -0.2)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+                (countdown.customGradient ?? .starting(from: countdown.tint)).view
             case .paper:
                 Color(red: 0.97, green: 0.95, blue: 0.9)
-            case .custom:
-                (countdown.customGradient ?? .starting(from: countdown.tint)).view
             }
         }
     }
@@ -267,13 +278,14 @@ struct CountdownTileRow: View {
 
 struct SmallCountdownView: View {
     @Environment(\.widgetRenderingMode) private var renderingMode
+    @Environment(\.photoLuminance) private var photoLuminance
     let countdown: Countdown
     let now: Date
     var hasImage = false
 
     var body: some View {
         let status = countdown.status(at: now)
-        let palette = CountdownPalette(countdown: countdown, hasImage: hasImage, renderingMode: renderingMode)
+        let palette = CountdownPalette(countdown: countdown, hasImage: hasImage, renderingMode: renderingMode, photoLuminance: photoLuminance)
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 Image(systemName: countdown.symbol)
@@ -314,13 +326,14 @@ struct SmallCountdownView: View {
 
 struct MediumCountdownView: View {
     @Environment(\.widgetRenderingMode) private var renderingMode
+    @Environment(\.photoLuminance) private var photoLuminance
     let countdown: Countdown
     let now: Date
     var hasImage = false
 
     var body: some View {
         let status = countdown.status(at: now)
-        let palette = CountdownPalette(countdown: countdown, hasImage: hasImage, renderingMode: renderingMode)
+        let palette = CountdownPalette(countdown: countdown, hasImage: hasImage, renderingMode: renderingMode, photoLuminance: photoLuminance)
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 Image(systemName: countdown.symbol)
@@ -366,13 +379,14 @@ struct MediumCountdownView: View {
 
 struct LargeCountdownView: View {
     @Environment(\.widgetRenderingMode) private var renderingMode
+    @Environment(\.photoLuminance) private var photoLuminance
     let countdown: Countdown
     let now: Date
     var hasImage = false
 
     var body: some View {
         let status = countdown.status(at: now)
-        let palette = CountdownPalette(countdown: countdown, hasImage: hasImage, renderingMode: renderingMode)
+        let palette = CountdownPalette(countdown: countdown, hasImage: hasImage, renderingMode: renderingMode, photoLuminance: photoLuminance)
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 Image(systemName: countdown.symbol)

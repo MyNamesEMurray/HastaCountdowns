@@ -10,6 +10,7 @@ struct CountdownEditorView: View {
     @State private var draft: Countdown
     @State private var createdImageIDs: [String] = []
     @State private var photoItems: [PhotosPickerItem] = []
+    @State private var isPhotoBackground: Bool
     @State private var framingTarget: FramingTarget?
     @State private var isLoadingPhoto = false
     @State private var isShowingPaywall = false
@@ -29,6 +30,7 @@ struct CountdownEditorView: View {
         var normalized = countdown
         normalized.adoptCurrentTimeZone()
         _draft = State(initialValue: normalized)
+        _isPhotoBackground = State(initialValue: normalized.backgroundImageID != nil)
         original = normalized
         self.isNew = isNew
     }
@@ -63,15 +65,17 @@ struct CountdownEditorView: View {
 
                 detailsSection
                 appearanceSection
-                styleSection
-                if draft.style == .custom && purchases.isPremium {
+                backgroundSection
+                if isPhotoBackground {
+                    photoSection
+                } else if draft.style == .gradient {
                     gradientSection
                 }
+                fontColorSection
                 typefaceSection
                 progressSection
                 sinceSection
                 liveActivitySection
-                photoSection
                 unitSection
                 remindersSection
 
@@ -234,10 +238,25 @@ struct CountdownEditorView: View {
         }
     }
 
-    private var styleSection: some View {
+    private var backgroundSection: some View {
         Section {
             ScrollView(.horizontal) {
                 HStack(spacing: 12) {
+                    Button {
+                        if purchases.isPremium {
+                            withAnimation(.snappy) { isPhotoBackground = true }
+                        } else {
+                            isShowingPaywall = true
+                        }
+                    } label: {
+                        PhotoSwatch(
+                            countdown: draft,
+                            imageID: draft.backgroundImageID,
+                            isSelected: isPhotoBackground,
+                            isLocked: !purchases.isPremium
+                        )
+                    }
+                    .buttonStyle(.plain)
                     ForEach(WidgetStyle.allCases) { style in
                         let isLocked = style.isPremium && !purchases.isPremium
                         Button {
@@ -245,14 +264,14 @@ struct CountdownEditorView: View {
                                 isShowingPaywall = true
                             } else {
                                 withAnimation(.snappy) {
+                                    isPhotoBackground = false
+                                    draft.setBackgrounds([])
+                                    lastLiveSession = nil
                                     draft.style = style
-                                    if style == .custom && draft.customGradient == nil {
-                                        draft.customGradient = .starting(from: draft.tint)
-                                    }
                                 }
                             }
                         } label: {
-                            StyleSwatch(countdown: draft, style: style, isSelected: draft.style == style, isLocked: isLocked)
+                            StyleSwatch(countdown: draft, style: style, isSelected: !isPhotoBackground && draft.style == style, isLocked: isLocked)
                         }
                         .buttonStyle(.plain)
                     }
@@ -262,92 +281,29 @@ struct CountdownEditorView: View {
             }
             .scrollIndicators(.hidden)
         } header: {
-            Text("Widget Style")
+            Text("Widget Background")
         }
     }
 
-    private var liveActivitySection: some View {
-        let global = LiveActivityPreferences.pushEnabled
-        let isOn = draft.startsLiveActivity(globalEnabled: global)
-        return Section {
-            if purchases.isPremium {
-                Toggle(isOn: Binding(
-                    get: { isOn },
-                    set: { draft.setLiveActivity($0, globalEnabled: global) }
-                )) {
-                    Label("Live Activity", systemImage: "platter.filled.bottom.iphone")
-                }
-            } else {
-                Button {
-                    isShowingPaywall = true
-                } label: {
-                    HStack {
-                        Label("Live Activity", systemImage: "platter.filled.bottom.iphone")
-                        Spacer()
-                        PremiumBadge()
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-        } header: {
-            Text("Lock Screen")
-        } footer: {
-            Text(isOn && purchases.isPremium
-                ? String(localized: "Shows this countdown on your Lock Screen and Dynamic Island \(LiveActivityPreferences.leadHours) hours before it happens.")
-                : String(localized: "Turn on to follow this countdown on your Lock Screen and Dynamic Island as it gets close."))
-        }
-    }
-
-    private var sinceSection: some View {
+    private var fontColorSection: some View {
         Section {
-            if purchases.isPremium {
-                TextField("Label after the date, like Together", text: $draft.sinceLabel)
-            } else {
-                Button {
-                    isShowingPaywall = true
-                } label: {
-                    HStack {
-                        Text("Since Label")
-                        Spacer()
-                        PremiumBadge()
-                    }
-                }
-                .buttonStyle(.plain)
+            Toggle("Auto Font Color", isOn: $draft.autoFontColor.animation())
+            if !draft.autoFontColor {
+                ColorPicker(
+                    "Font Color",
+                    selection: Binding(
+                        get: { draft.fontColor },
+                        set: { draft.fontColorHex = $0.hexString }
+                    ),
+                    supportsOpacity: false
+                )
             }
         } header: {
-            Text("After the Date")
+            Text("Font Color")
         } footer: {
-            Text("Once the date has passed, widgets count up with this label, such as Together or Sober.")
-        }
-    }
-
-    private var progressSection: some View {
-        Section {
-            Toggle(isOn: Binding(
-                get: { draft.showsProgress && purchases.isPremium },
-                set: { isOn in
-                    if purchases.isPremium {
-                        draft.showsProgress = isOn
-                    } else {
-                        isShowingPaywall = true
-                    }
-                }
-            )) {
-                HStack {
-                    Text("Show Progress")
-                    if !purchases.isPremium { LockBadge() }
-                }
-            }
-            if draft.showsProgress && purchases.isPremium {
-                Picker("Style", selection: $draft.progressStyle) {
-                    ForEach(ProgressDisplay.allCases) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.segmented)
-            }
-        } header: {
-            Text("Progress")
-        } footer: {
-            Text("Shows how close you are to the date. It starts empty on the day you create the countdown and fills up until the date arrives. Not shown for repeating countdowns.")
+            Text(draft.autoFontColor
+                ? "Picks light or dark text to match the background. With a slideshow, each photo gets its own."
+                : "This color is used on every background.")
         }
     }
 
@@ -372,8 +328,13 @@ struct CountdownEditorView: View {
                 swap(&updated.startHex, &updated.endHex)
                 withAnimation { draft.customGradient = updated }
             }
+            if draft.customGradient != nil {
+                Button("Reset to Match Color", systemImage: "arrow.counterclockwise") {
+                    withAnimation { draft.customGradient = nil }
+                }
+            }
         } header: {
-            Text("Custom Gradient")
+            Text("Gradient Colors")
         }
     }
 
@@ -458,7 +419,7 @@ struct CountdownEditorView: View {
                 }
             }
         } header: {
-            Text("Background Photos")
+            Text("Photos")
         } footer: {
             Text(photoFooter)
         }
@@ -466,17 +427,15 @@ struct CountdownEditorView: View {
 
     private var photoFooter: String {
         draft.allBackgroundImageIDs.count > 1
-            ? String(localized: "The widget changes photo every hour. Tap a photo to adjust its position and zoom, or touch and hold to remove it.")
+            ? String(localized: "The widget changes photo every hour. Tap a photo to adjust its position and zoom, or tap the x to remove it.")
             : String(localized: "Choose several photos to turn the widget into a slideshow. Photos stay private on your devices and iCloud, and are only used for your widgets. Choose a Live Photo to pick a different frame or make a long exposure.")
     }
 
     private var photoStrip: some View {
         ScrollView(.horizontal) {
-            HStack(spacing: 10) {
+            HStack(spacing: 12) {
                 ForEach(Array(draft.allBackgroundImageIDs.enumerated()), id: \.element) { index, id in
-                    Button {
-                        framingTarget = FramingTarget(id: id)
-                    } label: {
+                    ZStack(alignment: .topTrailing) {
                         Group {
                             if let image = ImageCache.shared.image(for: id, maxPixelSize: 300) {
                                 Image(uiImage: image).resizable().scaledToFill()
@@ -494,20 +453,29 @@ struct CountdownEditorView: View {
                                 .background(.black.opacity(0.5), in: .circle)
                                 .padding(4)
                         }
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Text("Photo \(index + 1)"))
-                    .contextMenu {
-                        Button("Adjust Position & Zoom", systemImage: "crop") {
-                            framingTarget = FramingTarget(id: id)
-                        }
-                        Button("Remove Photo", systemImage: "trash", role: .destructive) {
+                        .contentShape(.rect(cornerRadius: 12, style: .continuous))
+                        .onTapGesture { framingTarget = FramingTarget(id: id) }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(Text("Adjust photo \(index + 1)"))
+                        .accessibilityAddTraits(.isButton)
+
+                        Button {
                             withAnimation { draft.removeBackground(id) }
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .symbolRenderingMode(.palette)
+                                .foregroundStyle(.white, .black.opacity(0.65))
+                                .font(.title3)
                         }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel(Text("Remove photo \(index + 1)"))
+                        .offset(x: 7, y: -7)
                     }
                 }
             }
-            .padding(.vertical, 4)
+            .padding(.top, 10)
+            .padding(.trailing, 8)
+            .padding(.bottom, 4)
         }
         .scrollIndicators(.hidden)
     }
@@ -721,6 +689,47 @@ private struct StyleSwatch: View {
         .padding(.top, 4)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(style.title)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+private struct PhotoSwatch: View {
+    let countdown: Countdown
+    let imageID: String?
+    let isSelected: Bool
+    let isLocked: Bool
+
+    var body: some View {
+        VStack(spacing: 6) {
+            ZStack {
+                if let imageID, let image = ImageCache.shared.image(for: imageID, maxPixelSize: 200) {
+                    Image(uiImage: image).resizable().scaledToFill()
+                } else {
+                    countdown.tint.gradient
+                    Image(systemName: "photo.on.rectangle")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.white)
+                }
+            }
+            .frame(width: 72, height: 72)
+            .clipShape(.rect(cornerRadius: 16, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 19, style: .continuous)
+                    .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 3)
+                    .padding(-4)
+            }
+            .overlay(alignment: .topTrailing) {
+                if isLocked {
+                    LockBadge().offset(x: 6, y: -6)
+                }
+            }
+            Text("Photo")
+                .font(.caption.weight(isSelected ? .semibold : .regular))
+                .foregroundStyle(isSelected ? .primary : .secondary)
+        }
+        .padding(.top, 4)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("Photo"))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

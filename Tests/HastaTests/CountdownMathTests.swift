@@ -261,19 +261,34 @@ struct CountdownMathTests {
         #expect(try JSONDecoder().decode([Countdown].self, from: Data(bad.utf8)).first?.progressStyle == .bar)
     }
 
-    @Test func customGradientIsStrippedWhenLockedAndPicksReadableText() throws {
-        let gradient = CustomGradient(startHex: "#FFFFFF", endHex: "#F0F0F0")
-        let countdown = Countdown(title: "T", style: .custom, customGradient: gradient)
-        let resolved = countdown.resolved(isPremium: false)
-        #expect(resolved.style == .classic)
-        #expect(resolved.customGradient == nil)
-        #expect(countdown.usesDarkForeground)
-        let dark = Countdown(title: "T", style: .custom, customGradient: CustomGradient(startHex: "#101010", endHex: "#303030"))
-        #expect(!dark.usesDarkForeground)
+    @Test func gradientColorsDriveAutoFontColorAndStayWhenUnlocked() throws {
+        let light = CustomGradient(startHex: "#FFFFFF", endHex: "#F0F0F0")
+        let countdown = Countdown(title: "T", style: .gradient, customGradient: light)
+        #expect((countdown.backgroundLuminance ?? 0) > ForegroundContrast.darkTextThreshold)
+        let dark = Countdown(title: "T", style: .gradient, customGradient: CustomGradient(startHex: "#101010", endHex: "#303030"))
+        #expect((dark.backgroundLuminance ?? 1) < ForegroundContrast.darkTextThreshold)
+        #expect(Countdown(title: "T", style: .night).backgroundLuminance == 0)
+        #expect(Countdown(title: "T", style: .minimal).backgroundLuminance == nil)
+        #expect(countdown.resolved(isPremium: false).style == .classic)
         let decoded = try JSONDecoder().decode([Countdown].self, from: JSONEncoder().encode([countdown]))
-        #expect(decoded.first?.customGradient == gradient)
+        #expect(decoded.first?.customGradient == light)
         let bad = ##"[{"id":"7C9C3D5E-1C1F-4F55-9E2D-1A2B3C4D5E6F","date":800000000,"customGradient":{"startHex":"#000000"}}]"##
         #expect(try JSONDecoder().decode([Countdown].self, from: Data(bad.utf8)).first?.customGradient == nil)
+    }
+
+    @Test func fontColorDefaultsToAutoAndOldCustomStyleBecomesGradient() throws {
+        #expect(Countdown(title: "T").autoFontColor)
+        let json = ##"[{"id":"7C9C3D5E-1C1F-4F55-9E2D-1A2B3C4D5E6F","date":800000000,"style":"custom","autoFontColor":false,"fontColorHex":"#112233"}]"##
+        let decoded = try #require(try JSONDecoder().decode([Countdown].self, from: Data(json.utf8)).first)
+        #expect(decoded.style == .gradient)
+        #expect(!decoded.autoFontColor)
+        #expect(decoded.fontColorHex == "#112233")
+        let old = #"[{"id":"7C9C3D5E-1C1F-4F55-9E2D-1A2B3C4D5E6F","date":800000000}]"#
+        #expect(try JSONDecoder().decode([Countdown].self, from: Data(old.utf8)).first?.autoFontColor == true)
+        let local = Countdown(title: "T", autoFontColor: false, fontColorHex: "#112233")
+        var remote = Countdown(id: local.id, title: "T edited")
+        remote.keepNewFields(from: local)
+        #expect(!remote.autoFontColor)
     }
 
     @Test func progressTracksElapsedShare() {

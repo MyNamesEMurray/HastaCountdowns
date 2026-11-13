@@ -26,6 +26,7 @@ struct WidgetPreviewFrame<Content: View>: View {
 
     var body: some View {
         content
+            .environment(\.photoLuminance, image?.averageLuminance)
             .padding(padding)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background {

@@ -51,12 +51,6 @@ extension Typeface {
     }
 }
 
-extension WidgetStyle {
-    var usesLightForeground: Bool {
-        self != .minimal && self != .paper
-    }
-}
-
 extension GradientDirection {
     var points: (start: UnitPoint, end: UnitPoint) {
         switch self {
@@ -76,21 +70,70 @@ extension CustomGradient {
         LinearGradient(colors: colors, startPoint: direction.points.start, endPoint: direction.points.end)
     }
 
-    var isBright: Bool {
-        colors.map(\.luminance).reduce(0, +) / 2 > 0.6
-    }
-
     static func starting(from tint: Color) -> CustomGradient {
         CustomGradient(
-            startHex: tint.hexString ?? "#0A84FF",
-            endHex: tint.shiftingHue(by: 0.12).adjusting(brightness: -0.15).hexString ?? "#5E5CE6"
+            startHex: tint.shiftingHue(by: -0.06).hexString ?? "#0A84FF",
+            endHex: tint.shiftingHue(by: 0.1).adjusting(brightness: -0.2).hexString ?? "#5E5CE6"
         )
     }
 }
 
 extension Countdown {
-    var usesDarkForeground: Bool {
-        style == .paper || (style == .custom && customGradient?.isBright == true)
+    var fontColor: Color {
+        Color(hex: fontColorHex ?? "") ?? .white
+    }
+
+    /// nil means the background adapts to light and dark mode, so the system text color is used.
+    var backgroundLuminance: Double? {
+        switch style {
+        case .minimal: nil
+        case .night: 0
+        case .paper: 0.96
+        case .gradient: (customGradient ?? .starting(from: tint)).colors.map(\.luminance).reduce(0, +) / 2
+        case .classic, .vivid, .glass: tint.luminance
+        }
+    }
+}
+
+enum ForegroundContrast {
+    static let darkTextThreshold = 0.72
+    /// The photo overlay darkens the bottom where the text sits, so photos need to be brighter to switch to dark text.
+    static let photoOverlayFactor = 0.85
+}
+
+private struct PhotoLuminanceKey: EnvironmentKey {
+    static let defaultValue: Double? = nil
+}
+
+extension EnvironmentValues {
+    var photoLuminance: Double? {
+        get { self[PhotoLuminanceKey.self] }
+        set { self[PhotoLuminanceKey.self] = newValue }
+    }
+}
+
+extension UIImage {
+    private static let luminanceCache = NSCache<UIImage, NSNumber>()
+
+    var averageLuminance: Double {
+        if let cached = Self.luminanceCache.object(forKey: self) { return cached.doubleValue }
+        var pixels = [UInt8](repeating: 0, count: 8 * 8 * 4)
+        var value = 0.0
+        if let cgImage,
+           let context = CGContext(
+               data: &pixels, width: 8, height: 8, bitsPerComponent: 8, bytesPerRow: 32,
+               space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+           ) {
+            context.interpolationQuality = .medium
+            context.draw(cgImage, in: CGRect(x: 0, y: 0, width: 8, height: 8))
+            var total = 0.0
+            for pixel in stride(from: 0, to: pixels.count, by: 4) {
+                total += 0.2126 * Double(pixels[pixel]) + 0.7152 * Double(pixels[pixel + 1]) + 0.0722 * Double(pixels[pixel + 2])
+            }
+            value = total / 64 / 255
+        }
+        Self.luminanceCache.setObject(NSNumber(value: value), forKey: self)
+        return value
     }
 }
 

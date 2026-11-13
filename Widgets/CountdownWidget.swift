@@ -101,6 +101,7 @@ struct CountdownWidgetEntryView: View {
     var body: some View {
         if let countdown = entry.countdown {
             content(for: countdown)
+                .environment(\.photoLuminance, entry.image?.averageLuminance)
                 .widgetURL(DeepLink.countdown(countdown.id))
         } else {
             EmptyCountdownView(compact: family == .accessoryCircular || family == .accessoryInline)

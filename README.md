@@ -54,7 +54,7 @@ iCloud Sync (free, on by default) uses `CKSyncEngine` with the private database 
 |---|---|
 | Unlimited countdowns | Photo backgrounds |
 | Every widget size | Serif, Mono and Condensed typefaces |
-| Repeating events, count up | Vivid, Night, Glass, Gradient, Paper and Custom Gradient widget styles |
+| Repeating events, count up | Vivid, Night, Glass, Gradient (with your own colors) and Paper widget styles |
 | Days, weeks or months | Custom colors |
 | Reminders | Alternate app icons |
 | Plain share card | Styled and photo share cards |
