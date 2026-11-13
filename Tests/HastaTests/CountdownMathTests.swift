@@ -115,6 +115,13 @@ struct CountdownMathTests {
         #expect(try JSONDecoder().decode(RepeatRule.self, from: Data("\"weekly\"".utf8)) == .weekly)
     }
 
+    @Test func timedEventJustPassedCountsUpInsteadOfZeroSegments() {
+        let countdown = Countdown(title: "Dinner", date: date("2026-10-02T14:30:00"), isAllDay: false)
+        #expect(countdown.segments(at: now, calendar: calendar).isEmpty)
+        #expect(countdown.isSinceToday(at: now, calendar: calendar))
+        #expect(!countdown.isSinceToday(at: date("2026-10-03T15:00:00"), calendar: calendar))
+    }
+
     @Test func liveTimerForTimedEventLaterToday() {
         let countdown = Countdown(title: "Dinner", date: date("2026-10-02T19:00:00"), isAllDay: false)
         #expect(countdown.isLiveToday(at: now, calendar: calendar))

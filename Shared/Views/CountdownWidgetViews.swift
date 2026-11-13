@@ -176,11 +176,15 @@ struct CountdownTileRow: View {
     var body: some View {
         let segments = countdown.segments(at: now)
         let isLive = !countdown.isAllDay && status.target > now && status.target.timeIntervalSince(now) < 86_400
+        let isSince = countdown.isSinceToday(at: now)
         HStack(spacing: spacing) {
             if segments.isEmpty {
                 tile {
                     if isLive {
                         Text(timerInterval: now...status.target, countsDown: true)
+                            .multilineTextAlignment(.center)
+                    } else if isSince {
+                        Text(timerInterval: status.target...status.target.addingTimeInterval(86_400), countsDown: false)
                             .multilineTextAlignment(.center)
                     } else if status.isToday {
                         Text("Today")
@@ -190,6 +194,8 @@ struct CountdownTileRow: View {
                 } label: {
                     if isLive {
                         Text("remaining")
+                    } else if isSince {
+                        Text("ago")
                     } else if status.isToday {
                         Text(countdown.isAllDay ? countdown.formattedDate(at: now, style: .abbreviated) : status.target.formatted(date: .omitted, time: .shortened))
                     } else {
@@ -458,6 +464,13 @@ struct RectangularCountdownView: View {
                     label: String(localized: "remaining"),
                     typeface: countdown.typeface
                 )
+            } else if countdown.isSinceToday(at: now) {
+                SegmentTile(
+                    timerInterval: status.target...status.target.addingTimeInterval(86_400),
+                    countsDown: false,
+                    label: String(localized: "ago"),
+                    typeface: countdown.typeface
+                )
             } else {
                 SegmentTile(text: "Today", label: countdown.formattedDate(at: now, style: .abbreviated), typeface: countdown.typeface)
             }
@@ -469,19 +482,22 @@ struct RectangularCountdownView: View {
 struct SegmentTile: View {
     private let text: String?
     private let timerInterval: ClosedRange<Date>?
+    private let countsDown: Bool
     let label: String
     let typeface: Typeface
 
     init(text: String, label: String, typeface: Typeface) {
         self.text = text
         self.timerInterval = nil
+        self.countsDown = true
         self.label = label
         self.typeface = typeface
     }
 
-    init(timerInterval: ClosedRange<Date>, label: String, typeface: Typeface) {
+    init(timerInterval: ClosedRange<Date>, countsDown: Bool = true, label: String, typeface: Typeface) {
         self.text = nil
         self.timerInterval = timerInterval
+        self.countsDown = countsDown
         self.label = label
         self.typeface = typeface
     }
@@ -490,7 +506,7 @@ struct SegmentTile: View {
         VStack(spacing: 1) {
             Group {
                 if let timerInterval {
-                    Text(timerInterval: timerInterval, countsDown: true)
+                    Text(timerInterval: timerInterval, countsDown: countsDown)
                         .multilineTextAlignment(.center)
                 } else if let text {
                     Text(text)

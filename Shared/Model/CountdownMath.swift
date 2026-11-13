@@ -262,6 +262,12 @@ extension Countdown {
         return calendar.isDate(target, inSameDayAs: now) && target > now
     }
 
+    func isSinceToday(at now: Date = .now, calendar: Calendar = .current) -> Bool {
+        guard !isAllDay else { return false }
+        let target = nextOccurrence(after: now, calendar: calendar)
+        return target <= now && now.timeIntervalSince(target) < 86_400
+    }
+
     func subtitle(status: CountdownStatus, at now: Date, style: Date.FormatStyle.DateStyle) -> String {
         let date = formattedDate(at: now, style: style)
         guard status.isPast, !trimmedSinceLabel.isEmpty else { return date }
@@ -289,6 +295,7 @@ extension Countdown {
         let isPast = end < now
         if !isPast && !isAllDay && end.timeIntervalSince(now) < 86_400 { return [] }
         if isAllDay && calendar.isDate(target, inSameDayAs: now) { return [] }
+        if isPast && !isAllDay && now.timeIntervalSince(end) < 86_400 { return [] }
 
         let from = isPast ? end : now
         let to = isPast ? now : end
