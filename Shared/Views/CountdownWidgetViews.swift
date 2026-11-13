@@ -98,7 +98,7 @@ struct CountdownProgressBar: View {
     let palette: CountdownPalette
 
     var body: some View {
-        if let fraction = countdown.progress(at: now) {
+        if countdown.progressStyle == .bar, let fraction = countdown.progress(at: now) {
             Capsule()
                 .fill(palette.primary.opacity(0.18))
                 .frame(height: 5)
@@ -113,6 +113,29 @@ struct CountdownProgressBar: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(Text(fraction, format: .percent.precision(.fractionLength(0))))
                 .padding(.top, 8)
+        }
+    }
+}
+
+struct CountdownProgressRing: View {
+    let countdown: Countdown
+    let now: Date
+    let palette: CountdownPalette
+    var size: CGFloat = 24
+
+    var body: some View {
+        if countdown.progressStyle == .ring, let fraction = countdown.progress(at: now) {
+            ZStack {
+                Circle().stroke(palette.primary.opacity(0.2), lineWidth: 3)
+                Circle()
+                    .trim(from: 0, to: fraction)
+                    .stroke(palette.primary, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .widgetAccentable()
+            }
+            .frame(width: size, height: size)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(fraction, format: .percent.precision(.fractionLength(0))))
         }
     }
 }
@@ -255,6 +278,7 @@ struct SmallCountdownView: View {
                     .foregroundStyle(palette.accent)
                     .widgetAccentable()
                 Spacer(minLength: 0)
+                CountdownProgressRing(countdown: countdown, now: now, palette: palette, size: 22)
                 if countdown.repeatRule != .never {
                     Image(systemName: "repeat")
                         .font(.caption2.weight(.bold))
@@ -301,6 +325,7 @@ struct MediumCountdownView: View {
                     .foregroundStyle(palette.accent)
                     .widgetAccentable()
                 Spacer(minLength: 0)
+                CountdownProgressRing(countdown: countdown, now: now, palette: palette, size: 24)
                 if countdown.repeatRule != .never {
                     Label(countdown.repeatRule.title, systemImage: "repeat")
                         .font(countdown.typeface.font(.caption, weight: .semibold))
@@ -352,6 +377,7 @@ struct LargeCountdownView: View {
                     .foregroundStyle(palette.accent)
                     .widgetAccentable()
                 Spacer(minLength: 0)
+                CountdownProgressRing(countdown: countdown, now: now, palette: palette, size: 28)
                 if countdown.repeatRule != .never {
                     Label(countdown.repeatRule.title, systemImage: "repeat")
                         .font(countdown.typeface.font(.caption, weight: .semibold))

@@ -18,6 +18,7 @@ struct Countdown: Identifiable, Codable, Hashable {
     var extraBackgroundImageIDs: [String] = []
     var extraBackgroundFramings: [String: BackgroundFraming] = [:]
     var showsProgress: Bool = false
+    var progressStyle: ProgressDisplay = .bar
     var sinceLabel: String = ""
     var liveActivity: LiveActivityOverride = .automatic
     var reminders: [ReminderRule] = [.onTheDay]
@@ -48,6 +49,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         extraBackgroundImageIDs: [String] = [],
         extraBackgroundFramings: [String: BackgroundFraming] = [:],
         showsProgress: Bool = false,
+        progressStyle: ProgressDisplay = .bar,
         sinceLabel: String = "",
         liveActivity: LiveActivityOverride = .automatic,
         reminders: [ReminderRule] = [.onTheDay],
@@ -71,6 +73,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         self.extraBackgroundImageIDs = extraBackgroundImageIDs
         self.extraBackgroundFramings = extraBackgroundFramings
         self.showsProgress = showsProgress
+        self.progressStyle = progressStyle
         self.sinceLabel = sinceLabel
         self.liveActivity = liveActivity
         self.reminders = reminders
@@ -97,6 +100,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         extraBackgroundImageIDs = (try? container.decodeIfPresent([String].self, forKey: .extraBackgroundImageIDs)) ?? []
         extraBackgroundFramings = (try? container.decodeIfPresent([String: BackgroundFraming].self, forKey: .extraBackgroundFramings)) ?? [:]
         showsProgress = (try? container.decodeIfPresent(Bool.self, forKey: .showsProgress)) ?? false
+        progressStyle = (try? container.decodeIfPresent(ProgressDisplay.self, forKey: .progressStyle)) ?? .bar
         sinceLabel = (try? container.decodeIfPresent(String.self, forKey: .sinceLabel)) ?? ""
         liveActivity = (try? container.decodeIfPresent(LiveActivityOverride.self, forKey: .liveActivity)) ?? .automatic
         if let rules = try? container.decodeIfPresent([ReminderRule].self, forKey: .reminders) {
@@ -346,6 +350,19 @@ enum WidgetStyle: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+enum ProgressDisplay: String, Codable, CaseIterable, Identifiable {
+    case bar, ring
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .bar: String(localized: "Bar")
+        case .ring: String(localized: "Ring")
+        }
+    }
+}
+
 enum LiveActivityOverride: String, Codable, CaseIterable, Identifiable {
     case automatic, on, off
 
@@ -448,6 +465,7 @@ extension Countdown {
         extraBackgroundImageIDs = local.extraBackgroundImageIDs
         extraBackgroundFramings = local.extraBackgroundFramings
         showsProgress = local.showsProgress
+        progressStyle = local.progressStyle
         sinceLabel = local.sinceLabel
         liveActivity = local.liveActivity
     }
