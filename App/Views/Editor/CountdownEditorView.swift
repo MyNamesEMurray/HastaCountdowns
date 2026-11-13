@@ -252,26 +252,34 @@ struct CountdownEditorView: View {
     }
 
     private var liveActivitySection: some View {
-        Section {
+        let global = LiveActivityPreferences.pushEnabled
+        let isOn = draft.startsLiveActivity(globalEnabled: global)
+        return Section {
             if purchases.isPremium {
-                Picker("Live Activity", selection: $draft.liveActivity) {
-                    ForEach(LiveActivityOverride.allCases) { Text($0.title).tag($0) }
+                Toggle(isOn: Binding(
+                    get: { isOn },
+                    set: { draft.setLiveActivity($0, globalEnabled: global) }
+                )) {
+                    Label("Live Activity", systemImage: "platter.filled.bottom.iphone")
                 }
-                .pickerStyle(.segmented)
             } else {
                 Button {
                     isShowingPaywall = true
                 } label: {
                     HStack {
-                        Text("Live Activity")
+                        Label("Live Activity", systemImage: "platter.filled.bottom.iphone")
                         Spacer()
                         PremiumBadge()
                     }
                 }
                 .buttonStyle(.plain)
             }
+        } header: {
+            Text("Lock Screen")
         } footer: {
-            Text("Default follows the Live Activities setting in Settings. On or Off overrides it for this countdown.")
+            Text(isOn && purchases.isPremium
+                ? String(localized: "Shows this countdown on your Lock Screen and Dynamic Island \(LiveActivityPreferences.leadHours) hours before it happens.")
+                : String(localized: "Turn on to follow this countdown on your Lock Screen and Dynamic Island as it gets close."))
         }
     }
 

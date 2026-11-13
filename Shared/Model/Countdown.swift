@@ -452,6 +452,10 @@ extension Countdown {
         liveActivity = local.liveActivity
     }
 
+    mutating func setLiveActivity(_ enabled: Bool, globalEnabled: Bool) {
+        liveActivity = enabled == globalEnabled ? .automatic : (enabled ? .on : .off)
+    }
+
     func startsLiveActivity(globalEnabled: Bool) -> Bool {
         switch liveActivity {
         case .automatic: globalEnabled

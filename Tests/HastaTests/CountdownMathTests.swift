@@ -220,6 +220,18 @@ struct CountdownMathTests {
         #expect(remote.liveActivity == .off)
     }
 
+    @Test func liveActivityToggleFollowsGlobalUntilChanged() {
+        var countdown = Countdown(title: "T")
+        countdown.setLiveActivity(true, globalEnabled: true)
+        #expect(countdown.liveActivity == .automatic)
+        countdown.setLiveActivity(false, globalEnabled: true)
+        #expect(countdown.liveActivity == .off)
+        countdown.setLiveActivity(true, globalEnabled: false)
+        #expect(countdown.liveActivity == .on)
+        countdown.setLiveActivity(false, globalEnabled: false)
+        #expect(countdown.liveActivity == .automatic)
+    }
+
     @Test func liveActivityStateUsesEpochSeconds() throws {
         let state = CountdownActivityAttributes.ContentState(start: Date(timeIntervalSince1970: 100), target: Date(timeIntervalSince1970: 200), revision: 5)
         let json = String(data: try JSONEncoder().encode(state), encoding: .utf8) ?? ""
