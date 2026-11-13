@@ -141,6 +141,23 @@ private final class PhotoZonesBox {
 extension UIImage {
     private static let zonesCache = NSCache<UIImage, NSMutableDictionary>()
 
+    /// Pixels of the part of the photo that is visible for this framing and container shape.
+    func croppedCGImage(framing: BackgroundFraming?, containerSize: CGSize) -> CGImage? {
+        guard let cgImage else { return nil }
+        let rect = (framing ?? .centered).visibleRect(imageSize: size, containerSize: containerSize)
+        let crop = CGRect(
+            x: rect.minX * CGFloat(cgImage.width), y: rect.minY * CGFloat(cgImage.height),
+            width: rect.width * CGFloat(cgImage.width), height: rect.height * CGFloat(cgImage.height)
+        ).integral
+        return cgImage.cropping(to: crop) ?? cgImage
+    }
+
+    /// The visible part only, so views never have to draw a photo much bigger than themselves.
+    func visibleCrop(framing: BackgroundFraming?, containerSize: CGSize) -> UIImage {
+        guard imageOrientation == .up, let cropped = croppedCGImage(framing: framing, containerSize: containerSize) else { return self }
+        return UIImage(cgImage: cropped, scale: scale, orientation: .up)
+    }
+
     /// Whole image. Widget photos are already cropped to their framing before they get here.
     var zones: PhotoZones {
         zones(framing: nil, containerSize: size)
@@ -155,12 +172,7 @@ extension UIImage {
 
         var zones = PhotoZones(header: 0, body: 0)
         var pixels = [UInt8](repeating: 0, count: 8 * 8 * 4)
-        if let cgImage {
-            let crop = CGRect(
-                x: rect.minX * CGFloat(cgImage.width), y: rect.minY * CGFloat(cgImage.height),
-                width: rect.width * CGFloat(cgImage.width), height: rect.height * CGFloat(cgImage.height)
-            ).integral
-            let source = cgImage.cropping(to: crop) ?? cgImage
+        if let source = croppedCGImage(framing: framing, containerSize: containerSize) {
             if let context = CGContext(
                 data: &pixels, width: 8, height: 8, bitsPerComponent: 8, bytesPerRow: 32,
                 space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue

@@ -166,18 +166,13 @@ struct FramedPhoto: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let container = proxy.size
-            let imageSize = image.size
-            let rect = framing.visibleRect(imageSize: imageSize, containerSize: container)
-            let scale = rect.width > 0 ? container.width / (rect.width * imageSize.width) : 1
-            let displayed = CGSize(width: imageSize.width * scale, height: imageSize.height * scale)
-            Image(uiImage: image)
+            Image(uiImage: image.visibleCrop(framing: framing, containerSize: proxy.size))
                 .resizable()
                 .widgetAccentedRenderingMode(.desaturated)
-                .frame(width: displayed.width, height: displayed.height)
-                .offset(x: -rect.minX * displayed.width, y: -rect.minY * displayed.height)
+                .scaledToFill()
+                .frame(width: proxy.size.width, height: proxy.size.height)
+                .clipped()
         }
-        .clipped()
         .allowsHitTesting(false)
     }
 }

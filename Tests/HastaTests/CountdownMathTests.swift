@@ -307,6 +307,21 @@ struct CountdownMathTests {
         #expect(image.zones.average > 0.3 && image.zones.average < 0.7)
     }
 
+    @Test func visibleCropIsExactlyTheFramedRegion() {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 40, height: 20), format: format).image { context in
+            UIColor.red.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 40, height: 20))
+        }
+        let square = CGSize(width: 10, height: 10)
+        #expect(image.visibleCrop(framing: nil, containerSize: square).size == CGSize(width: 20, height: 20))
+        #expect(image.visibleCrop(framing: BackgroundFraming(zoom: 2), containerSize: square).size == CGSize(width: 10, height: 10))
+        let wide = CGSize(width: 20, height: 10)
+        #expect(image.visibleCrop(framing: nil, containerSize: wide).size == CGSize(width: 40, height: 20))
+        #expect(image.visibleCrop(framing: BackgroundFraming(zoom: 4), containerSize: wide).size == CGSize(width: 10, height: 5))
+    }
+
     @Test func fontColorDefaultsToAutoAndOldCustomStyleBecomesGradient() throws {
         #expect(Countdown(title: "T").autoFontColor)
         let json = ##"[{"id":"7C9C3D5E-1C1F-4F55-9E2D-1A2B3C4D5E6F","date":800000000,"style":"custom","autoFontColor":false,"fontColorHex":"#112233"}]"##
