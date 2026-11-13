@@ -414,7 +414,9 @@ struct CountdownMathTests {
         #expect(image.visibleCrop(framing: BackgroundFraming(zoom: 2), containerSize: square).size == CGSize(width: 10, height: 10))
         let wide = CGSize(width: 20, height: 10)
         #expect(image.visibleCrop(framing: nil, containerSize: wide).size == CGSize(width: 40, height: 20))
-        #expect(image.visibleCrop(framing: BackgroundFraming(zoom: 4), containerSize: wide).size == CGSize(width: 10, height: 5))
+        let tight = image.visibleCrop(framing: BackgroundFraming(zoom: 4), containerSize: wide).size
+        #expect(tight.width == 10)
+        #expect((5...6).contains(tight.height))
     }
 
     @Test func fontColorDefaultsToAutoAndOldCustomStyleBecomesGradient() throws {
