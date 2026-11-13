@@ -46,21 +46,13 @@ struct CountdownEditorView: View {
         return ImageCache.shared.image(for: id)
     }
 
+    private var screenHeight: CGFloat {
+        (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.screen.bounds.height ?? 852
+    }
+
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    WidgetFamilyPreview(
-                        countdown: draft.resolved(isPremium: purchases.isPremium),
-                        image: previewImage,
-                        family: $previewFamily
-                    )
-                    .padding(.vertical, 8)
-                    .animation(.snappy, value: draft)
-                }
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets())
-
                 if isNew {
                     Section {
                         Button("Import from Calendar", systemImage: "calendar") {
@@ -88,6 +80,21 @@ struct CountdownEditorView: View {
                         .frame(maxWidth: .infinity)
                     }
                 }
+            }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                VStack(spacing: 0) {
+                    WidgetFamilyPreview(
+                        countdown: draft.resolved(isPremium: purchases.isPremium),
+                        image: previewImage,
+                        family: $previewFamily,
+                        maxPreviewHeight: screenHeight * (isTitleFocused ? 0.18 : 0.3)
+                    )
+                    .padding(.horizontal)
+                    .padding(.vertical, 10)
+                    .animation(.snappy, value: draft)
+                    Divider()
+                }
+                .background(.bar)
             }
             .navigationTitle(isNew ? "New Countdown" : "Edit Countdown")
             .navigationBarTitleDisplayMode(.inline)
