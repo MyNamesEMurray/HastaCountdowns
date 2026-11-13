@@ -232,6 +232,18 @@ struct CountdownMathTests {
         #expect(countdown.liveActivity == .automatic)
     }
 
+    @Test func pushScheduleOnlyIncludesEnabledUpcomingCountdowns() {
+        let soon = Countdown(title: "Soon", date: now.addingTimeInterval(7_200), isAllDay: false)
+        var off = Countdown(title: "Off", date: now.addingTimeInterval(3_600), isAllDay: false)
+        off.liveActivity = .off
+        let past = Countdown(title: "Past", date: now.addingTimeInterval(-60), isAllDay: false)
+        let far = Countdown(title: "Far", date: now.addingTimeInterval(60 * 86_400), isAllDay: false)
+        let items = LiveActivityPushService.scheduleItems([far, past, off, soon], now: now, globalEnabled: true, leadHours: 2)
+        #expect(items.map(\.id) == [soon.id])
+        #expect(items[0].fireAt == items[0].target - 7_200)
+        #expect(LiveActivityPushService.scheduleItems([soon], now: now, globalEnabled: false, leadHours: 2).isEmpty)
+    }
+
     @Test func liveActivityStateUsesEpochSeconds() throws {
         let state = CountdownActivityAttributes.ContentState(start: Date(timeIntervalSince1970: 100), target: Date(timeIntervalSince1970: 200), revision: 5)
         let json = String(data: try JSONEncoder().encode(state), encoding: .utf8) ?? ""

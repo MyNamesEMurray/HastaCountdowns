@@ -17,7 +17,8 @@ struct CountdownProvider: AppIntentTimelineProvider {
         if all.isEmpty && context.isPreview {
             return placeholder(in: context)
         }
-        return entry(for: configuration, at: .now, countdowns: all, context: context)
+        let selected = selectedCountdown(for: configuration, in: all, at: .now)
+        return entry(for: configuration, at: .now, countdowns: all, image: loadImages(for: selected, context: context).first)
     }
 
     func timeline(for configuration: SelectCountdownIntent, in context: Context) async -> Timeline<CountdownEntry> {
@@ -31,20 +32,31 @@ struct CountdownProvider: AppIntentTimelineProvider {
                 dates.append(midnight)
             }
         }
-        if let selected = selectedCountdown(for: configuration, in: all, at: now), !selected.isAllDay {
-            dates += WidgetRefreshSchedule.closeRangeDates(for: selected, now: now)
+        let first = selectedCountdown(for: configuration, in: all, at: now)
+        if let first, !first.isAllDay {
+            dates += WidgetRefreshSchedule.closeRangeDates(for: first, now: now)
         }
         if context.family == .accessoryRectangular || context.family == .systemLarge {
             dates += WidgetRefreshSchedule.hourlyDates(from: now)
         }
-        let images = loadImages(for: selectedCountdown(for: configuration, in: all, at: now), context: context)
-        if images.count > 1 {
-            dates += WidgetRefreshSchedule.hourlyDates(from: now)
+
+        var imagesByID: [UUID: [UIImage]] = [:]
+        func images(for countdown: Countdown?) -> [UIImage] {
+            guard let countdown else { return [] }
+            if let cached = imagesByID[countdown.id] { return cached }
+            let loaded = loadImages(for: countdown, context: context)
+            imagesByID[countdown.id] = loaded
+            return loaded
+        }
+        if images(for: first).count > 1 {
+            dates += WidgetRefreshSchedule.hourlyDates(from: now, hours: 24 * 7)
         }
         dates = Array(Set(dates)).sorted()
 
-        let entries = dates.map { date in
-            entry(for: configuration, at: date, countdowns: all, context: context, preloadedImage: images.isEmpty ? nil : .some(images[Countdown.slideshowIndex(at: date, count: images.count)]))
+        let entries = dates.map { date -> CountdownEntry in
+            let photos = images(for: selectedCountdown(for: configuration, in: all, at: date))
+            let image = photos.isEmpty ? nil : photos[Countdown.slideshowIndex(at: date, count: photos.count)]
+            return entry(for: configuration, at: date, countdowns: all, image: image)
         }
         return Timeline(entries: entries, policy: .atEnd)
     }
@@ -60,29 +72,23 @@ struct CountdownProvider: AppIntentTimelineProvider {
         for configuration: SelectCountdownIntent,
         at date: Date,
         countdowns all: [Countdown],
-        context: Context,
-        preloadedImage: UIImage?? = nil
+        image: UIImage?
     ) -> CountdownEntry {
-        let isPremium = Premium.isUnlocked
-        let selected = selectedCountdown(for: configuration, in: all, at: date)?.resolved(isPremium: isPremium)
-        let image = preloadedImage ?? loadImage(for: selected, context: context)
-        var displayed = selected
+        var displayed = selectedCountdown(for: configuration, in: all, at: date)?.resolved(isPremium: Premium.isUnlocked)
         displayed?.backgroundFraming = nil
         return CountdownEntry(date: date, countdown: displayed, image: image)
     }
 
-    private func loadImage(for countdown: Countdown?, context: Context) -> UIImage? {
-        loadImages(for: countdown, context: context).first
-    }
-
     private func loadImages(for countdown: Countdown?, context: Context) -> [UIImage] {
-        guard Premium.isUnlocked, let countdown else { return [] }
-        return countdown.allBackgroundImageIDs.compactMap { id in
+        let usesPhotos = ![.accessoryCircular, .accessoryRectangular, .accessoryInline].contains(context.family)
+        guard usesPhotos, Premium.isUnlocked, let countdown else { return [] }
+        let ids = countdown.allBackgroundImageIDs
+        return ids.compactMap { id in
             BackgroundImageStore.framedImage(
                 for: id,
                 framing: countdown.framing(for: id) ?? .centered,
                 containerSize: context.displaySize,
-                pixelsPerPoint: countdown.allBackgroundImageIDs.count > 1 ? 2 : 2.5
+                pixelsPerPoint: ids.count > 1 ? 2 : 2.5
             )
         }
     }

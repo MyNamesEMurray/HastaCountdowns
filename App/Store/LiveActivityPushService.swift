@@ -5,8 +5,8 @@ import Foundation
 enum LiveActivityPushService {
     static let endpoint = URL(string: "https://push.hasta.day/v1/schedule")!
     private static let registeredKey = "liveActivityPushRegistered"
-    private static let horizon: TimeInterval = 30 * 86_400
-    private static let maxCountdowns = 50
+    nonisolated private static let horizon: TimeInterval = 30 * 86_400
+    nonisolated private static let maxCountdowns = 50
 
     private static var token: String?
     private static var latest: (countdowns: [Countdown], enabled: Bool) = ([], false)
@@ -50,23 +50,36 @@ enum LiveActivityPushService {
         }
     }
 
+    nonisolated static func scheduleItems(
+        _ countdowns: [Countdown],
+        now: Date,
+        globalEnabled: Bool,
+        leadHours: Int
+    ) -> [(id: UUID, fireAt: Double, target: Double)] {
+        let lead = Double(leadHours) * 3_600
+        let upcoming = countdowns
+            .filter { $0.startsLiveActivity(globalEnabled: globalEnabled) }
+            .map { ($0, $0.nextOccurrence(after: now)) }
+            .filter { $0.1 > now && $0.1.timeIntervalSince(now) <= horizon }
+            .sorted { $0.1 < $1.1 }
+            .prefix(maxCountdowns)
+        return upcoming.map { countdown, target in
+            (countdown.id, target.timeIntervalSince1970 - lead, target.timeIntervalSince1970)
+        }
+    }
+
     private static func send() async {
         let defaults = AppGroup.defaults
         let wasRegistered = defaults.bool(forKey: registeredKey)
         guard let token else { return }
 
-        let now = Date.now
-        let lead = Double(LiveActivityPreferences.leadHours) * 3_600
         let items: [Payload.Item] = latest.enabled
-            ? Array(latest.countdowns
-                .filter { $0.startsLiveActivity(globalEnabled: LiveActivityPreferences.pushEnabled) }
-                .map { ($0, $0.nextOccurrence(after: now)) }
-                .filter { $0.1 > now && $0.1.timeIntervalSince(now) <= horizon }
-                .sorted { $0.1 < $1.1 }
-                .prefix(maxCountdowns)
-                .map { countdown, target in
-                    Payload.Item(id: countdown.id.uuidString, fireAt: target.timeIntervalSince1970 - lead, target: target.timeIntervalSince1970)
-                })
+            ? scheduleItems(
+                latest.countdowns,
+                now: .now,
+                globalEnabled: LiveActivityPreferences.pushEnabled,
+                leadHours: LiveActivityPreferences.leadHours
+            ).map { Payload.Item(id: $0.id.uuidString, fireAt: $0.fireAt, target: $0.target) }
             : []
 
         #if DEBUG

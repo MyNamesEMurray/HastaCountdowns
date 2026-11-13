@@ -388,18 +388,8 @@ enum ProgressDisplay: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-enum LiveActivityOverride: String, Codable, CaseIterable, Identifiable {
+enum LiveActivityOverride: String, Codable {
     case automatic, on, off
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .automatic: String(localized: "Default")
-        case .on: String(localized: "On")
-        case .off: String(localized: "Off")
-        }
-    }
 }
 
 enum Typeface: String, Codable, CaseIterable, Identifiable {

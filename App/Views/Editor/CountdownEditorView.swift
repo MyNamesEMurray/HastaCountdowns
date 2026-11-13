@@ -478,7 +478,7 @@ struct CountdownEditorView: View {
                         framingTarget = FramingTarget(id: id)
                     } label: {
                         Group {
-                            if let image = ImageCache.shared.image(for: id) {
+                            if let image = ImageCache.shared.image(for: id, maxPixelSize: 300) {
                                 Image(uiImage: image).resizable().scaledToFill()
                             } else {
                                 Color.secondary.opacity(0.2)

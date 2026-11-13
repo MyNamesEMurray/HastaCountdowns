@@ -3,7 +3,7 @@ import Foundation
 
 @MainActor
 enum LiveActivityManager {
-    nonisolated static let maxActivities = 3
+    nonisolated static let maxActivities = 5
     private static let dismissedKey = "liveActivityDismissed"
     private static var ending: Set<UUID> = []
     private static var observed: Set<String> = []

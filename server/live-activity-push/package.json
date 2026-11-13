@@ -1,0 +1,1 @@
+{ "name": "hasta-live-activity-push", "private": true, "type": "module", "scripts": { "test": "node --test" } }

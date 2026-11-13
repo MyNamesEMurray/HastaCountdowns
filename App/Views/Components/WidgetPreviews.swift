@@ -6,12 +6,13 @@ final class ImageCache {
     static let shared = ImageCache()
     private let cache = NSCache<NSString, UIImage>()
 
-    func image(for id: String) -> UIImage? {
-        if let cached = cache.object(forKey: id as NSString) {
+    func image(for id: String, maxPixelSize: CGFloat = BackgroundImageStore.maxStoredPixelSize) -> UIImage? {
+        let key = "\(id)@\(Int(maxPixelSize))" as NSString
+        if let cached = cache.object(forKey: key) {
             return cached
         }
-        guard let image = BackgroundImageStore.image(for: id, maxPixelSize: BackgroundImageStore.maxStoredPixelSize) else { return nil }
-        cache.setObject(image, forKey: id as NSString)
+        guard let image = BackgroundImageStore.image(for: id, maxPixelSize: maxPixelSize) else { return nil }
+        cache.setObject(image, forKey: key)
         return image
     }
 }
