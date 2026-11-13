@@ -20,7 +20,7 @@ struct PremiumView: View {
                             symbol: "textformat",
                             color: .purple,
                             title: "Typefaces & Styles",
-                            detail: "Serif, Mono and Condensed type, plus Vivid, Night, Glass, Gradient and Paper widget styles."
+                            detail: "Serif, Mono and Condensed type, plus Vivid, Night, Glass, Gradient, Paper and Custom Gradient widget styles."
                         )
                         FeatureRow(
                             symbol: "square.and.arrow.up.fill",

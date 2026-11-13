@@ -57,7 +57,50 @@ extension WidgetStyle {
     }
 }
 
+extension GradientDirection {
+    var points: (start: UnitPoint, end: UnitPoint) {
+        switch self {
+        case .vertical: (.top, .bottom)
+        case .diagonal: (.topLeading, .bottomTrailing)
+        case .horizontal: (.leading, .trailing)
+        }
+    }
+}
+
+extension CustomGradient {
+    var colors: [Color] {
+        [Color(hex: startHex) ?? .blue, Color(hex: endHex) ?? .purple]
+    }
+
+    var view: LinearGradient {
+        LinearGradient(colors: colors, startPoint: direction.points.start, endPoint: direction.points.end)
+    }
+
+    var isBright: Bool {
+        colors.map(\.luminance).reduce(0, +) / 2 > 0.6
+    }
+
+    static func starting(from tint: Color) -> CustomGradient {
+        CustomGradient(
+            startHex: tint.hexString ?? "#0A84FF",
+            endHex: tint.shiftingHue(by: 0.12).adjusting(brightness: -0.15).hexString ?? "#5E5CE6"
+        )
+    }
+}
+
+extension Countdown {
+    var usesDarkForeground: Bool {
+        style == .paper || (style == .custom && customGradient?.isBright == true)
+    }
+}
+
 extension Color {
+    var luminance: Double {
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        guard UIColor(self).getRed(&red, green: &green, blue: &blue, alpha: &alpha) else { return 0 }
+        return 0.2126 * red + 0.7152 * green + 0.0722 * blue
+    }
+
     init?(hex: String) {
         var string = hex.trimmingCharacters(in: .whitespacesAndNewlines)
         if string.hasPrefix("#") { string.removeFirst() }

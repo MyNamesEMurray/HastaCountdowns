@@ -64,6 +64,9 @@ struct CountdownEditorView: View {
                 detailsSection
                 appearanceSection
                 styleSection
+                if draft.style == .custom && purchases.isPremium {
+                    gradientSection
+                }
                 typefaceSection
                 progressSection
                 sinceSection
@@ -241,7 +244,12 @@ struct CountdownEditorView: View {
                             if isLocked {
                                 isShowingPaywall = true
                             } else {
-                                withAnimation(.snappy) { draft.style = style }
+                                withAnimation(.snappy) {
+                                    draft.style = style
+                                    if style == .custom && draft.customGradient == nil {
+                                        draft.customGradient = .starting(from: draft.tint)
+                                    }
+                                }
                             }
                         } label: {
                             StyleSwatch(countdown: draft, style: style, isSelected: draft.style == style, isLocked: isLocked)
@@ -341,6 +349,43 @@ struct CountdownEditorView: View {
         } footer: {
             Text("Shows how close you are to the date. It starts empty on the day you create the countdown and fills up until the date arrives. Not shown for repeating countdowns.")
         }
+    }
+
+    private var gradientSection: some View {
+        let gradient = draft.customGradient ?? .starting(from: draft.tint)
+        return Section {
+            ColorPicker("Start Color", selection: gradientColor(\.startHex, fallback: gradient.startHex), supportsOpacity: false)
+            ColorPicker("End Color", selection: gradientColor(\.endHex, fallback: gradient.endHex), supportsOpacity: false)
+            Picker("Direction", selection: Binding(
+                get: { gradient.direction },
+                set: { direction in
+                    var updated = draft.customGradient ?? gradient
+                    updated.direction = direction
+                    draft.customGradient = updated
+                }
+            )) {
+                ForEach(GradientDirection.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            Button("Swap Colors", systemImage: "arrow.left.arrow.right") {
+                var updated = draft.customGradient ?? gradient
+                swap(&updated.startHex, &updated.endHex)
+                withAnimation { draft.customGradient = updated }
+            }
+        } header: {
+            Text("Custom Gradient")
+        }
+    }
+
+    private func gradientColor(_ keyPath: WritableKeyPath<CustomGradient, String>, fallback: String) -> Binding<Color> {
+        Binding(
+            get: { Color(hex: draft.customGradient?[keyPath: keyPath] ?? fallback) ?? .blue },
+            set: { color in
+                var updated = draft.customGradient ?? .starting(from: draft.tint)
+                updated[keyPath: keyPath] = color.hexString ?? fallback
+                draft.customGradient = updated
+            }
+        )
     }
 
     private var typefaceSection: some View {

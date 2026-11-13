@@ -19,6 +19,7 @@ struct Countdown: Identifiable, Codable, Hashable {
     var extraBackgroundFramings: [String: BackgroundFraming] = [:]
     var showsProgress: Bool = false
     var progressStyle: ProgressDisplay = .bar
+    var customGradient: CustomGradient?
     var sinceLabel: String = ""
     var liveActivity: LiveActivityOverride = .automatic
     var reminders: [ReminderRule] = [.onTheDay]
@@ -50,6 +51,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         extraBackgroundFramings: [String: BackgroundFraming] = [:],
         showsProgress: Bool = false,
         progressStyle: ProgressDisplay = .bar,
+        customGradient: CustomGradient? = nil,
         sinceLabel: String = "",
         liveActivity: LiveActivityOverride = .automatic,
         reminders: [ReminderRule] = [.onTheDay],
@@ -74,6 +76,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         self.extraBackgroundFramings = extraBackgroundFramings
         self.showsProgress = showsProgress
         self.progressStyle = progressStyle
+        self.customGradient = customGradient
         self.sinceLabel = sinceLabel
         self.liveActivity = liveActivity
         self.reminders = reminders
@@ -101,6 +104,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         extraBackgroundFramings = (try? container.decodeIfPresent([String: BackgroundFraming].self, forKey: .extraBackgroundFramings)) ?? [:]
         showsProgress = (try? container.decodeIfPresent(Bool.self, forKey: .showsProgress)) ?? false
         progressStyle = (try? container.decodeIfPresent(ProgressDisplay.self, forKey: .progressStyle)) ?? .bar
+        customGradient = try? container.decodeIfPresent(CustomGradient.self, forKey: .customGradient)
         sinceLabel = (try? container.decodeIfPresent(String.self, forKey: .sinceLabel)) ?? ""
         liveActivity = (try? container.decodeIfPresent(LiveActivityOverride.self, forKey: .liveActivity)) ?? .automatic
         if let rules = try? container.decodeIfPresent([ReminderRule].self, forKey: .reminders) {
@@ -326,7 +330,7 @@ enum CountdownColor: String, Codable, CaseIterable, Identifiable {
 }
 
 enum WidgetStyle: String, Codable, CaseIterable, Identifiable {
-    case classic, minimal, vivid, night, glass, gradient, paper
+    case classic, minimal, vivid, night, glass, gradient, paper, custom
 
     var id: String { rawValue }
 
@@ -339,15 +343,36 @@ enum WidgetStyle: String, Codable, CaseIterable, Identifiable {
         case .glass: String(localized: "Glass")
         case .gradient: String(localized: "Gradient")
         case .paper: String(localized: "Paper")
+        case .custom: String(localized: "Custom")
         }
     }
 
     var isPremium: Bool {
         switch self {
         case .classic, .minimal: false
-        case .vivid, .night, .glass, .gradient, .paper: true
+        case .vivid, .night, .glass, .gradient, .paper, .custom: true
         }
     }
+}
+
+enum GradientDirection: String, Codable, CaseIterable, Identifiable {
+    case vertical, diagonal, horizontal
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .vertical: String(localized: "Vertical")
+        case .diagonal: String(localized: "Diagonal")
+        case .horizontal: String(localized: "Horizontal")
+        }
+    }
+}
+
+struct CustomGradient: Codable, Hashable {
+    var startHex: String
+    var endHex: String
+    var direction: GradientDirection = .diagonal
 }
 
 enum ProgressDisplay: String, Codable, CaseIterable, Identifiable {
@@ -411,6 +436,7 @@ extension Countdown {
         copy.backgroundFraming = nil
         copy.extraBackgroundImageIDs = []
         copy.extraBackgroundFramings = [:]
+        copy.customGradient = nil
         copy.showsProgress = false
         copy.sinceLabel = ""
         return copy
@@ -466,6 +492,7 @@ extension Countdown {
         extraBackgroundFramings = local.extraBackgroundFramings
         showsProgress = local.showsProgress
         progressStyle = local.progressStyle
+        customGradient = local.customGradient
         sinceLabel = local.sinceLabel
         liveActivity = local.liveActivity
     }

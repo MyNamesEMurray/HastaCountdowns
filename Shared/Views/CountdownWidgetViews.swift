@@ -13,11 +13,12 @@ struct CountdownPalette {
             secondary = .secondary
             number = .primary
             accent = .primary
-        } else if countdown.style == .paper {
-            primary = Color(red: 0.22, green: 0.17, blue: 0.12)
-            secondary = Color(red: 0.22, green: 0.17, blue: 0.12).opacity(0.65)
-            number = countdown.tint
-            accent = countdown.tint
+        } else if !hasImage && countdown.usesDarkForeground {
+            let ink = countdown.style == .paper ? Color(red: 0.22, green: 0.17, blue: 0.12) : Color(white: 0.1)
+            primary = ink
+            secondary = ink.opacity(0.65)
+            number = countdown.style == .paper ? countdown.tint : ink
+            accent = countdown.style == .paper ? countdown.tint : ink
         } else if hasImage || countdown.style.usesLightForeground {
             primary = .white
             secondary = .white.opacity(0.78)
@@ -75,6 +76,8 @@ struct CountdownBackground: View {
                 )
             case .paper:
                 Color(red: 0.97, green: 0.95, blue: 0.9)
+            case .custom:
+                (countdown.customGradient ?? .starting(from: countdown.tint)).view
             }
         }
     }
