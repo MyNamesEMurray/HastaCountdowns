@@ -18,7 +18,7 @@ struct CountdownProvider: AppIntentTimelineProvider {
             return placeholder(in: context)
         }
         let selected = selectedCountdown(for: configuration, in: all, at: .now)
-        return entry(for: configuration, at: .now, countdowns: all, image: loadImages(for: selected, context: context).first)
+        return entry(at: .now, selected: selected, image: loadImages(for: selected, context: context).first)
     }
 
     func timeline(for configuration: SelectCountdownIntent, in context: Context) async -> Timeline<CountdownEntry> {
@@ -54,9 +54,10 @@ struct CountdownProvider: AppIntentTimelineProvider {
         dates = Array(Set(dates)).sorted()
 
         let entries = dates.map { date -> CountdownEntry in
-            let photos = images(for: selectedCountdown(for: configuration, in: all, at: date))
+            let selected = selectedCountdown(for: configuration, in: all, at: date)
+            let photos = images(for: selected)
             let image = photos.isEmpty ? nil : photos[Countdown.slideshowIndex(at: date, count: photos.count)]
-            return entry(for: configuration, at: date, countdowns: all, image: image)
+            return entry(at: date, selected: selected, image: image)
         }
         return Timeline(entries: entries, policy: .atEnd)
     }
@@ -68,13 +69,8 @@ struct CountdownProvider: AppIntentTimelineProvider {
         return all.upcoming(at: date).first ?? all.past(at: date).first
     }
 
-    private func entry(
-        for configuration: SelectCountdownIntent,
-        at date: Date,
-        countdowns all: [Countdown],
-        image: UIImage?
-    ) -> CountdownEntry {
-        var displayed = selectedCountdown(for: configuration, in: all, at: date)?.resolved(isPremium: Premium.isUnlocked)
+    private func entry(at date: Date, selected: Countdown?, image: UIImage?) -> CountdownEntry {
+        var displayed = selected?.resolved(isPremium: Premium.isUnlocked)
         displayed?.backgroundFraming = nil
         return CountdownEntry(date: date, countdown: displayed, image: image)
     }

@@ -58,7 +58,7 @@ iCloud Sync (free, on by default) uses `CKSyncEngine` with the private database 
 | Days, weeks or months | Custom colors |
 | Reminders | Alternate app icons |
 | Plain share card | Styled and photo share cards |
-| | Progress bar |
+| | Photo slideshows, progress bar or ring, custom gradient colors |
 | | Live Activity and Dynamic Island for the last 24 hours |
 | Rounded and Standard typefaces, Classic and Minimal styles | |
 

@@ -31,7 +31,10 @@ FREE, WITH NO CATCH
 
 HASTA PREMIUM
 One small, one-time purchase. No subscription, ever.
-• Photo backgrounds, with position and zoom
+• Photo backgrounds, with position and zoom, or a slideshow of up to 5 photos
+• Rotate, crop and zoom each photo
+• Progress bar or ring, and your own gradient colors
+• Live Activities on your Lock Screen and Dynamic Island
 • Live Photo effects: pick any frame or blend a long exposure
 • Additional typefaces and widget styles
 • Custom colors

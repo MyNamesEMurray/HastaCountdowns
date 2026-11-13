@@ -141,10 +141,20 @@ private final class PhotoZonesBox {
 extension UIImage {
     private static let zonesCache = NSCache<UIImage, NSMutableDictionary>()
 
+    private static let cropCache = NSCache<UIImage, NSMutableDictionary>()
+
+    private func cropKey(_ rect: CGRect) -> NSString {
+        String(format: "%.3f,%.3f,%.3f,%.3f", rect.minX, rect.minY, rect.width, rect.height) as NSString
+    }
+
+    private func visibleRect(framing: BackgroundFraming?, containerSize: CGSize) -> CGRect {
+        (framing ?? .centered).visibleRect(imageSize: size, containerSize: containerSize)
+    }
+
     /// Pixels of the part of the photo that is visible for this framing and container shape.
     func croppedCGImage(framing: BackgroundFraming?, containerSize: CGSize) -> CGImage? {
         guard let cgImage else { return nil }
-        let rect = (framing ?? .centered).visibleRect(imageSize: size, containerSize: containerSize)
+        let rect = visibleRect(framing: framing, containerSize: containerSize)
         let crop = CGRect(
             x: rect.minX * CGFloat(cgImage.width), y: rect.minY * CGFloat(cgImage.height),
             width: rect.width * CGFloat(cgImage.width), height: rect.height * CGFloat(cgImage.height)
@@ -153,9 +163,18 @@ extension UIImage {
     }
 
     /// The visible part only, so views never have to draw a photo much bigger than themselves.
+    /// Cached, so a view that redraws every second keeps getting the same image object.
     func visibleCrop(framing: BackgroundFraming?, containerSize: CGSize) -> UIImage {
-        guard imageOrientation == .up, let cropped = croppedCGImage(framing: framing, containerSize: containerSize) else { return self }
-        return UIImage(cgImage: cropped, scale: scale, orientation: .up)
+        guard imageOrientation == .up else { return self }
+        let key = cropKey(visibleRect(framing: framing, containerSize: containerSize))
+        let store = Self.cropCache.object(forKey: self) ?? NSMutableDictionary()
+        if let hit = store[key] as? UIImage { return hit }
+        guard let cropped = croppedCGImage(framing: framing, containerSize: containerSize) else { return self }
+        let result = UIImage(cgImage: cropped, scale: scale, orientation: .up)
+        if store.count > 8 { store.removeAllObjects() }
+        store[key] = result
+        Self.cropCache.setObject(store, forKey: self)
+        return result
     }
 
     /// Whole image. Widget photos are already cropped to their framing before they get here.
@@ -165,8 +184,7 @@ extension UIImage {
 
     /// Only the part of the photo that is visible for this framing and container shape.
     func zones(framing: BackgroundFraming?, containerSize: CGSize) -> PhotoZones {
-        let rect = (framing ?? .centered).visibleRect(imageSize: size, containerSize: containerSize)
-        let key = String(format: "%.3f,%.3f,%.3f,%.3f", rect.minX, rect.minY, rect.width, rect.height) as NSString
+        let key = cropKey(visibleRect(framing: framing, containerSize: containerSize))
         let store = Self.zonesCache.object(forKey: self) ?? NSMutableDictionary()
         if let cached = store[key] as? PhotoZonesBox { return cached.value }
 
@@ -192,6 +210,7 @@ extension UIImage {
                 zones = PhotoZones(header: average(rows: 0..<3), body: average(rows: 4..<8))
             }
         }
+        if store.count > 8 { store.removeAllObjects() }
         store[key] = PhotoZonesBox(zones)
         Self.zonesCache.setObject(store, forKey: self)
         return zones

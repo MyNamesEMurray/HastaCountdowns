@@ -307,6 +307,80 @@ struct CountdownMathTests {
         #expect(image.zones.average > 0.3 && image.zones.average < 0.7)
     }
 
+    @Test func everyCountdownFieldSurvivesEncodingAndMerging() throws {
+        let framing = BackgroundFraming(focusX: 0.3, focusY: 0.6, zoom: 2)
+        let full = Countdown(
+            id: UUID(),
+            title: "Everything",
+            date: Date(timeIntervalSince1970: 1_800_000_000),
+            isAllDay: false,
+            timeZoneIdentifier: "Europe/Berlin",
+            repeatRule: RepeatRule(frequency: .monthly, interval: 2),
+            symbol: "heart.fill",
+            color: .teal,
+            customColorHex: "#112233",
+            unit: .weeks,
+            style: .glass,
+            typeface: .serif,
+            backgroundImageID: "a",
+            backgroundFraming: framing,
+            extraBackgroundImageIDs: ["b", "c"],
+            extraBackgroundFramings: ["b": framing],
+            showsProgress: true,
+            progressStyle: .ring,
+            customGradient: CustomGradient(startHex: "#111111", endHex: "#EEEEEE", direction: .horizontal),
+            autoFontColor: false,
+            zoneFontColor: false,
+            fontColorHex: "#445566",
+            sinceLabel: "Together",
+            liveActivity: .off,
+            reminders: [.onTheDay],
+            createdAt: Date(timeIntervalSince1970: 1_700_000_000),
+            modifiedAt: Date(timeIntervalSince1970: 1_750_000_000)
+        )
+        #expect(try JSONDecoder().decode(Countdown.self, from: JSONEncoder().encode(full)) == full)
+
+        var remote = Countdown(id: full.id, title: "Edited elsewhere")
+        remote.keepNewFields(from: full)
+        remote.title = full.title
+        remote.date = full.date
+        #expect(remote.extraBackgroundImageIDs == full.extraBackgroundImageIDs)
+        #expect(remote.extraBackgroundFramings == full.extraBackgroundFramings)
+        #expect(remote.showsProgress == full.showsProgress)
+        #expect(remote.progressStyle == full.progressStyle)
+        #expect(remote.customGradient == full.customGradient)
+        #expect(remote.autoFontColor == full.autoFontColor)
+        #expect(remote.zoneFontColor == full.zoneFontColor)
+        #expect(remote.fontColorHex == full.fontColorHex)
+        #expect(remote.sinceLabel == full.sinceLabel)
+        #expect(remote.liveActivity == full.liveActivity)
+    }
+
+    @Test func photoSetCanBeStashedAndRestored() {
+        var countdown = Countdown(title: "T")
+        countdown.setBackgrounds(["a", "b"])
+        countdown.setFraming(BackgroundFraming(zoom: 2), for: "b")
+        let stash = countdown.photoSet
+        countdown.setBackgrounds([])
+        #expect(countdown.allBackgroundImageIDs.isEmpty)
+        countdown.apply(stash)
+        #expect(countdown.allBackgroundImageIDs == ["a", "b"])
+        #expect(countdown.framing(for: "b") == BackgroundFraming(zoom: 2))
+    }
+
+    @Test func visibleCropIsCachedPerFraming() {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 40, height: 20), format: format).image { context in
+            UIColor.red.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 40, height: 20))
+        }
+        let square = CGSize(width: 10, height: 10)
+        let first = image.visibleCrop(framing: nil, containerSize: square)
+        #expect(first === image.visibleCrop(framing: nil, containerSize: square))
+        #expect(first !== image.visibleCrop(framing: BackgroundFraming(zoom: 2), containerSize: square))
+    }
+
     @Test func rotatingSwapsSizeAndReplacingKeepsPosition() {
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1

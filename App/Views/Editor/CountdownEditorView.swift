@@ -11,6 +11,8 @@ struct CountdownEditorView: View {
     @State private var createdImageIDs: [String] = []
     @State private var photoItems: [PhotosPickerItem] = []
     @State private var isPhotoBackground: Bool
+    @State private var stashedPhotos: PhotoSet?
+    @State private var isShowingRotateError = false
     @State private var framingTarget: FramingTarget?
     @State private var isLoadingPhoto = false
     @State private var isShowingPaywall = false
@@ -147,7 +149,11 @@ struct CountdownEditorView: View {
                         initialFraming: draft.framing(for: target.id)
                     ) { framing, turns in
                         var id = target.id
-                        if turns != 0, let rotated = BackgroundImageStore.saveRotated(id, quarterTurns: turns) {
+                        if turns != 0 {
+                            guard let rotated = BackgroundImageStore.saveRotated(id, quarterTurns: turns) else {
+                                isShowingRotateError = true
+                                return
+                            }
                             createdImageIDs.append(rotated)
                             draft.replaceBackground(id, with: rotated)
                             id = rotated
@@ -164,6 +170,11 @@ struct CountdownEditorView: View {
                     onSave: saveReminder,
                     onDelete: { deleteReminder(request.rule) }
                 )
+            }
+            .alert("Couldn't Rotate Photo", isPresented: $isShowingRotateError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("The photo was left as it was. Check that your iPhone has free storage and try again.")
             }
             .confirmationDialog("Delete \(draft.displayTitle)?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
                 Button("Delete Countdown", role: .destructive) {
@@ -250,7 +261,12 @@ struct CountdownEditorView: View {
                 HStack(spacing: 12) {
                     Button {
                         if purchases.isPremium {
-                            withAnimation(.snappy) { isPhotoBackground = true }
+                            withAnimation(.snappy) {
+                                isPhotoBackground = true
+                                if draft.backgroundImageID == nil, let stashedPhotos {
+                                    draft.apply(stashedPhotos)
+                                }
+                            }
                         } else {
                             isShowingPaywall = true
                         }
@@ -271,6 +287,7 @@ struct CountdownEditorView: View {
                             } else {
                                 withAnimation(.snappy) {
                                     isPhotoBackground = false
+                                    if draft.backgroundImageID != nil { stashedPhotos = draft.photoSet }
                                     draft.setBackgrounds([])
                                     lastLiveSession = nil
                                     draft.style = style
@@ -670,7 +687,7 @@ struct CountdownEditorView: View {
                 photoItems = []
             }
             guard let data = try? await item.loadTransferable(type: Data.self),
-                  let id = try? BackgroundImageStore.save(data) else { return }
+                  let id = await Self.saveOffMain(data) else { return }
             createdImageIDs.append(id)
             withAnimation { draft.setBackgrounds([id]) }
             lastLiveSession = nil
@@ -685,6 +702,10 @@ struct CountdownEditorView: View {
         }
     }
 
+    private static func saveOffMain(_ data: Data) async -> String? {
+        await Task.detached { try? BackgroundImageStore.save(data) }.value
+    }
+
     private func loadPhotos(_ items: [PhotosPickerItem]) {
         isLoadingPhoto = true
         Task {
@@ -695,7 +716,7 @@ struct CountdownEditorView: View {
             var ids: [String] = []
             for item in items {
                 guard let data = try? await item.loadTransferable(type: Data.self),
-                      let id = try? BackgroundImageStore.save(data) else { continue }
+                      let id = await Self.saveOffMain(data) else { continue }
                 createdImageIDs.append(id)
                 ids.append(id)
             }

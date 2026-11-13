@@ -367,6 +367,13 @@ enum WidgetStyle: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+struct PhotoSet: Equatable {
+    var primary: String?
+    var framing: BackgroundFraming?
+    var extras: [String]
+    var extraFramings: [String: BackgroundFraming]
+}
+
 enum GradientDirection: String, Codable, CaseIterable, Identifiable {
     case vertical, diagonal, horizontal
 
@@ -461,6 +468,17 @@ extension Countdown {
         } else {
             extraBackgroundFramings[id] = stored
         }
+    }
+
+    var photoSet: PhotoSet {
+        PhotoSet(primary: backgroundImageID, framing: backgroundFraming, extras: extraBackgroundImageIDs, extraFramings: extraBackgroundFramings)
+    }
+
+    mutating func apply(_ set: PhotoSet) {
+        backgroundImageID = set.primary
+        backgroundFraming = set.framing
+        extraBackgroundImageIDs = set.extras
+        extraBackgroundFramings = set.extraFramings
     }
 
     mutating func replaceBackground(_ old: String, with new: String) {
