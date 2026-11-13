@@ -51,7 +51,10 @@ struct CountdownLiveActivity: Widget {
                 Image(systemName: display.symbol).foregroundStyle(display.tint)
             } compactTrailing: {
                 RemainingLabel(state: state, isStale: context.isStale)
-                    .frame(maxWidth: 52)
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .frame(width: 58, alignment: .trailing)
             } minimal: {
                 Image(systemName: display.symbol).foregroundStyle(display.tint)
             }
