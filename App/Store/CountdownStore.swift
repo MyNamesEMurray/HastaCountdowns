@@ -67,6 +67,7 @@ final class CountdownStore {
         copy.modifiedAt = .now
         copy.backgroundImageID = nil
         copy.extraBackgroundImageIDs = []
+        copy.extraBackgroundFramings = [:]
         copy.backgroundFraming = nil
         countdowns.append(copy)
         persist()

@@ -16,6 +16,7 @@ struct Countdown: Identifiable, Codable, Hashable {
     var backgroundImageID: String?
     var backgroundFraming: BackgroundFraming?
     var extraBackgroundImageIDs: [String] = []
+    var extraBackgroundFramings: [String: BackgroundFraming] = [:]
     var showsProgress: Bool = false
     var sinceLabel: String = ""
     var liveActivity: LiveActivityOverride = .automatic
@@ -45,6 +46,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         backgroundImageID: String? = nil,
         backgroundFraming: BackgroundFraming? = nil,
         extraBackgroundImageIDs: [String] = [],
+        extraBackgroundFramings: [String: BackgroundFraming] = [:],
         showsProgress: Bool = false,
         sinceLabel: String = "",
         liveActivity: LiveActivityOverride = .automatic,
@@ -67,6 +69,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         self.backgroundImageID = backgroundImageID
         self.backgroundFraming = backgroundFraming
         self.extraBackgroundImageIDs = extraBackgroundImageIDs
+        self.extraBackgroundFramings = extraBackgroundFramings
         self.showsProgress = showsProgress
         self.sinceLabel = sinceLabel
         self.liveActivity = liveActivity
@@ -92,6 +95,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         backgroundImageID = try container.decodeIfPresent(String.self, forKey: .backgroundImageID)
         backgroundFraming = try? container.decodeIfPresent(BackgroundFraming.self, forKey: .backgroundFraming)
         extraBackgroundImageIDs = (try? container.decodeIfPresent([String].self, forKey: .extraBackgroundImageIDs)) ?? []
+        extraBackgroundFramings = (try? container.decodeIfPresent([String: BackgroundFraming].self, forKey: .extraBackgroundFramings)) ?? [:]
         showsProgress = (try? container.decodeIfPresent(Bool.self, forKey: .showsProgress)) ?? false
         sinceLabel = (try? container.decodeIfPresent(String.self, forKey: .sinceLabel)) ?? ""
         liveActivity = (try? container.decodeIfPresent(LiveActivityOverride.self, forKey: .liveActivity)) ?? .automatic
@@ -389,6 +393,7 @@ extension Countdown {
         copy.backgroundImageID = nil
         copy.backgroundFraming = nil
         copy.extraBackgroundImageIDs = []
+        copy.extraBackgroundFramings = [:]
         copy.showsProgress = false
         copy.sinceLabel = ""
         return copy
@@ -400,12 +405,48 @@ extension Countdown {
         (backgroundImageID.map { [$0] } ?? []) + extraBackgroundImageIDs
     }
 
+    func framing(for id: String) -> BackgroundFraming? {
+        id == backgroundImageID ? backgroundFraming : extraBackgroundFramings[id]
+    }
+
+    mutating func setFraming(_ framing: BackgroundFraming, for id: String) {
+        let stored = framing == .centered ? nil : framing
+        if id == backgroundImageID {
+            backgroundFraming = stored
+        } else {
+            extraBackgroundFramings[id] = stored
+        }
+    }
+
+    mutating func setBackgrounds(_ ids: [String]) {
+        backgroundImageID = ids.first
+        backgroundFraming = nil
+        extraBackgroundImageIDs = Array(ids.dropFirst().prefix(Self.maxExtraBackgrounds))
+        extraBackgroundFramings = [:]
+    }
+
+    mutating func removeBackground(_ id: String) {
+        if id == backgroundImageID {
+            let next = extraBackgroundImageIDs.first
+            backgroundImageID = next
+            backgroundFraming = next.flatMap { extraBackgroundFramings[$0] }
+            if let next {
+                extraBackgroundImageIDs.removeFirst()
+                extraBackgroundFramings[next] = nil
+            }
+        } else {
+            extraBackgroundImageIDs.removeAll { $0 == id }
+            extraBackgroundFramings[id] = nil
+        }
+    }
+
     var backgroundImageSlots: [String?] {
         [backgroundImageID] + (0..<Self.maxExtraBackgrounds).map { extraBackgroundImageIDs.indices.contains($0) ? extraBackgroundImageIDs[$0] : nil }
     }
 
     mutating func keepNewFields(from local: Countdown) {
         extraBackgroundImageIDs = local.extraBackgroundImageIDs
+        extraBackgroundFramings = local.extraBackgroundFramings
         showsProgress = local.showsProgress
         sinceLabel = local.sinceLabel
         liveActivity = local.liveActivity

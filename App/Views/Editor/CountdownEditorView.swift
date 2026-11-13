@@ -9,8 +9,8 @@ struct CountdownEditorView: View {
 
     @State private var draft: Countdown
     @State private var createdImageIDs: [String] = []
-    @State private var photoItem: PhotosPickerItem?
-    @State private var slideshowItems: [PhotosPickerItem] = []
+    @State private var photoItems: [PhotosPickerItem] = []
+    @State private var framingTarget: FramingTarget?
     @State private var isLoadingPhoto = false
     @State private var isShowingPaywall = false
     @State private var isConfirmingDelete = false
@@ -18,7 +18,6 @@ struct CountdownEditorView: View {
     @State private var previewFamily: PreviewFamily = .small
     @State private var liveSession: LivePhotoSession?
     @State private var lastLiveSession: LivePhotoSession?
-    @State private var isFramingPhoto = false
     @State private var isEditingRepeat = false
     @State private var isImportingEvent = false
     @FocusState private var isTitleFocused: Bool
@@ -126,13 +125,14 @@ struct CountdownEditorView: View {
                     useProcessedPhoto(image)
                 }
             }
-            .sheet(isPresented: $isFramingPhoto) {
-                if let image = previewImage {
+            .sheet(item: $framingTarget) { target in
+                if let image = ImageCache.shared.image(for: target.id) {
                     PhotoFramingView(
                         countdown: draft.resolved(isPremium: purchases.isPremium),
-                        image: image
+                        image: image,
+                        initialFraming: draft.framing(for: target.id)
                     ) { framing in
-                        withAnimation { draft.backgroundFraming = framing == .centered ? nil : framing }
+                        withAnimation { draft.setFraming(framing, for: target.id) }
                     }
                 }
             }
@@ -152,13 +152,13 @@ struct CountdownEditorView: View {
                     dismiss()
                 }
             }
-            .onChange(of: slideshowItems) { _, items in
+            .onChange(of: photoItems) { _, items in
                 guard !items.isEmpty else { return }
-                loadSlideshow(items)
-            }
-            .onChange(of: photoItem) { _, item in
-                guard let item else { return }
-                loadPhoto(item)
+                if items.count == 1 {
+                    loadPhoto(items[0])
+                } else {
+                    loadPhotos(items)
+                }
             }
             .onAppear {
                 if isNew && ScreenshotMode.current == nil { isTitleFocused = true }
@@ -350,46 +350,30 @@ struct CountdownEditorView: View {
     private var photoSection: some View {
         Section {
             if purchases.isPremium {
-                PhotosPicker(selection: $photoItem, matching: .images, photoLibrary: .shared()) {
+                PhotosPicker(
+                    selection: $photoItems,
+                    maxSelectionCount: 1 + Countdown.maxExtraBackgrounds,
+                    matching: .images,
+                    photoLibrary: .shared()
+                ) {
                     HStack {
-                        Label(draft.backgroundImageID == nil ? "Choose Photo" : "Change Photo", systemImage: "photo.on.rectangle")
+                        Label(draft.backgroundImageID == nil ? "Choose Photos" : "Change Photos", systemImage: "photo.on.rectangle")
                         Spacer()
                         if isLoadingPhoto { ProgressView() }
                     }
                 }
                 if draft.backgroundImageID != nil {
-                    Button {
-                        isFramingPhoto = true
-                    } label: {
-                        Label("Adjust Position & Zoom", systemImage: "crop")
-                    }
-                    if let lastLiveSession {
+                    photoStrip
+                    if let lastLiveSession, draft.allBackgroundImageIDs.count == 1 {
                         Button {
                             liveSession = lastLiveSession
                         } label: {
                             Label("Live Photo Effects", systemImage: "livephoto")
                         }
                     }
-                    if draft.extraBackgroundImageIDs.count < Countdown.maxExtraBackgrounds {
-                        PhotosPicker(
-                            selection: $slideshowItems,
-                            maxSelectionCount: Countdown.maxExtraBackgrounds - draft.extraBackgroundImageIDs.count,
-                            matching: .images,
-                            photoLibrary: .shared()
-                        ) {
-                            Label("Add Slideshow Photos", systemImage: "photo.stack")
-                        }
-                    }
-                    if !draft.extraBackgroundImageIDs.isEmpty {
-                        Button("Remove Slideshow Photos", systemImage: "minus.circle", role: .destructive) {
-                            withAnimation { draft.extraBackgroundImageIDs = [] }
-                        }
-                    }
-                    Button("Remove Photo", systemImage: "xmark.circle", role: .destructive) {
+                    Button("Remove Photos", systemImage: "xmark.circle", role: .destructive) {
                         withAnimation {
-                            draft.extraBackgroundImageIDs = []
-                            draft.backgroundImageID = nil
-                            draft.backgroundFraming = nil
+                            draft.setBackgrounds([])
                             lastLiveSession = nil
                         }
                     }
@@ -399,17 +383,65 @@ struct CountdownEditorView: View {
                     isShowingPaywall = true
                 } label: {
                     HStack {
-                        Label("Choose Photo", systemImage: "photo.on.rectangle")
+                        Label("Choose Photos", systemImage: "photo.on.rectangle")
                         Spacer()
                         PremiumBadge()
                     }
                 }
             }
         } header: {
-            Text("Background Photo")
+            Text("Background Photos")
         } footer: {
-            Text("Photos stay private on your devices and iCloud, and are only used for your widgets. Choose a Live Photo to pick a different frame or make a long exposure.")
+            Text(photoFooter)
         }
+    }
+
+    private var photoFooter: String {
+        draft.allBackgroundImageIDs.count > 1
+            ? String(localized: "The widget changes photo every hour. Tap a photo to adjust its position and zoom, or touch and hold to remove it.")
+            : String(localized: "Choose several photos to turn the widget into a slideshow. Photos stay private on your devices and iCloud, and are only used for your widgets. Choose a Live Photo to pick a different frame or make a long exposure.")
+    }
+
+    private var photoStrip: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 10) {
+                ForEach(Array(draft.allBackgroundImageIDs.enumerated()), id: \.element) { index, id in
+                    Button {
+                        framingTarget = FramingTarget(id: id)
+                    } label: {
+                        Group {
+                            if let image = ImageCache.shared.image(for: id) {
+                                Image(uiImage: image).resizable().scaledToFill()
+                            } else {
+                                Color.secondary.opacity(0.2)
+                            }
+                        }
+                        .frame(width: 72, height: 72)
+                        .clipShape(.rect(cornerRadius: 12, style: .continuous))
+                        .overlay(alignment: .bottomTrailing) {
+                            Image(systemName: "crop")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(.white)
+                                .padding(5)
+                                .background(.black.opacity(0.5), in: .circle)
+                                .padding(4)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("Photo \(index + 1)"))
+                    .contextMenu {
+                        Button("Adjust Position & Zoom", systemImage: "crop") {
+                            framingTarget = FramingTarget(id: id)
+                        }
+                        Button("Remove Photo", systemImage: "trash", role: .destructive) {
+                            withAnimation { draft.removeBackground(id) }
+                        }
+                    }
+                }
+            }
+            .padding(.vertical, 4)
+        }
+        .scrollIndicators(.hidden)
     }
 
     private var unitSection: some View {
@@ -497,15 +529,12 @@ struct CountdownEditorView: View {
         Task {
             defer {
                 isLoadingPhoto = false
-                photoItem = nil
+                photoItems = []
             }
             guard let data = try? await item.loadTransferable(type: Data.self),
                   let id = try? BackgroundImageStore.save(data) else { return }
             createdImageIDs.append(id)
-            withAnimation {
-                draft.backgroundImageID = id
-                draft.backgroundFraming = nil
-            }
+            withAnimation { draft.setBackgrounds([id]) }
             lastLiveSession = nil
 
             if let livePhoto = try? await item.loadTransferable(type: PHLivePhoto.self),
@@ -518,15 +547,23 @@ struct CountdownEditorView: View {
         }
     }
 
-    private func loadSlideshow(_ items: [PhotosPickerItem]) {
+    private func loadPhotos(_ items: [PhotosPickerItem]) {
+        isLoadingPhoto = true
         Task {
-            defer { slideshowItems = [] }
-            for item in items where draft.extraBackgroundImageIDs.count < Countdown.maxExtraBackgrounds {
+            defer {
+                isLoadingPhoto = false
+                photoItems = []
+            }
+            var ids: [String] = []
+            for item in items {
                 guard let data = try? await item.loadTransferable(type: Data.self),
                       let id = try? BackgroundImageStore.save(data) else { continue }
                 createdImageIDs.append(id)
-                draft.extraBackgroundImageIDs.append(id)
+                ids.append(id)
             }
+            guard !ids.isEmpty else { return }
+            lastLiveSession = nil
+            withAnimation { draft.setBackgrounds(ids) }
         }
     }
 
@@ -534,10 +571,7 @@ struct CountdownEditorView: View {
         guard let data = image.jpegData(compressionQuality: 0.92),
               let id = try? BackgroundImageStore.save(data) else { return }
         createdImageIDs.append(id)
-        withAnimation {
-            draft.backgroundImageID = id
-            draft.backgroundFraming = nil
-        }
+        withAnimation { draft.setBackgrounds([id]) }
     }
 
     private func save() {
@@ -686,4 +720,8 @@ struct ReminderDraft: Identifiable {
     let isNew: Bool
 
     var id: UUID { rule.id }
+}
+
+private struct FramingTarget: Identifiable {
+    let id: String
 }

@@ -11,11 +11,11 @@ struct PhotoFramingView: View {
     @GestureState private var dragTranslation: CGSize = .zero
     @GestureState private var pinchScale: CGFloat = 1
 
-    init(countdown: Countdown, image: UIImage, onSave: @escaping (BackgroundFraming) -> Void) {
+    init(countdown: Countdown, image: UIImage, initialFraming: BackgroundFraming?, onSave: @escaping (BackgroundFraming) -> Void) {
         self.countdown = countdown
         self.image = image
         self.onSave = onSave
-        _framing = State(initialValue: countdown.backgroundFraming ?? .centered)
+        _framing = State(initialValue: initialFraming ?? .centered)
     }
 
     private let families: [PreviewFamily] = [.small, .medium, .large]

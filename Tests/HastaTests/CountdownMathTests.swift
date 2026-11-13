@@ -171,13 +171,30 @@ struct CountdownMathTests {
         #expect(due.map(\.0.title) == ["Soon", "Later"])
     }
 
-    @Test func slideshowIndexIsStablePerDay() {
-        let morning = date("2026-10-02T08:00:00")
-        let evening = date("2026-10-02T21:00:00")
-        #expect(Countdown.slideshowIndex(at: morning, count: 3, calendar: calendar) == Countdown.slideshowIndex(at: evening, count: 3, calendar: calendar))
-        let next = Countdown.slideshowIndex(at: date("2026-10-03T08:00:00"), count: 3, calendar: calendar)
-        #expect(next == (Countdown.slideshowIndex(at: morning, count: 3, calendar: calendar) + 1) % 3)
-        #expect(Countdown.slideshowIndex(at: morning, count: 1, calendar: calendar) == 0)
+    @Test func slideshowIndexAdvancesEveryHour() {
+        let base = Date(timeIntervalSince1970: 1_790_000_000)
+        let hourStart = Date(timeIntervalSince1970: Double(Int(base.timeIntervalSince1970 / 3_600) * 3_600))
+        #expect(Countdown.slideshowIndex(at: hourStart.addingTimeInterval(3_599), count: 3) == Countdown.slideshowIndex(at: hourStart, count: 3))
+        #expect(Countdown.slideshowIndex(at: hourStart.addingTimeInterval(3_600), count: 3) == (Countdown.slideshowIndex(at: hourStart, count: 3) + 1) % 3)
+        #expect(Countdown.slideshowIndex(at: base, count: 1) == 0)
+    }
+
+    @Test func eachSlideshowPhotoKeepsItsOwnFraming() {
+        var countdown = Countdown(title: "Us")
+        countdown.setBackgrounds(["a", "b", "c"])
+        let zoomed = BackgroundFraming(focusX: 0.2, focusY: 0.3, zoom: 2)
+        countdown.setFraming(zoomed, for: "a")
+        countdown.setFraming(zoomed, for: "c")
+        #expect(countdown.framing(for: "a") == zoomed)
+        #expect(countdown.framing(for: "b") == nil)
+        #expect(countdown.framing(for: "c") == zoomed)
+        countdown.removeBackground("a")
+        #expect(countdown.backgroundImageID == "b")
+        #expect(countdown.extraBackgroundImageIDs == ["c"])
+        #expect(countdown.framing(for: "c") == zoomed)
+        countdown.removeBackground("c")
+        countdown.removeBackground("b")
+        #expect(countdown.allBackgroundImageIDs.isEmpty)
     }
 
     @Test func oldRecordsKeepNewFieldsFromLocalCopy() {

@@ -37,9 +37,12 @@ struct CountdownProvider: AppIntentTimelineProvider {
         if context.family == .accessoryRectangular || context.family == .systemLarge {
             dates += WidgetRefreshSchedule.hourlyDates(from: now)
         }
+        let images = loadImages(for: selectedCountdown(for: configuration, in: all, at: now), context: context)
+        if images.count > 1 {
+            dates += WidgetRefreshSchedule.hourlyDates(from: now)
+        }
         dates = Array(Set(dates)).sorted()
 
-        let images = loadImages(for: selectedCountdown(for: configuration, in: all, at: now), context: context)
         let entries = dates.map { date in
             entry(for: configuration, at: date, countdowns: all, context: context, preloadedImage: images.isEmpty ? nil : .some(images[Countdown.slideshowIndex(at: date, count: images.count)]))
         }
@@ -74,10 +77,10 @@ struct CountdownProvider: AppIntentTimelineProvider {
 
     private func loadImages(for countdown: Countdown?, context: Context) -> [UIImage] {
         guard Premium.isUnlocked, let countdown else { return [] }
-        return countdown.allBackgroundImageIDs.enumerated().compactMap { index, id in
+        return countdown.allBackgroundImageIDs.compactMap { id in
             BackgroundImageStore.framedImage(
                 for: id,
-                framing: index == 0 ? countdown.backgroundFraming ?? .centered : .centered,
+                framing: countdown.framing(for: id) ?? .centered,
                 containerSize: context.displaySize,
                 pixelsPerPoint: countdown.allBackgroundImageIDs.count > 1 ? 2 : 2.5
             )

@@ -330,11 +330,11 @@ extension Countdown {
 }
 
 extension Countdown {
-    static func slideshowIndex(at date: Date, count: Int, calendar: Calendar = .current) -> Int {
+    static let slideshowInterval: TimeInterval = 3_600
+
+    static func slideshowIndex(at date: Date, count: Int) -> Int {
         guard count > 1 else { return 0 }
-        let epoch = calendar.startOfDay(for: Date(timeIntervalSince1970: 0))
-        let days = calendar.dateComponents([.day], from: epoch, to: calendar.startOfDay(for: date)).day ?? 0
-        return days % count
+        return Int(date.timeIntervalSince1970 / slideshowInterval) % count
     }
 }
 
