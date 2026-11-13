@@ -236,7 +236,7 @@ struct CountdownEditorView: View {
     }
 
     private var appearanceSection: some View {
-        Section("Symbol & Color") {
+        Section("Symbol") {
             NavigationLink {
                 SymbolPickerView(selection: $draft.symbol, tint: draft.tint)
             } label: {
@@ -246,12 +246,6 @@ struct CountdownEditorView: View {
                         .foregroundStyle(draft.tint)
                 }
             }
-            ColorPaletteView(
-                selection: $draft.color,
-                customHex: $draft.customColorHex,
-                isPremium: purchases.isPremium,
-                onLocked: { isShowingPaywall = true }
-            )
         }
     }
 
@@ -303,8 +297,16 @@ struct CountdownEditorView: View {
                 .padding(.horizontal, 2)
             }
             .scrollIndicators(.hidden)
+            ColorPaletteView(
+                selection: $draft.color,
+                customHex: $draft.customColorHex,
+                isPremium: purchases.isPremium,
+                onLocked: { isShowingPaywall = true }
+            )
         } header: {
             Text("Widget Background")
+        } footer: {
+            Text("The color tints the background styles. It also colors this countdown's Live Activity.")
         }
     }
 
