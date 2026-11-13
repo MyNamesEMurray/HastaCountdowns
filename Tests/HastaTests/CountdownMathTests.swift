@@ -239,7 +239,7 @@ struct CountdownMathTests {
         let past = Countdown(title: "Past", date: now.addingTimeInterval(-60), isAllDay: false)
         let far = Countdown(title: "Far", date: now.addingTimeInterval(60 * 86_400), isAllDay: false)
         let items = LiveActivityPushService.scheduleItems([far, past, off, soon], now: now, globalEnabled: true, leadHours: 2)
-        #expect(items.map(\.id) == [soon.id])
+        #expect(items.map { $0.id } == [soon.id])
         #expect(items[0].fireAt == items[0].target - 7_200)
         #expect(LiveActivityPushService.scheduleItems([soon], now: now, globalEnabled: false, leadHours: 2).isEmpty)
     }
