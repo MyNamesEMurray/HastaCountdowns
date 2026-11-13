@@ -241,9 +241,10 @@ struct CountdownEditorView: View {
                 SymbolPickerView(selection: $draft.symbol, tint: draft.tint)
             } label: {
                 LabeledContent("Symbol") {
-                    Image(systemName: draft.symbol)
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(draft.tint)
+                    SymbolSwatch(
+                        countdown: draft.resolved(isPremium: purchases.isPremium),
+                        image: isPhotoBackground ? previewImage : nil
+                    )
                 }
             }
         }
@@ -483,13 +484,13 @@ struct CountdownEditorView: View {
                                 withAnimation(.snappy) { draft.typeface = typeface }
                             }
                         } label: {
-                            TypefaceChip(typeface: typeface, tint: draft.tint, isSelected: draft.typeface == typeface, isLocked: isLocked)
+                            TypefaceChip(typeface: typeface, isSelected: draft.typeface == typeface, isLocked: isLocked)
                         }
                         .buttonStyle(.plain)
                     }
                 }
                 .padding(.vertical, 8)
-                .padding(.horizontal, 2)
+                .padding(.horizontal, 6)
             }
             .scrollIndicators(.hidden)
         } header: {
@@ -859,9 +860,25 @@ private struct PhotoSwatch: View {
     }
 }
 
+/// The symbol on the real widget background, in the ink the widget will use.
+private struct SymbolSwatch: View {
+    let countdown: Countdown
+    let image: UIImage?
+
+    var body: some View {
+        let zones = image?.zones(framing: countdown.backgroundFraming, containerSize: CGSize(width: 1, height: 1))
+        let palette = CountdownPalette(countdown: countdown, hasImage: image != nil, photoZones: zones)
+        WidgetPreviewFrame(countdown: countdown, image: image, cornerRadius: 9, padding: 0) {
+            Image(systemName: countdown.symbol)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(palette.headerAccent)
+        }
+        .frame(width: 34, height: 34)
+    }
+}
+
 private struct TypefaceChip: View {
     let typeface: Typeface
-    let tint: Color
     let isSelected: Bool
     let isLocked: Bool
 
@@ -869,7 +886,7 @@ private struct TypefaceChip: View {
         VStack(spacing: 4) {
             Text("42")
                 .font(typeface.font(size: 26))
-                .foregroundStyle(isSelected ? tint : .primary)
+                .foregroundStyle(.primary)
             Text(typeface.title)
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(.secondary)
@@ -877,8 +894,9 @@ private struct TypefaceChip: View {
         .frame(width: 76, height: 64)
         .background(Color(uiColor: .tertiarySystemFill), in: .rect(cornerRadius: 14, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(isSelected ? tint : .clear, lineWidth: 2)
+            RoundedRectangle(cornerRadius: 17, style: .continuous)
+                .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 3)
+                .padding(-4)
         }
         .overlay(alignment: .topTrailing) {
             if isLocked {
