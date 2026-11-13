@@ -360,6 +360,91 @@ struct CountdownEditorView: View {
         )
     }
 
+    private var liveActivitySection: some View {
+        let global = LiveActivityPreferences.pushEnabled
+        let isOn = draft.startsLiveActivity(globalEnabled: global)
+        return Section {
+            if purchases.isPremium {
+                Toggle(isOn: Binding(
+                    get: { isOn },
+                    set: { draft.setLiveActivity($0, globalEnabled: global) }
+                )) {
+                    Label("Live Activity", systemImage: "platter.filled.bottom.iphone")
+                }
+            } else {
+                Button {
+                    isShowingPaywall = true
+                } label: {
+                    HStack {
+                        Label("Live Activity", systemImage: "platter.filled.bottom.iphone")
+                        Spacer()
+                        PremiumBadge()
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+        } header: {
+            Text("Lock Screen")
+        } footer: {
+            Text(isOn && purchases.isPremium
+                ? String(localized: "Shows this countdown on your Lock Screen and Dynamic Island \(LiveActivityPreferences.leadHours) hours before it happens.")
+                : String(localized: "Turn on to follow this countdown on your Lock Screen and Dynamic Island as it gets close."))
+        }
+    }
+
+    private var sinceSection: some View {
+        Section {
+            if purchases.isPremium {
+                TextField("Label after the date, like Together", text: $draft.sinceLabel)
+            } else {
+                Button {
+                    isShowingPaywall = true
+                } label: {
+                    HStack {
+                        Text("Since Label")
+                        Spacer()
+                        PremiumBadge()
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+        } header: {
+            Text("After the Date")
+        } footer: {
+            Text("Once the date has passed, widgets count up with this label, such as Together or Sober.")
+        }
+    }
+
+    private var progressSection: some View {
+        Section {
+            Toggle(isOn: Binding(
+                get: { draft.showsProgress && purchases.isPremium },
+                set: { isOn in
+                    if purchases.isPremium {
+                        draft.showsProgress = isOn
+                    } else {
+                        isShowingPaywall = true
+                    }
+                }
+            )) {
+                HStack {
+                    Text("Show Progress")
+                    if !purchases.isPremium { LockBadge() }
+                }
+            }
+            if draft.showsProgress && purchases.isPremium {
+                Picker("Style", selection: $draft.progressStyle) {
+                    ForEach(ProgressDisplay.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+            }
+        } header: {
+            Text("Progress")
+        } footer: {
+            Text("Shows how close you are to the date. It starts empty on the day you create the countdown and fills up until the date arrives. Not shown for repeating countdowns.")
+        }
+    }
+
     private var typefaceSection: some View {
         Section {
             ScrollView(.horizontal) {
@@ -716,7 +801,7 @@ private struct PhotoSwatch: View {
                 if let imageID, let image = ImageCache.shared.image(for: imageID, maxPixelSize: 200) {
                     Image(uiImage: image).resizable().scaledToFill()
                 } else {
-                    countdown.tint.gradient
+                    Rectangle().fill(countdown.tint.gradient)
                     Image(systemName: "photo.on.rectangle")
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(.white)
