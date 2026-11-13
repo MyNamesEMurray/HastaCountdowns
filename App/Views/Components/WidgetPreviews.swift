@@ -33,6 +33,7 @@ struct WidgetPreviewFrame<Content: View>: View {
             .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
             .background {
                 CountdownBackground(countdown: countdown, image: image)
+                    .allowsHitTesting(false)
             }
             .clipShape(.rect(cornerRadius: cornerRadius, style: .continuous))
     }

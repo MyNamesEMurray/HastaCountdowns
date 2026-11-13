@@ -178,6 +178,7 @@ struct FramedPhoto: View {
                 .offset(x: -rect.minX * displayed.width, y: -rect.minY * displayed.height)
         }
         .clipped()
+        .allowsHitTesting(false)
     }
 }
 

@@ -82,6 +82,7 @@ struct HomeWidgetPreview<Content: View>: View {
             .frame(width: size.width, height: size.height)
             .background {
                 CountdownBackground(countdown: countdown, image: image)
+                    .allowsHitTesting(false)
             }
             .clipShape(.rect(cornerRadius: metrics.cornerRadius, style: .continuous))
             .shadow(color: .black.opacity(0.12), radius: 12, y: 5)

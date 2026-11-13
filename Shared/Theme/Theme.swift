@@ -149,7 +149,7 @@ extension UIImage {
     /// Only the part of the photo that is visible for this framing and container shape.
     func zones(framing: BackgroundFraming?, containerSize: CGSize) -> PhotoZones {
         let rect = (framing ?? .centered).visibleRect(imageSize: size, containerSize: containerSize)
-        let key = "\(rect.minX),\(rect.minY),\(rect.width),\(rect.height)" as NSString
+        let key = String(format: "%.3f,%.3f,%.3f,%.3f", rect.minX, rect.minY, rect.width, rect.height) as NSString
         let store = Self.zonesCache.object(forKey: self) ?? NSMutableDictionary()
         if let cached = store[key] as? PhotoZonesBox { return cached.value }
 
