@@ -241,7 +241,15 @@ struct CountdownMathTests {
         #expect(try JSONDecoder().decode(CountdownActivityAttributes.ContentState.self, from: Data(json.utf8)) == state)
     }
 
-    @Test func progressTracksElapsedShare() {
+    @Test func progressStyleDefaultsToBarAndSurvivesOldData() throws {
+        #expect(Countdown(title: "T").progressStyle == .bar)
+        let json = #"[{"id":"7C9C3D5E-1C1F-4F55-9E2D-1A2B3C4D5E6F","date":800000000,"progressStyle":"ring"}]"#
+        #expect(try JSONDecoder().decode([Countdown].self, from: Data(json.utf8)).first?.progressStyle == .ring)
+        let bad = #"[{"id":"7C9C3D5E-1C1F-4F55-9E2D-1A2B3C4D5E6F","date":800000000,"progressStyle":"pie"}]"#
+        #expect(try JSONDecoder().decode([Countdown].self, from: Data(bad.utf8)).first?.progressStyle == .bar)
+    }
+
+
         let countdown = Countdown(
             title: "Term",
             date: date("2026-10-12T00:00:00"),

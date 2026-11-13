@@ -323,8 +323,16 @@ struct CountdownEditorView: View {
                     if !purchases.isPremium { LockBadge() }
                 }
             }
+            if draft.showsProgress && purchases.isPremium {
+                Picker("Style", selection: $draft.progressStyle) {
+                    ForEach(ProgressDisplay.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+            }
+        } header: {
+            Text("Progress")
         } footer: {
-            Text("Adds a bar showing how much time has passed since you created this countdown. Not shown on repeating events.")
+            Text("Shows how close you are to the date. It starts empty on the day you create the countdown and fills up until the date arrives. Not shown for repeating countdowns.")
         }
     }
 
