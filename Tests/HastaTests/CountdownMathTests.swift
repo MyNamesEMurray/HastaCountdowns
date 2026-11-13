@@ -272,7 +272,7 @@ struct CountdownMathTests {
         #expect(!dark.usesDarkForeground)
         let decoded = try JSONDecoder().decode([Countdown].self, from: JSONEncoder().encode([countdown]))
         #expect(decoded.first?.customGradient == gradient)
-        let bad = #"[{"id":"7C9C3D5E-1C1F-4F55-9E2D-1A2B3C4D5E6F","date":800000000,"customGradient":{"startHex":"#000000"}}]"#
+        let bad = ##"[{"id":"7C9C3D5E-1C1F-4F55-9E2D-1A2B3C4D5E6F","date":800000000,"customGradient":{"startHex":"#000000"}}]"##
         #expect(try JSONDecoder().decode([Countdown].self, from: Data(bad.utf8)).first?.customGradient == nil)
     }
 
