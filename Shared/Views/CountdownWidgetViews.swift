@@ -57,17 +57,19 @@ struct CountdownBackground: View {
 
     var body: some View {
         if let image {
-            ZStack {
-                Color.black
-                FramedPhoto(image: image, framing: countdown.backgroundFraming ?? .centered)
-                let dark = countdown.darkTextZones(image.zones)
-                let top = dark.header ? 0.0 : 0.05
-                let bottom = dark.body ? 0.0 : 0.6
-                LinearGradient(
-                    colors: [.black.opacity(top), .black.opacity(min(top, bottom) + abs(bottom - top) / 3), .black.opacity(bottom)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+            GeometryReader { proxy in
+                ZStack {
+                    Color.black
+                    FramedPhoto(image: image, framing: countdown.backgroundFraming ?? .centered)
+                    let dark = countdown.darkTextZones(image.zones(framing: countdown.backgroundFraming, containerSize: proxy.size))
+                    let top = dark.header ? 0.0 : 0.05
+                    let bottom = dark.body ? 0.0 : 0.6
+                    LinearGradient(
+                        colors: [.black.opacity(top), .black.opacity(min(top, bottom) + abs(bottom - top) / 3), .black.opacity(bottom)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                }
             }
         } else {
             switch countdown.style {

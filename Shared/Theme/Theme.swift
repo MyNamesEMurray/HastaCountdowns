@@ -139,32 +139,49 @@ private final class PhotoZonesBox {
 }
 
 extension UIImage {
-    private static let zonesCache = NSCache<UIImage, PhotoZonesBox>()
+    private static let zonesCache = NSCache<UIImage, NSMutableDictionary>()
 
+    /// Whole image. Widget photos are already cropped to their framing before they get here.
     var zones: PhotoZones {
-        if let cached = Self.zonesCache.object(forKey: self) { return cached.value }
-        var pixels = [UInt8](repeating: 0, count: 8 * 8 * 4)
+        zones(framing: nil, containerSize: size)
+    }
+
+    /// Only the part of the photo that is visible for this framing and container shape.
+    func zones(framing: BackgroundFraming?, containerSize: CGSize) -> PhotoZones {
+        let rect = (framing ?? .centered).visibleRect(imageSize: size, containerSize: containerSize)
+        let key = "\(rect.minX),\(rect.minY),\(rect.width),\(rect.height)" as NSString
+        let store = Self.zonesCache.object(forKey: self) ?? NSMutableDictionary()
+        if let cached = store[key] as? PhotoZonesBox { return cached.value }
+
         var zones = PhotoZones(header: 0, body: 0)
-        if let cgImage,
-           let context = CGContext(
-               data: &pixels, width: 8, height: 8, bitsPerComponent: 8, bytesPerRow: 32,
-               space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-           ) {
-            context.interpolationQuality = .medium
-            context.draw(cgImage, in: CGRect(x: 0, y: 0, width: 8, height: 8))
-            func average(rows: Range<Int>) -> Double {
-                var total = 0.0
-                for row in rows {
-                    for column in 0..<8 {
-                        let pixel = (row * 8 + column) * 4
-                        total += 0.2126 * Double(pixels[pixel]) + 0.7152 * Double(pixels[pixel + 1]) + 0.0722 * Double(pixels[pixel + 2])
+        var pixels = [UInt8](repeating: 0, count: 8 * 8 * 4)
+        if let cgImage {
+            let crop = CGRect(
+                x: rect.minX * CGFloat(cgImage.width), y: rect.minY * CGFloat(cgImage.height),
+                width: rect.width * CGFloat(cgImage.width), height: rect.height * CGFloat(cgImage.height)
+            ).integral
+            let source = cgImage.cropping(to: crop) ?? cgImage
+            if let context = CGContext(
+                data: &pixels, width: 8, height: 8, bitsPerComponent: 8, bytesPerRow: 32,
+                space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) {
+                context.interpolationQuality = .medium
+                context.draw(source, in: CGRect(x: 0, y: 0, width: 8, height: 8))
+                func average(rows: Range<Int>) -> Double {
+                    var total = 0.0
+                    for row in rows {
+                        for column in 0..<8 {
+                            let pixel = (row * 8 + column) * 4
+                            total += 0.2126 * Double(pixels[pixel]) + 0.7152 * Double(pixels[pixel + 1]) + 0.0722 * Double(pixels[pixel + 2])
+                        }
                     }
+                    return total / Double(rows.count * 8) / 255
                 }
-                return total / Double(rows.count * 8) / 255
+                zones = PhotoZones(header: average(rows: 0..<3), body: average(rows: 4..<8))
             }
-            zones = PhotoZones(header: average(rows: 0..<3), body: average(rows: 4..<8))
         }
-        Self.zonesCache.setObject(PhotoZonesBox(zones), forKey: self)
+        store[key] = PhotoZonesBox(zones)
+        Self.zonesCache.setObject(store, forKey: self)
         return zones
     }
 }

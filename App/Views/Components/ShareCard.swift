@@ -28,7 +28,8 @@ private struct ShareCardView: View {
     let now: Date
 
     var body: some View {
-        let palette = CountdownPalette(countdown: countdown, hasImage: image != nil, photoZones: image?.zones)
+        let zones = image?.zones(framing: countdown.backgroundFraming, containerSize: CGSize(width: 360, height: 450))
+        let palette = CountdownPalette(countdown: countdown, hasImage: image != nil, photoZones: zones)
         VStack(spacing: 0) {
             LargeCountdownView(countdown: countdown, now: now, hasImage: image != nil)
             Text("Made with Hasta · hasta.day")
@@ -40,7 +41,7 @@ private struct ShareCardView: View {
         .padding(28)
         .frame(width: 360, height: 450)
         .background { CountdownBackground(countdown: countdown, image: image) }
-        .environment(\.photoZones, image?.zones)
+        .environment(\.photoZones, zones)
         .environment(\.colorScheme, .light)
     }
 }

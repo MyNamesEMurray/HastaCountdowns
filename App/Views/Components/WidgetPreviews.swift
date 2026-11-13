@@ -23,12 +23,14 @@ struct WidgetPreviewFrame<Content: View>: View {
     var cornerRadius: CGFloat = 24
     var padding: CGFloat = 16
     @ViewBuilder let content: Content
+    @State private var size = CGSize(width: 1, height: 1)
 
     var body: some View {
         content
-            .environment(\.photoZones, image?.zones)
+            .environment(\.photoZones, image?.zones(framing: countdown.backgroundFraming, containerSize: size))
             .padding(padding)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
             .background {
                 CountdownBackground(countdown: countdown, image: image)
             }

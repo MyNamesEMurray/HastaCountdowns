@@ -290,6 +290,22 @@ struct CountdownMathTests {
         #expect(Countdown(title: "T").zoneFontColor)
     }
 
+    @Test func photoZonesMeasureOnlyTheVisibleCrop() {
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 40, height: 20), format: { let f = UIGraphicsImageRendererFormat(); f.scale = 1; return f }())
+        let image = renderer.image { context in
+            UIColor.black.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 20, height: 20))
+            UIColor.white.setFill()
+            context.fill(CGRect(x: 20, y: 0, width: 20, height: 20))
+        }
+        let square = CGSize(width: 10, height: 10)
+        let left = image.zones(framing: BackgroundFraming(focusX: 0, focusY: 0.5, zoom: 1), containerSize: square)
+        let right = image.zones(framing: BackgroundFraming(focusX: 1, focusY: 0.5, zoom: 1), containerSize: square)
+        #expect(left.average < 0.1)
+        #expect(right.average > 0.9)
+        #expect(image.zones.average > 0.3 && image.zones.average < 0.7)
+    }
+
     @Test func fontColorDefaultsToAutoAndOldCustomStyleBecomesGradient() throws {
         #expect(Countdown(title: "T").autoFontColor)
         let json = ##"[{"id":"7C9C3D5E-1C1F-4F55-9E2D-1A2B3C4D5E6F","date":800000000,"style":"custom","autoFontColor":false,"fontColorHex":"#112233"}]"##

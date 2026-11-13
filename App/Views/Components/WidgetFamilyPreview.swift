@@ -77,7 +77,7 @@ struct HomeWidgetPreview<Content: View>: View {
 
     var body: some View {
         content
-            .environment(\.photoZones, image?.zones)
+            .environment(\.photoZones, image?.zones(framing: countdown.backgroundFraming, containerSize: size))
             .padding(metrics.contentMargin)
             .frame(width: size.width, height: size.height)
             .background {
