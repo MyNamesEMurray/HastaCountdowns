@@ -463,6 +463,16 @@ extension Countdown {
         }
     }
 
+    mutating func replaceBackground(_ old: String, with new: String) {
+        if backgroundImageID == old {
+            backgroundImageID = new
+            backgroundFraming = nil
+        } else if let index = extraBackgroundImageIDs.firstIndex(of: old) {
+            extraBackgroundImageIDs[index] = new
+            extraBackgroundFramings[old] = nil
+        }
+    }
+
     mutating func setBackgrounds(_ ids: [String]) {
         backgroundImageID = ids.first
         backgroundFraming = nil

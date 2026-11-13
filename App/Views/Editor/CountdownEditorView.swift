@@ -145,8 +145,14 @@ struct CountdownEditorView: View {
                         countdown: draft.resolved(isPremium: purchases.isPremium),
                         image: image,
                         initialFraming: draft.framing(for: target.id)
-                    ) { framing in
-                        withAnimation { draft.setFraming(framing, for: target.id) }
+                    ) { framing, turns in
+                        var id = target.id
+                        if turns != 0, let rotated = BackgroundImageStore.saveRotated(id, quarterTurns: turns) {
+                            createdImageIDs.append(rotated)
+                            draft.replaceBackground(id, with: rotated)
+                            id = rotated
+                        }
+                        withAnimation { draft.setFraming(framing, for: id) }
                     }
                 }
             }

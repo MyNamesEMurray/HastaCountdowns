@@ -4,16 +4,19 @@ struct PhotoFramingView: View {
     @Environment(\.dismiss) private var dismiss
     let countdown: Countdown
     let image: UIImage
-    let onSave: (BackgroundFraming) -> Void
+    let onSave: (BackgroundFraming, Int) -> Void
 
     @State private var framing: BackgroundFraming
+    @State private var turns = 0
+    @State private var shownImage: UIImage
     @State private var family: PreviewFamily = .small
     @GestureState private var dragTranslation: CGSize = .zero
     @GestureState private var pinchScale: CGFloat = 1
 
-    init(countdown: Countdown, image: UIImage, initialFraming: BackgroundFraming?, onSave: @escaping (BackgroundFraming) -> Void) {
+    init(countdown: Countdown, image: UIImage, initialFraming: BackgroundFraming?, onSave: @escaping (BackgroundFraming, Int) -> Void) {
         self.countdown = countdown
         self.image = image
+        _shownImage = State(initialValue: image)
         self.onSave = onSave
         _framing = State(initialValue: initialFraming ?? .centered)
     }
@@ -30,7 +33,7 @@ struct PhotoFramingView: View {
         return NavigationStack {
             VStack(spacing: 20) {
                 Spacer(minLength: 0)
-                HomeWidgetPreview(countdown: preview, image: image, size: size, metrics: metrics) {
+                HomeWidgetPreview(countdown: preview, image: shownImage, size: size, metrics: metrics) {
                     content(for: preview)
                 }
                 .contentShape(.rect(cornerRadius: metrics.cornerRadius, style: .continuous))
@@ -39,12 +42,12 @@ struct PhotoFramingView: View {
                         DragGesture()
                             .updating($dragTranslation) { value, state, _ in state = value.translation }
                             .onEnded { value in
-                                framing = framing.panned(by: value.translation, imageSize: image.size, containerSize: size)
+                                framing = framing.panned(by: value.translation, imageSize: shownImage.size, containerSize: size)
                             },
                         MagnifyGesture()
                             .updating($pinchScale) { value, state, _ in state = value.magnification }
                             .onEnded { value in
-                                framing = framing.zoomed(to: framing.zoom * value.magnification, imageSize: image.size, containerSize: size)
+                                framing = framing.zoomed(to: framing.zoom * value.magnification, imageSize: shownImage.size, containerSize: size)
                             }
                     )
                 )
@@ -62,10 +65,17 @@ struct PhotoFramingView: View {
                 .pickerStyle(.segmented)
                 .frame(maxWidth: 320)
 
-                Button("Reset", systemImage: "arrow.counterclockwise") {
-                    withAnimation(.snappy) { framing = .centered }
+                HStack(spacing: 24) {
+                    Button("Rotate", systemImage: "rotate.right") {
+                        turns = (turns + 1) % 4
+                        shownImage = image.rotated(quarterTurns: turns)
+                        withAnimation(.snappy) { framing = .centered }
+                    }
+                    Button("Reset", systemImage: "arrow.counterclockwise") {
+                        withAnimation(.snappy) { framing = .centered }
+                    }
+                    .disabled(framing == .centered)
                 }
-                .disabled(framing == .centered)
 
                 Spacer(minLength: 0)
             }
@@ -80,7 +90,7 @@ struct PhotoFramingView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
-                        onSave(framing)
+                        onSave(framing, turns)
                         dismiss()
                     }
                     .fontWeight(.semibold)
@@ -91,8 +101,8 @@ struct PhotoFramingView: View {
 
     private func liveFraming(containerSize: CGSize) -> BackgroundFraming {
         framing
-            .zoomed(to: framing.zoom * pinchScale, imageSize: image.size, containerSize: containerSize)
-            .panned(by: dragTranslation, imageSize: image.size, containerSize: containerSize)
+            .zoomed(to: framing.zoom * pinchScale, imageSize: shownImage.size, containerSize: containerSize)
+            .panned(by: dragTranslation, imageSize: shownImage.size, containerSize: containerSize)
     }
 
     private func containerSize(for family: PreviewFamily, metrics: WidgetMetrics) -> CGSize {

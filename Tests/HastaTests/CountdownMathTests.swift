@@ -307,6 +307,27 @@ struct CountdownMathTests {
         #expect(image.zones.average > 0.3 && image.zones.average < 0.7)
     }
 
+    @Test func rotatingSwapsSizeAndReplacingKeepsPosition() {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 40, height: 20), format: format).image { context in
+            UIColor.red.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 40, height: 20))
+        }
+        #expect(image.rotated(quarterTurns: 1).size == CGSize(width: 20, height: 40))
+        #expect(image.rotated(quarterTurns: 2).size == CGSize(width: 40, height: 20))
+        #expect(image.rotated(quarterTurns: 4).size == image.size)
+        #expect(image.rotated(quarterTurns: -1).size == CGSize(width: 20, height: 40))
+        var countdown = Countdown(title: "T")
+        countdown.setBackgrounds(["a", "b", "c"])
+        countdown.setFraming(BackgroundFraming(zoom: 2), for: "b")
+        countdown.replaceBackground("b", with: "b2")
+        #expect(countdown.allBackgroundImageIDs == ["a", "b2", "c"])
+        #expect(countdown.framing(for: "b2") == nil && countdown.framing(for: "b") == nil)
+        countdown.replaceBackground("a", with: "a2")
+        #expect(countdown.backgroundImageID == "a2")
+    }
+
     @Test func visibleCropIsExactlyTheFramedRegion() {
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
