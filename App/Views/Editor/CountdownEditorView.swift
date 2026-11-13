@@ -295,7 +295,7 @@ struct CountdownEditorView: View {
                     }
                 }
                 .padding(.vertical, 8)
-                .padding(.horizontal, 2)
+                .padding(.horizontal, 10)
             }
             .scrollIndicators(.hidden)
             ColorPaletteView(
@@ -490,7 +490,7 @@ struct CountdownEditorView: View {
                     }
                 }
                 .padding(.vertical, 8)
-                .padding(.horizontal, 6)
+                .padding(.horizontal, 10)
             }
             .scrollIndicators(.hidden)
         } header: {
