@@ -77,7 +77,7 @@ struct HomeWidgetPreview<Content: View>: View {
 
     var body: some View {
         content
-            .environment(\.photoLuminance, image?.averageLuminance)
+            .environment(\.photoZones, image?.zones)
             .padding(metrics.contentMargin)
             .frame(width: size.width, height: size.height)
             .background {

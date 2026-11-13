@@ -101,24 +101,50 @@ enum ForegroundContrast {
     static let photoOverlayFactor = 0.85
 }
 
-private struct PhotoLuminanceKey: EnvironmentKey {
-    static let defaultValue: Double? = nil
+struct PhotoZones: Equatable {
+    /// Brightness (0 to 1) behind the icon row at the top, and behind the title, date and tiles at the bottom.
+    var header: Double
+    var body: Double
+
+    var average: Double { (header + body) / 2 }
 }
 
-extension EnvironmentValues {
-    var photoLuminance: Double? {
-        get { self[PhotoLuminanceKey.self] }
-        set { self[PhotoLuminanceKey.self] = newValue }
+extension Countdown {
+    /// Which zones should use dark text on a photo. Dark text also drops the dark scrim behind that zone.
+    func darkTextZones(_ zones: PhotoZones) -> (header: Bool, body: Bool) {
+        guard autoFontColor else { return (false, false) }
+        let threshold = ForegroundContrast.darkTextThreshold
+        if zoneFontColor {
+            return (zones.header > threshold, zones.body > threshold)
+        }
+        let dark = zones.average * ForegroundContrast.photoOverlayFactor > threshold
+        return (dark, dark)
     }
 }
 
-extension UIImage {
-    private static let luminanceCache = NSCache<UIImage, NSNumber>()
+private struct PhotoZonesKey: EnvironmentKey {
+    static let defaultValue: PhotoZones? = nil
+}
 
-    var averageLuminance: Double {
-        if let cached = Self.luminanceCache.object(forKey: self) { return cached.doubleValue }
+extension EnvironmentValues {
+    var photoZones: PhotoZones? {
+        get { self[PhotoZonesKey.self] }
+        set { self[PhotoZonesKey.self] = newValue }
+    }
+}
+
+private final class PhotoZonesBox {
+    let value: PhotoZones
+    init(_ value: PhotoZones) { self.value = value }
+}
+
+extension UIImage {
+    private static let zonesCache = NSCache<UIImage, PhotoZonesBox>()
+
+    var zones: PhotoZones {
+        if let cached = Self.zonesCache.object(forKey: self) { return cached.value }
         var pixels = [UInt8](repeating: 0, count: 8 * 8 * 4)
-        var value = 0.0
+        var zones = PhotoZones(header: 0, body: 0)
         if let cgImage,
            let context = CGContext(
                data: &pixels, width: 8, height: 8, bitsPerComponent: 8, bytesPerRow: 32,
@@ -126,14 +152,20 @@ extension UIImage {
            ) {
             context.interpolationQuality = .medium
             context.draw(cgImage, in: CGRect(x: 0, y: 0, width: 8, height: 8))
-            var total = 0.0
-            for pixel in stride(from: 0, to: pixels.count, by: 4) {
-                total += 0.2126 * Double(pixels[pixel]) + 0.7152 * Double(pixels[pixel + 1]) + 0.0722 * Double(pixels[pixel + 2])
+            func average(rows: Range<Int>) -> Double {
+                var total = 0.0
+                for row in rows {
+                    for column in 0..<8 {
+                        let pixel = (row * 8 + column) * 4
+                        total += 0.2126 * Double(pixels[pixel]) + 0.7152 * Double(pixels[pixel + 1]) + 0.0722 * Double(pixels[pixel + 2])
+                    }
+                }
+                return total / Double(rows.count * 8) / 255
             }
-            value = total / 64 / 255
+            zones = PhotoZones(header: average(rows: 0..<3), body: average(rows: 4..<8))
         }
-        Self.luminanceCache.setObject(NSNumber(value: value), forKey: self)
-        return value
+        Self.zonesCache.setObject(PhotoZonesBox(zones), forKey: self)
+        return zones
     }
 }
 

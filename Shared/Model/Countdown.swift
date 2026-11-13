@@ -21,6 +21,7 @@ struct Countdown: Identifiable, Codable, Hashable {
     var progressStyle: ProgressDisplay = .bar
     var customGradient: CustomGradient?
     var autoFontColor: Bool = true
+    var zoneFontColor: Bool = true
     var fontColorHex: String?
     var sinceLabel: String = ""
     var liveActivity: LiveActivityOverride = .automatic
@@ -55,6 +56,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         progressStyle: ProgressDisplay = .bar,
         customGradient: CustomGradient? = nil,
         autoFontColor: Bool = true,
+        zoneFontColor: Bool = true,
         fontColorHex: String? = nil,
         sinceLabel: String = "",
         liveActivity: LiveActivityOverride = .automatic,
@@ -82,6 +84,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         self.progressStyle = progressStyle
         self.customGradient = customGradient
         self.autoFontColor = autoFontColor
+        self.zoneFontColor = zoneFontColor
         self.fontColorHex = fontColorHex
         self.sinceLabel = sinceLabel
         self.liveActivity = liveActivity
@@ -113,6 +116,7 @@ struct Countdown: Identifiable, Codable, Hashable {
         progressStyle = (try? container.decodeIfPresent(ProgressDisplay.self, forKey: .progressStyle)) ?? .bar
         customGradient = try? container.decodeIfPresent(CustomGradient.self, forKey: .customGradient)
         autoFontColor = (try? container.decodeIfPresent(Bool.self, forKey: .autoFontColor)) ?? true
+        zoneFontColor = (try? container.decodeIfPresent(Bool.self, forKey: .zoneFontColor)) ?? true
         fontColorHex = try? container.decodeIfPresent(String.self, forKey: .fontColorHex)
         sinceLabel = (try? container.decodeIfPresent(String.self, forKey: .sinceLabel)) ?? ""
         liveActivity = (try? container.decodeIfPresent(LiveActivityOverride.self, forKey: .liveActivity)) ?? .automatic
@@ -492,6 +496,7 @@ extension Countdown {
         progressStyle = local.progressStyle
         customGradient = local.customGradient
         autoFontColor = local.autoFontColor
+        zoneFontColor = local.zoneFontColor
         fontColorHex = local.fontColorHex
         sinceLabel = local.sinceLabel
         liveActivity = local.liveActivity

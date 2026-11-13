@@ -17,7 +17,7 @@ final class CloudSyncManager: CKSyncEngineDelegate {
     static let containerIdentifier = "iCloud.com.exaltedpixels.Hasta"
     static let recordType = "Countdown"
     static let zoneName = "Countdowns"
-    static let schemaVersion = 5
+    static let schemaVersion = 6
     static let imageFields = ["image", "extraImage0", "extraImage1", "extraImage2", "extraImage3"]
     private static let enabledKey = "iCloudSyncEnabled"
 

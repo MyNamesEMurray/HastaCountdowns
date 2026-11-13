@@ -288,6 +288,9 @@ struct CountdownEditorView: View {
     private var fontColorSection: some View {
         Section {
             Toggle("Auto Font Color", isOn: $draft.autoFontColor.animation())
+            if draft.autoFontColor && isPhotoBackground {
+                Toggle("Adapt to Each Area", isOn: $draft.zoneFontColor)
+            }
             if !draft.autoFontColor {
                 ColorPicker(
                     "Font Color",
@@ -301,10 +304,18 @@ struct CountdownEditorView: View {
         } header: {
             Text("Font Color")
         } footer: {
-            Text(draft.autoFontColor
-                ? "Picks light or dark text to match the background. With a slideshow, each photo gets its own."
-                : "This color is used on every background.")
+            Text(fontColorFooter)
         }
+    }
+
+    private var fontColorFooter: String {
+        if !draft.autoFontColor {
+            return String(localized: "This color is used on every background.")
+        }
+        if isPhotoBackground && draft.zoneFontColor {
+            return String(localized: "The icon and the text each pick light or dark to match the part of the photo behind them. With a slideshow, each photo gets its own colors.")
+        }
+        return String(localized: "Picks light or dark text to match the background. With a slideshow, each photo gets its own.")
     }
 
     private var gradientSection: some View {

@@ -276,6 +276,20 @@ struct CountdownMathTests {
         #expect(try JSONDecoder().decode([Countdown].self, from: Data(bad.utf8)).first?.customGradient == nil)
     }
 
+    @Test func photoZonesPickDarkTextPerAreaOrOverall() {
+        let brightTopDarkBottom = PhotoZones(header: 0.9, body: 0.2)
+        var countdown = Countdown(title: "T")
+        #expect(countdown.darkTextZones(brightTopDarkBottom) == (header: true, body: false))
+        countdown.zoneFontColor = false
+        let single = countdown.darkTextZones(brightTopDarkBottom)
+        #expect(!single.header && !single.body)
+        countdown.zoneFontColor = true
+        countdown.autoFontColor = false
+        let manual = countdown.darkTextZones(PhotoZones(header: 1, body: 1))
+        #expect(!manual.header && !manual.body)
+        #expect(Countdown(title: "T").zoneFontColor)
+    }
+
     @Test func fontColorDefaultsToAutoAndOldCustomStyleBecomesGradient() throws {
         #expect(Countdown(title: "T").autoFontColor)
         let json = ##"[{"id":"7C9C3D5E-1C1F-4F55-9E2D-1A2B3C4D5E6F","date":800000000,"style":"custom","autoFontColor":false,"fontColorHex":"#112233"}]"##
