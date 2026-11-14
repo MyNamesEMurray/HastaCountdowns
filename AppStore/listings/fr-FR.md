@@ -31,7 +31,10 @@ GRATUIT, SANS PIÈGE
 
 HASTA PREMIUM
 Un petit achat unique. Jamais d'abonnement.
-• Photos en arrière-plan, avec position et zoom
+• Fonds photo avec position et zoom, ou un diaporama de 5 photos maximum
+• Pivotez, recadrez et zoomez chaque photo
+• Barre ou anneau de progression et vos propres couleurs de dégradé
+• Activités en direct sur l'écran verrouillé et dans la Dynamic Island
 • Effets Live Photo : choisissez n'importe quelle image ou créez une pose longue
 • Polices et styles de widget supplémentaires
 • Couleurs personnalisées

@@ -17,6 +17,8 @@ final class CloudSyncManager: CKSyncEngineDelegate {
     static let containerIdentifier = "iCloud.com.exaltedpixels.Hasta"
     static let recordType = "Countdown"
     static let zoneName = "Countdowns"
+    static let schemaVersion = 6
+    static let imageFields = ["image", "extraImage0", "extraImage1", "extraImage2", "extraImage3"]
     private static let enabledKey = "iCloudSyncEnabled"
 
     static var isEnabledPreference: Bool {
@@ -123,6 +125,7 @@ final class CloudSyncManager: CKSyncEngineDelegate {
     func countdownDeleted(_ id: UUID) {
         guard let engine else { return }
         metadata.systemFields[id.uuidString] = nil
+        metadata.imageSignatures?[id.uuidString] = nil
         metadata.save()
         engine.state.add(pendingRecordZoneChanges: [.deleteRecord(recordID(for: id))])
     }
@@ -211,11 +214,13 @@ final class CloudSyncManager: CKSyncEngineDelegate {
         switch change.changeType {
         case .signIn, .switchAccounts:
             metadata.systemFields = [:]
+            metadata.imageSignatures = nil
             metadata.zoneConfirmed = nil
             metadata.save()
             if let engine { queueEverything(on: engine) }
         case .signOut:
             metadata.systemFields = [:]
+            metadata.imageSignatures = nil
             metadata.save()
             status = .unavailable(String(localized: "Sign in to iCloud to sync your countdowns."))
         @unknown default:
@@ -229,6 +234,7 @@ final class CloudSyncManager: CKSyncEngineDelegate {
         guard engine === self.engine else { return }
         if zoneExists != false || metadata.zoneConfirmed != true {
             metadata.systemFields = [:]
+            metadata.imageSignatures = nil
             metadata.save()
             queueEverything(on: engine)
             needsRequeueAfterFetch = true
@@ -269,14 +275,16 @@ final class CloudSyncManager: CKSyncEngineDelegate {
         for modification in changes.modifications {
             let record = modification.record
             guard !pendingDeletes.contains(record.recordID.recordName) else { continue }
-            guard let remote = countdown(from: record) else { continue }
+            guard let decoded = countdown(from: record) else { continue }
+            let (remote, needsPush) = reconciled(decoded, from: record)
             metadata.systemFields[record.recordID.recordName] = encodedSystemFields(of: record)
             if let local = store.countdown(with: remote.id), local.supersedes(remote) {
                 requeue.append(local.id)
                 continue
             }
-            importImage(from: record, for: remote)
+            importImages(from: record, for: remote)
             upserts.append(remote)
+            if needsPush { requeue.append(remote.id) }
         }
         if !changes.modifications.isEmpty {
             metadata.zoneConfirmed = true
@@ -293,6 +301,9 @@ final class CloudSyncManager: CKSyncEngineDelegate {
     private func handleSentRecordZoneChanges(_ sent: CKSyncEngine.Event.SentRecordZoneChanges) {
         for record in sent.savedRecords {
             metadata.systemFields[record.recordID.recordName] = encodedSystemFields(of: record)
+            if let signature = record["imageSig"] as? String {
+                metadata.setSignature(signature, for: record.recordID.recordName)
+            }
         }
         if !sent.savedRecords.isEmpty {
             metadata.zoneConfirmed = true
@@ -303,11 +314,13 @@ final class CloudSyncManager: CKSyncEngineDelegate {
             case .serverRecordChanged:
                 guard let serverRecord = failure.error.serverRecord else { continue }
                 metadata.systemFields[recordID.recordName] = encodedSystemFields(of: serverRecord)
-                if let remote = countdown(from: serverRecord),
-                   let local = store?.countdown(with: remote.id),
-                   remote.supersedes(local) {
-                    importImage(from: serverRecord, for: remote)
+                if let decoded = countdown(from: serverRecord),
+                   let local = store?.countdown(with: decoded.id),
+                   decoded.supersedes(local) {
+                    let (remote, needsPush) = reconciled(decoded, from: serverRecord)
+                    importImages(from: serverRecord, for: remote)
                     store?.applyRemoteChanges(upserts: [remote], deletions: [])
+                    if needsPush { engine?.state.add(pendingRecordZoneChanges: [.saveRecord(recordID)]) }
                 } else {
                     engine?.state.add(pendingRecordZoneChanges: [.saveRecord(recordID)])
                 }
@@ -316,6 +329,7 @@ final class CloudSyncManager: CKSyncEngineDelegate {
                 engine?.state.add(pendingRecordZoneChanges: [.saveRecord(recordID)])
             case .unknownItem:
                 metadata.systemFields[recordID.recordName] = nil
+                metadata.imageSignatures?[recordID.recordName] = nil
                 engine?.state.add(pendingRecordZoneChanges: [.saveRecord(recordID)])
             case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable, .notAuthenticated, .operationCancelled, .requestRateLimited:
                 break
@@ -342,11 +356,16 @@ final class CloudSyncManager: CKSyncEngineDelegate {
         let record = restoredRecord(named: recordID.recordName) ?? CKRecord(recordType: Self.recordType, recordID: recordID)
         record["payload"] = try? Self.encoder.encode(countdown)
         record["modifiedAt"] = countdown.modifiedAt
-        if let imageID = countdown.backgroundImageID,
-           FileManager.default.fileExists(atPath: BackgroundImageStore.url(for: imageID).path()) {
-            record["image"] = CKAsset(fileURL: BackgroundImageStore.url(for: imageID))
-        } else {
-            record["image"] = nil
+        record["schema"] = Self.schemaVersion
+        let slots = countdown.backgroundImageSlots.map { id in
+            id.flatMap { FileManager.default.fileExists(atPath: BackgroundImageStore.url(for: $0).path()) ? $0 : nil }
+        }
+        let signature = slots.map { $0 ?? "" }.joined(separator: ",")
+        if metadata.imageSignatures?[recordID.recordName] != signature {
+            record["imageSig"] = signature
+            for (field, id) in zip(Self.imageFields, slots) {
+                record[field] = id.map { CKAsset(fileURL: BackgroundImageStore.url(for: $0)) }
+            }
         }
         return record
     }
@@ -356,13 +375,24 @@ final class CloudSyncManager: CKSyncEngineDelegate {
         return try? Self.decoder.decode(Countdown.self, from: payload)
     }
 
-    private func importImage(from record: CKRecord, for countdown: Countdown) {
-        guard let imageID = countdown.backgroundImageID,
-              let asset = record["image"] as? CKAsset,
-              let source = asset.fileURL else { return }
-        let destination = BackgroundImageStore.url(for: imageID)
-        guard !FileManager.default.fileExists(atPath: destination.path()) else { return }
-        try? FileManager.default.copyItem(at: source, to: destination)
+    private func importImages(from record: CKRecord, for countdown: Countdown) {
+        for (field, id) in zip(Self.imageFields, countdown.backgroundImageSlots) {
+            guard let id, let source = (record[field] as? CKAsset)?.fileURL else { continue }
+            let destination = BackgroundImageStore.url(for: id)
+            guard !FileManager.default.fileExists(atPath: destination.path()) else { continue }
+            try? FileManager.default.copyItem(at: source, to: destination)
+        }
+        if let signature = record["imageSig"] as? String {
+            metadata.setSignature(signature, for: record.recordID.recordName)
+        }
+    }
+
+    private func reconciled(_ remote: Countdown, from record: CKRecord) -> (countdown: Countdown, needsPush: Bool) {
+        guard (record["schema"] as? Int ?? 1) < Self.schemaVersion,
+              let local = store?.countdown(with: remote.id) else { return (remote, false) }
+        var merged = remote
+        merged.keepNewFields(from: local)
+        return (merged, true)
     }
 
     private func restoredRecord(named name: String) -> CKRecord? {
@@ -406,6 +436,13 @@ struct SyncMetadata: Codable {
     var stateSerialization: CKSyncEngine.State.Serialization?
     var systemFields: [String: Data] = [:]
     var zoneConfirmed: Bool?
+    var imageSignatures: [String: String]?
+
+    mutating func setSignature(_ signature: String, for name: String) {
+        var all = imageSignatures ?? [:]
+        all[name] = signature
+        imageSignatures = all
+    }
 
     private static var fileURL: URL {
         URL.applicationSupportDirectory.appending(path: "CloudSync.json")

@@ -31,7 +31,10 @@ GRATIS, SIN TRUCOS
 
 HASTA PREMIUM
 Una pequeña compra única. Sin suscripción, nunca.
-• Fotos de fondo, con posición y zoom
+• Fondos con foto, con posición y zoom, o una presentación de hasta 5 fotos
+• Gira, recorta y amplía cada foto
+• Barra o anillo de progreso y tus propios colores de degradado
+• Actividades en vivo en la pantalla bloqueada y la Dynamic Island
 • Efectos de Live Photo: elige cualquier fotograma o crea una larga exposición
 • Tipografías y estilos de widget adicionales
 • Colores personalizados

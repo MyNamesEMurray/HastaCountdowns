@@ -22,6 +22,9 @@ final class CountdownStore {
         case nil:
             countdowns = CountdownRepository.load()
             isScreenshotMode = false
+            if !countdowns.isEmpty {
+                BackgroundImageStore.removeUnreferenced(keeping: Set(countdowns.flatMap(\.allBackgroundImageIDs)))
+            }
         }
         let sync = CloudSyncManager(store: self)
         self.sync = sync
@@ -47,10 +50,7 @@ final class CountdownStore {
             countdown.timeZoneIdentifier = TimeZone.current.identifier
         }
         if let index = countdowns.firstIndex(where: { $0.id == countdown.id }) {
-            let previousImage = countdowns[index].backgroundImageID
-            if let previousImage, previousImage != countdown.backgroundImageID {
-                BackgroundImageStore.delete(previousImage)
-            }
+            deleteImages(of: countdowns[index], keeping: countdown)
             countdowns[index] = countdown
         } else {
             countdowns.append(countdown)
@@ -66,6 +66,8 @@ final class CountdownStore {
         copy.createdAt = .now
         copy.modifiedAt = .now
         copy.backgroundImageID = nil
+        copy.extraBackgroundImageIDs = []
+        copy.extraBackgroundFramings = [:]
         copy.backgroundFraming = nil
         countdowns.append(copy)
         persist()
@@ -73,9 +75,7 @@ final class CountdownStore {
     }
 
     func delete(_ countdown: Countdown) {
-        if let imageID = countdown.backgroundImageID {
-            BackgroundImageStore.delete(imageID)
-        }
+        deleteImages(of: countdown, keeping: nil)
         countdowns.removeAll { $0.id == countdown.id }
         persist()
         sync?.countdownDeleted(countdown.id)
@@ -85,18 +85,15 @@ final class CountdownStore {
         guard !upserts.isEmpty || !deletions.isEmpty else { return }
         for remote in upserts {
             if let index = countdowns.firstIndex(where: { $0.id == remote.id }) {
-                let previousImage = countdowns[index].backgroundImageID
-                if let previousImage, previousImage != remote.backgroundImageID {
-                    BackgroundImageStore.delete(previousImage)
-                }
+                deleteImages(of: countdowns[index], keeping: remote)
                 countdowns[index] = remote
             } else {
                 countdowns.append(remote)
             }
         }
         for id in deletions {
-            if let imageID = countdown(with: id)?.backgroundImageID {
-                BackgroundImageStore.delete(imageID)
+            if let existing = countdown(with: id) {
+                deleteImages(of: existing, keeping: nil)
             }
             countdowns.removeAll { $0.id == id }
         }
@@ -111,6 +108,15 @@ final class CountdownStore {
     func refreshSideEffects() {
         WidgetCenter.shared.reloadAllTimelines()
         ReminderScheduler.reschedule(countdowns)
+        LiveActivityManager.sync(countdowns, isPremium: Premium.isUnlocked)
+        LiveActivityPushService.update(countdowns, isPremium: Premium.isUnlocked)
+    }
+
+    private func deleteImages(of old: Countdown, keeping new: Countdown?) {
+        let kept = Set(new?.allBackgroundImageIDs ?? [])
+        for id in old.allBackgroundImageIDs where !kept.contains(id) {
+            BackgroundImageStore.delete(id)
+        }
     }
 
     private func persist() {

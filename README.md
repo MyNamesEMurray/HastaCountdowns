@@ -44,6 +44,8 @@ Both workflows use GitHub's `macos-26` runner. To use a different runner, set th
 
 The app and widget share data through the App Group `group.com.exaltedpixels.Hasta`. Countdowns are stored as JSON in the group container, and photo backgrounds are stored as downscaled JPEGs alongside them.
 
+Live Activity start notifications (Premium, optional) post upcoming countdowns to the Cloudflare Worker in `server/live-activity-push`, which sends an APNs push-to-start before the event. That server must be deployed for the setting to do anything.
+
 iCloud Sync (free, on by default) uses `CKSyncEngine` with the private database of the CloudKit container `iCloud.com.exaltedpixels.Hasta`. Each countdown is a `Countdown` record in the `Countdowns` zone with a JSON `payload`, a `modifiedAt` date, and an optional `image` asset; the newest edit wins on conflicts.
 
 ## Free vs Premium
@@ -52,9 +54,12 @@ iCloud Sync (free, on by default) uses `CKSyncEngine` with the private database 
 |---|---|
 | Unlimited countdowns | Photo backgrounds |
 | Every widget size | Serif, Mono and Condensed typefaces |
-| Repeating events, count up | Vivid and Night widget styles |
+| Repeating events, count up | Vivid, Night, Glass, Gradient (with your own colors) and Paper widget styles |
 | Days, weeks or months | Custom colors |
 | Reminders | Alternate app icons |
+| Plain share card | Styled and photo share cards |
+| | Photo slideshows, progress bar or ring, custom gradient colors |
+| | Live Activity and Dynamic Island for the last 24 hours |
 | Rounded and Standard typefaces, Classic and Minimal styles | |
 
 Premium is the non-consumable product `com.exaltedpixels.Hasta.premium`. The unlocked state is cached in the App Group so widgets can respect it.

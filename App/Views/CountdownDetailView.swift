@@ -43,9 +43,7 @@ struct CountdownDetailView: View {
                 Button("Edit") { onEdit(original) }
             }
             ToolbarItem(placement: .secondaryAction) {
-                ShareLink(item: countdown.shareText()) {
-                    Label("Share", systemImage: "square.and.arrow.up")
-                }
+                CountdownShareLink(countdown: original)
             }
             ToolbarItem(placement: .secondaryAction) {
                 Button("Delete", systemImage: "trash", role: .destructive) {

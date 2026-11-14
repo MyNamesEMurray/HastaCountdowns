@@ -10,7 +10,7 @@ enum CountdownRepository {
         do {
             return try decoder.decode([Countdown].self, from: data)
         } catch {
-            try? data.write(to: url.deletingLastPathComponent().appending(path: "Countdowns.bad.json"), options: .atomic)
+            try? data.write(to: url.deletingLastPathComponent().appending(path: "Countdowns.bad-\(Int(Date.now.timeIntervalSince1970)).json"), options: .atomic)
             return []
         }
     }

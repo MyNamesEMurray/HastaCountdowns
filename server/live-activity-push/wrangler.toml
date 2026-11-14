@@ -1,0 +1,19 @@
+name = "hasta-live-activity-push"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+routes = [{ pattern = "push.hasta.day", custom_domain = true }]
+
+[observability]
+enabled = true
+
+[triggers]
+crons = ["* * * * *"]
+
+[[kv_namespaces]]
+binding = "SCHEDULE"
+id = "331d330b1cb44f2cb9f3f90d413e5442"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "hasta-live-activity"
+database_id = "2f4220ae-2fd9-460e-a730-2e0f5027c3e3"

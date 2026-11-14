@@ -77,10 +77,12 @@ struct HomeWidgetPreview<Content: View>: View {
 
     var body: some View {
         content
+            .environment(\.photoZones, image?.zones(framing: countdown.backgroundFraming, containerSize: size))
             .padding(metrics.contentMargin)
             .frame(width: size.width, height: size.height)
             .background {
                 CountdownBackground(countdown: countdown, image: image)
+                    .allowsHitTesting(false)
             }
             .clipShape(.rect(cornerRadius: metrics.cornerRadius, style: .continuous))
             .shadow(color: .black.opacity(0.12), radius: 12, y: 5)
@@ -92,10 +94,22 @@ struct WidgetFamilyPreview: View {
     let image: UIImage?
     @Binding var family: PreviewFamily
     var now: Date = .now
+    var maxPreviewHeight: CGFloat?
+
+    private func naturalHeight(_ metrics: WidgetMetrics) -> CGFloat {
+        switch family {
+        case .small: metrics.small.height
+        case .medium: metrics.medium.height
+        case .large: metrics.large.height
+        case .lockScreen: 260
+        }
+    }
 
     var body: some View {
         let metrics = WidgetMetrics.current
-        VStack(spacing: 16) {
+        let natural = naturalHeight(metrics)
+        let scale = min(1, (maxPreviewHeight ?? natural) / natural)
+        VStack(spacing: 12) {
             Group {
                 switch family {
                 case .small:
@@ -114,7 +128,9 @@ struct WidgetFamilyPreview: View {
                     LockScreenPreview(countdown: countdown, now: now, metrics: metrics)
                 }
             }
+            .scaleEffect(scale)
             .frame(maxWidth: .infinity)
+            .frame(height: natural * scale)
             .transition(.opacity.combined(with: .scale(scale: 0.96)))
 
             Picker("Widget Size", selection: $family.animation(.snappy)) {

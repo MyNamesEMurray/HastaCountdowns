@@ -59,6 +59,20 @@ enum BackgroundImageStore {
         return UIImage(cgImage: cropped)
     }
 
+    /// Saves a rotated copy as a new photo and returns its id. The original is left for the caller to drop.
+    static func saveRotated(_ id: String, quarterTurns: Int) -> String? {
+        guard let rotated = image(for: id, maxPixelSize: maxStoredPixelSize)?.rotated(quarterTurns: quarterTurns),
+              let data = rotated.jpegData(compressionQuality: 0.9) else { return nil }
+        return try? save(data)
+    }
+
+    static func removeUnreferenced(keeping ids: Set<String>) {
+        let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
+        for file in files where file.pathExtension == "jpg" && !ids.contains(file.deletingPathExtension().lastPathComponent) {
+            try? FileManager.default.removeItem(at: file)
+        }
+    }
+
     static func delete(_ id: String) {
         try? FileManager.default.removeItem(at: url(for: id))
     }
@@ -72,5 +86,21 @@ enum BackgroundImageStore {
             kCGImageSourceThumbnailMaxPixelSize: maxPixelSize,
         ]
         return CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
+    }
+}
+
+extension UIImage {
+    func rotated(quarterTurns: Int) -> UIImage {
+        let turns = ((quarterTurns % 4) + 4) % 4
+        guard turns != 0 else { return self }
+        let newSize = turns % 2 == 1 ? CGSize(width: size.height, height: size.width) : size
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = scale
+        format.opaque = true
+        return UIGraphicsImageRenderer(size: newSize, format: format).image { context in
+            context.cgContext.translateBy(x: newSize.width / 2, y: newSize.height / 2)
+            context.cgContext.rotate(by: CGFloat(turns) * .pi / 2)
+            draw(in: CGRect(x: -size.width / 2, y: -size.height / 2, width: size.width, height: size.height))
+        }
     }
 }

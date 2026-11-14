@@ -12,6 +12,7 @@ on:
       - "AppStore/**"
       - "docs/**"
       - "site/**"
+      - "server/**"
   workflow_dispatch:
 
 concurrency:

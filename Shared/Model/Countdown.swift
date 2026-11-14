@@ -15,6 +15,16 @@ struct Countdown: Identifiable, Codable, Hashable {
     var typeface: Typeface = .rounded
     var backgroundImageID: String?
     var backgroundFraming: BackgroundFraming?
+    var extraBackgroundImageIDs: [String] = []
+    var extraBackgroundFramings: [String: BackgroundFraming] = [:]
+    var showsProgress: Bool = false
+    var progressStyle: ProgressDisplay = .bar
+    var customGradient: CustomGradient?
+    var autoFontColor: Bool = true
+    var zoneFontColor: Bool = true
+    var fontColorHex: String?
+    var sinceLabel: String = ""
+    var liveActivity: LiveActivityOverride = .automatic
     var reminders: [ReminderRule] = [.onTheDay]
     var createdAt: Date = .now
     var modifiedAt: Date = .now
@@ -40,6 +50,16 @@ struct Countdown: Identifiable, Codable, Hashable {
         typeface: Typeface = .rounded,
         backgroundImageID: String? = nil,
         backgroundFraming: BackgroundFraming? = nil,
+        extraBackgroundImageIDs: [String] = [],
+        extraBackgroundFramings: [String: BackgroundFraming] = [:],
+        showsProgress: Bool = false,
+        progressStyle: ProgressDisplay = .bar,
+        customGradient: CustomGradient? = nil,
+        autoFontColor: Bool = true,
+        zoneFontColor: Bool = true,
+        fontColorHex: String? = nil,
+        sinceLabel: String = "",
+        liveActivity: LiveActivityOverride = .automatic,
         reminders: [ReminderRule] = [.onTheDay],
         createdAt: Date = .now,
         modifiedAt: Date? = nil
@@ -58,6 +78,16 @@ struct Countdown: Identifiable, Codable, Hashable {
         self.typeface = typeface
         self.backgroundImageID = backgroundImageID
         self.backgroundFraming = backgroundFraming
+        self.extraBackgroundImageIDs = extraBackgroundImageIDs
+        self.extraBackgroundFramings = extraBackgroundFramings
+        self.showsProgress = showsProgress
+        self.progressStyle = progressStyle
+        self.customGradient = customGradient
+        self.autoFontColor = autoFontColor
+        self.zoneFontColor = zoneFontColor
+        self.fontColorHex = fontColorHex
+        self.sinceLabel = sinceLabel
+        self.liveActivity = liveActivity
         self.reminders = reminders
         self.createdAt = createdAt
         self.modifiedAt = modifiedAt ?? createdAt
@@ -75,10 +105,21 @@ struct Countdown: Identifiable, Codable, Hashable {
         color = (try? container.decodeIfPresent(CountdownColor.self, forKey: .color)) ?? .blue
         customColorHex = try container.decodeIfPresent(String.self, forKey: .customColorHex)
         unit = (try? container.decodeIfPresent(DisplayUnit.self, forKey: .unit)) ?? .days
-        style = (try? container.decodeIfPresent(WidgetStyle.self, forKey: .style)) ?? .classic
+        let rawStyle = try? container.decodeIfPresent(String.self, forKey: .style)
+        style = rawStyle == "custom" ? .gradient : rawStyle.flatMap(WidgetStyle.init(rawValue:)) ?? .classic
         typeface = (try? container.decodeIfPresent(Typeface.self, forKey: .typeface)) ?? .rounded
         backgroundImageID = try container.decodeIfPresent(String.self, forKey: .backgroundImageID)
         backgroundFraming = try? container.decodeIfPresent(BackgroundFraming.self, forKey: .backgroundFraming)
+        extraBackgroundImageIDs = (try? container.decodeIfPresent([String].self, forKey: .extraBackgroundImageIDs)) ?? []
+        extraBackgroundFramings = (try? container.decodeIfPresent([String: BackgroundFraming].self, forKey: .extraBackgroundFramings)) ?? [:]
+        showsProgress = (try? container.decodeIfPresent(Bool.self, forKey: .showsProgress)) ?? false
+        progressStyle = (try? container.decodeIfPresent(ProgressDisplay.self, forKey: .progressStyle)) ?? .bar
+        customGradient = try? container.decodeIfPresent(CustomGradient.self, forKey: .customGradient)
+        autoFontColor = (try? container.decodeIfPresent(Bool.self, forKey: .autoFontColor)) ?? true
+        zoneFontColor = (try? container.decodeIfPresent(Bool.self, forKey: .zoneFontColor)) ?? true
+        fontColorHex = try? container.decodeIfPresent(String.self, forKey: .fontColorHex)
+        sinceLabel = (try? container.decodeIfPresent(String.self, forKey: .sinceLabel)) ?? ""
+        liveActivity = (try? container.decodeIfPresent(LiveActivityOverride.self, forKey: .liveActivity)) ?? .automatic
         if let rules = try? container.decodeIfPresent([ReminderRule].self, forKey: .reminders) {
             reminders = rules
         } else if let legacy = try? container.decodeIfPresent([LegacyReminder].self, forKey: .reminders) {
@@ -302,7 +343,7 @@ enum CountdownColor: String, Codable, CaseIterable, Identifiable {
 }
 
 enum WidgetStyle: String, Codable, CaseIterable, Identifiable {
-    case classic, minimal, vivid, night
+    case classic, minimal, vivid, night, glass, gradient, paper
 
     var id: String { rawValue }
 
@@ -312,15 +353,62 @@ enum WidgetStyle: String, Codable, CaseIterable, Identifiable {
         case .minimal: String(localized: "Minimal")
         case .vivid: String(localized: "Vivid")
         case .night: String(localized: "Night")
+        case .glass: String(localized: "Glass")
+        case .gradient: String(localized: "Gradient")
+        case .paper: String(localized: "Paper")
         }
     }
 
     var isPremium: Bool {
         switch self {
         case .classic, .minimal: false
-        case .vivid, .night: true
+        case .vivid, .night, .glass, .gradient, .paper: true
         }
     }
+}
+
+struct PhotoSet: Equatable {
+    var primary: String?
+    var framing: BackgroundFraming?
+    var extras: [String]
+    var extraFramings: [String: BackgroundFraming]
+}
+
+enum GradientDirection: String, Codable, CaseIterable, Identifiable {
+    case vertical, diagonal, horizontal
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .vertical: String(localized: "Vertical")
+        case .diagonal: String(localized: "Diagonal")
+        case .horizontal: String(localized: "Horizontal")
+        }
+    }
+}
+
+struct CustomGradient: Codable, Hashable {
+    var startHex: String
+    var endHex: String
+    var direction: GradientDirection = .diagonal
+}
+
+enum ProgressDisplay: String, Codable, CaseIterable, Identifiable {
+    case bar, ring
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .bar: String(localized: "Bar")
+        case .ring: String(localized: "Ring")
+        }
+    }
+}
+
+enum LiveActivityOverride: String, Codable {
+    case automatic, on, off
 }
 
 enum Typeface: String, Codable, CaseIterable, Identifiable {
@@ -347,10 +435,6 @@ enum Typeface: String, Codable, CaseIterable, Identifiable {
 }
 
 extension Countdown {
-    var usesPremiumFeatures: Bool {
-        style.isPremium || typeface.isPremium || customColorHex != nil || backgroundImageID != nil
-    }
-
     func resolved(isPremium: Bool) -> Countdown {
         guard !isPremium else { return self }
         var copy = self
@@ -359,7 +443,107 @@ extension Countdown {
         copy.customColorHex = nil
         copy.backgroundImageID = nil
         copy.backgroundFraming = nil
+        copy.extraBackgroundImageIDs = []
+        copy.extraBackgroundFramings = [:]
+        copy.customGradient = nil
+        copy.showsProgress = false
+        copy.sinceLabel = ""
         return copy
+    }
+
+    static let maxExtraBackgrounds = 4
+
+    var allBackgroundImageIDs: [String] {
+        (backgroundImageID.map { [$0] } ?? []) + extraBackgroundImageIDs
+    }
+
+    func framing(for id: String) -> BackgroundFraming? {
+        id == backgroundImageID ? backgroundFraming : extraBackgroundFramings[id]
+    }
+
+    mutating func setFraming(_ framing: BackgroundFraming, for id: String) {
+        let stored = framing == .centered ? nil : framing
+        if id == backgroundImageID {
+            backgroundFraming = stored
+        } else {
+            extraBackgroundFramings[id] = stored
+        }
+    }
+
+    var photoSet: PhotoSet {
+        PhotoSet(primary: backgroundImageID, framing: backgroundFraming, extras: extraBackgroundImageIDs, extraFramings: extraBackgroundFramings)
+    }
+
+    mutating func apply(_ set: PhotoSet) {
+        backgroundImageID = set.primary
+        backgroundFraming = set.framing
+        extraBackgroundImageIDs = set.extras
+        extraBackgroundFramings = set.extraFramings
+    }
+
+    mutating func replaceBackground(_ old: String, with new: String) {
+        if backgroundImageID == old {
+            backgroundImageID = new
+            backgroundFraming = nil
+        } else if let index = extraBackgroundImageIDs.firstIndex(of: old) {
+            extraBackgroundImageIDs[index] = new
+            extraBackgroundFramings[old] = nil
+        }
+    }
+
+    mutating func setBackgrounds(_ ids: [String]) {
+        backgroundImageID = ids.first
+        backgroundFraming = nil
+        extraBackgroundImageIDs = Array(ids.dropFirst().prefix(Self.maxExtraBackgrounds))
+        extraBackgroundFramings = [:]
+    }
+
+    mutating func removeBackground(_ id: String) {
+        if id == backgroundImageID {
+            let next = extraBackgroundImageIDs.first
+            backgroundImageID = next
+            backgroundFraming = next.flatMap { extraBackgroundFramings[$0] }
+            if let next {
+                extraBackgroundImageIDs.removeFirst()
+                extraBackgroundFramings[next] = nil
+            }
+        } else {
+            extraBackgroundImageIDs.removeAll { $0 == id }
+            extraBackgroundFramings[id] = nil
+        }
+    }
+
+    var backgroundImageSlots: [String?] {
+        [backgroundImageID] + (0..<Self.maxExtraBackgrounds).map { extraBackgroundImageIDs.indices.contains($0) ? extraBackgroundImageIDs[$0] : nil }
+    }
+
+    mutating func keepNewFields(from local: Countdown) {
+        extraBackgroundImageIDs = local.extraBackgroundImageIDs
+        extraBackgroundFramings = local.extraBackgroundFramings
+        showsProgress = local.showsProgress
+        progressStyle = local.progressStyle
+        customGradient = local.customGradient
+        autoFontColor = local.autoFontColor
+        zoneFontColor = local.zoneFontColor
+        fontColorHex = local.fontColorHex
+        sinceLabel = local.sinceLabel
+        liveActivity = local.liveActivity
+    }
+
+    mutating func setLiveActivity(_ enabled: Bool, globalEnabled: Bool) {
+        liveActivity = enabled == globalEnabled ? .automatic : (enabled ? .on : .off)
+    }
+
+    func startsLiveActivity(globalEnabled: Bool) -> Bool {
+        switch liveActivity {
+        case .automatic: globalEnabled
+        case .on: true
+        case .off: false
+        }
+    }
+
+    var trimmedSinceLabel: String {
+        sinceLabel.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     func supersedes(_ other: Countdown) -> Bool {
@@ -379,9 +563,9 @@ extension Countdown {
         func days(_ n: Int) -> Date { calendar.date(byAdding: .day, value: n, to: today) ?? today }
         func id(_ suffix: String) -> UUID { UUID(uuidString: "00000000-0000-0000-0000-0000000000\(suffix)")! }
         return [
-            Countdown(id: id("01"), title: String(localized: "Tokyo Trip"), date: days(42), symbol: "airplane", color: .blue, createdAt: days(-30)),
+            Countdown(id: id("01"), title: String(localized: "Tokyo Trip"), date: days(42), symbol: "airplane", color: .blue, showsProgress: true, createdAt: days(-30)),
             Countdown(id: id("02"), title: String(localized: "Maya's Birthday"), date: days(9), repeatRule: .yearly, symbol: "birthday.cake.fill", color: .pink, createdAt: days(-200)),
-            Countdown(id: id("03"), title: String(localized: "Concert"), date: days(17), symbol: "music.mic", color: .purple, style: .vivid, createdAt: days(-12)),
+            Countdown(id: id("03"), title: String(localized: "Concert"), date: days(17), symbol: "music.mic", color: .purple, style: .gradient, showsProgress: true, progressStyle: .ring, customGradient: CustomGradient(startHex: "#7B2FF7", endHex: "#F107A3"), createdAt: days(-12)),
             Countdown(id: id("04"), title: String(localized: "Marathon"), date: days(88), symbol: "figure.run", color: .orange, unit: .weeks, createdAt: days(-60)),
             Countdown(id: id("05"), title: String(localized: "Dinner Reservation at Lucia's Trattoria"), date: Date.now.addingTimeInterval(5 * 3_600 + 20 * 60), isAllDay: false, symbol: "fork.knife", color: .green, createdAt: days(-3)),
         ]

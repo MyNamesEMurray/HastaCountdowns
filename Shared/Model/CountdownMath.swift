@@ -262,6 +262,18 @@ extension Countdown {
         return calendar.isDate(target, inSameDayAs: now) && target > now
     }
 
+    func isSinceToday(at now: Date = .now, calendar: Calendar = .current) -> Bool {
+        guard !isAllDay else { return false }
+        let target = nextOccurrence(after: now, calendar: calendar)
+        return target <= now && now.timeIntervalSince(target) < 86_400
+    }
+
+    func subtitle(status: CountdownStatus, at now: Date, style: Date.FormatStyle.DateStyle) -> String {
+        let date = formattedDate(at: now, style: style)
+        guard status.isPast, !trimmedSinceLabel.isEmpty else { return date }
+        return "\(trimmedSinceLabel) · \(date)"
+    }
+
     func formattedDate(at now: Date = .now, style: Date.FormatStyle.DateStyle = .abbreviated) -> String {
         let target = nextOccurrence(after: now)
         if isAllDay {
@@ -283,6 +295,7 @@ extension Countdown {
         let isPast = end < now
         if !isPast && !isAllDay && end.timeIntervalSince(now) < 86_400 { return [] }
         if isAllDay && calendar.isDate(target, inSameDayAs: now) { return [] }
+        if isPast && !isAllDay && now.timeIntervalSince(end) < 86_400 { return [] }
 
         let from = isPast ? end : now
         let to = isPast ? now : end
@@ -303,6 +316,25 @@ extension Countdown {
             return [segment(.months, months), segment(.days, days), segment(.hours, hours)]
         }
         return [segment(.days, days), segment(.hours, hours)]
+    }
+}
+
+extension Countdown {
+    func progress(at now: Date = .now, calendar: Calendar = .current) -> Double? {
+        guard showsProgress, repeatRule == .never else { return nil }
+        let end = anchorDate(calendar: calendar)
+        let total = end.timeIntervalSince(createdAt)
+        guard total > 0 else { return nil }
+        return min(1, max(0, now.timeIntervalSince(createdAt) / total))
+    }
+}
+
+extension Countdown {
+    static let slideshowInterval: TimeInterval = 3_600
+
+    static func slideshowIndex(at date: Date, count: Int) -> Int {
+        guard count > 1 else { return 0 }
+        return Int(date.timeIntervalSince1970 / slideshowInterval) % count
     }
 }
 

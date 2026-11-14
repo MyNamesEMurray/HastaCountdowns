@@ -31,7 +31,10 @@ KOSTENLOS, OHNE HAKEN
 
 HASTA PREMIUM
 Ein kleiner, einmaliger Kauf. Niemals ein Abo.
-• Fotohintergründe mit Position und Zoom
+• Fotohintergründe mit Position und Zoom, auch als Diashow mit bis zu 5 Fotos
+• Jedes Foto drehen, zuschneiden und zoomen
+• Fortschrittsbalken oder -ring und eigene Verlaufsfarben
+• Live-Aktivitäten auf dem Sperrbildschirm und in der Dynamic Island
 • Live Photo-Effekte: Wähle ein beliebiges Bild oder erstelle eine Langzeitbelichtung
 • Zusätzliche Schriften und Widget-Stile
 • Eigene Farben

@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import Testing
 @testable import Hasta
 
@@ -115,6 +116,13 @@ struct CountdownMathTests {
         #expect(try JSONDecoder().decode(RepeatRule.self, from: Data("\"weekly\"".utf8)) == .weekly)
     }
 
+    @Test func timedEventJustPassedCountsUpInsteadOfZeroSegments() {
+        let countdown = Countdown(title: "Dinner", date: date("2026-10-02T14:30:00"), isAllDay: false)
+        #expect(countdown.segments(at: now, calendar: calendar).isEmpty)
+        #expect(countdown.isSinceToday(at: now, calendar: calendar))
+        #expect(!countdown.isSinceToday(at: date("2026-10-03T15:00:00"), calendar: calendar))
+    }
+
     @Test func liveTimerForTimedEventLaterToday() {
         let countdown = Countdown(title: "Dinner", date: date("2026-10-02T19:00:00"), isAllDay: false)
         #expect(countdown.isLiveToday(at: now, calendar: calendar))
@@ -128,6 +136,320 @@ struct CountdownMathTests {
         #expect(resolved.customColorHex == nil)
         #expect(resolved.backgroundImageID == nil)
         #expect(countdown.resolved(isPremium: true) == countdown)
+    }
+
+    @Test func newStylesAndProgressAreStrippedWhenLocked() {
+        for style in [WidgetStyle.glass, .gradient, .paper] {
+            let countdown = Countdown(title: "Styled", style: style, showsProgress: true)
+            let resolved = countdown.resolved(isPremium: false)
+            #expect(resolved.style == .classic)
+            #expect(!resolved.showsProgress)
+        }
+    }
+
+    @Test func slideshowAndSinceLabelAreStrippedWhenLocked() {
+        let countdown = Countdown(title: "Us", backgroundImageID: "a", extraBackgroundImageIDs: ["b", "c"], sinceLabel: "Together")
+        #expect(countdown.allBackgroundImageIDs == ["a", "b", "c"])
+        let resolved = countdown.resolved(isPremium: false)
+        #expect(resolved.allBackgroundImageIDs.isEmpty)
+        #expect(resolved.sinceLabel.isEmpty)
+    }
+
+    @Test func subtitleUsesSinceLabelOnlyWhenPast() {
+        let countdown = Countdown(title: "Us", date: date("2026-09-02T00:00:00"), sinceLabel: " Together ")
+        let past = countdown.status(at: now, calendar: calendar)
+        #expect(countdown.subtitle(status: past, at: now, style: .abbreviated).hasPrefix("Together · "))
+        let future = Countdown(title: "Us", date: date("2026-12-02T00:00:00"), sinceLabel: "Together")
+        #expect(!future.subtitle(status: future.status(at: now, calendar: calendar), at: now, style: .abbreviated).contains("Together"))
+    }
+
+    @Test func liveActivitiesPickSoonestWithinWindow() {
+        let soon = Countdown(title: "Soon", date: now.addingTimeInterval(3_600), isAllDay: false)
+        let later = Countdown(title: "Later", date: now.addingTimeInterval(7_200), isAllDay: false)
+        let far = Countdown(title: "Far", date: now.addingTimeInterval(86_400), isAllDay: false)
+        let past = Countdown(title: "Past", date: now.addingTimeInterval(-60), isAllDay: false)
+        let due = LiveActivityManager.due([far, later, past, soon], now: now, window: 8 * 3_600)
+        #expect(due.map(\.0.title) == ["Soon", "Later"])
+    }
+
+    @Test func slideshowIndexAdvancesEveryHour() {
+        let base = Date(timeIntervalSince1970: 1_790_000_000)
+        let hourStart = Date(timeIntervalSince1970: Double(Int(base.timeIntervalSince1970 / 3_600) * 3_600))
+        #expect(Countdown.slideshowIndex(at: hourStart.addingTimeInterval(3_599), count: 3) == Countdown.slideshowIndex(at: hourStart, count: 3))
+        #expect(Countdown.slideshowIndex(at: hourStart.addingTimeInterval(3_600), count: 3) == (Countdown.slideshowIndex(at: hourStart, count: 3) + 1) % 3)
+        #expect(Countdown.slideshowIndex(at: base, count: 1) == 0)
+    }
+
+    @Test func eachSlideshowPhotoKeepsItsOwnFraming() {
+        var countdown = Countdown(title: "Us")
+        countdown.setBackgrounds(["a", "b", "c"])
+        let zoomed = BackgroundFraming(focusX: 0.2, focusY: 0.3, zoom: 2)
+        countdown.setFraming(zoomed, for: "a")
+        countdown.setFraming(zoomed, for: "c")
+        #expect(countdown.framing(for: "a") == zoomed)
+        #expect(countdown.framing(for: "b") == nil)
+        #expect(countdown.framing(for: "c") == zoomed)
+        countdown.removeBackground("a")
+        #expect(countdown.backgroundImageID == "b")
+        #expect(countdown.extraBackgroundImageIDs == ["c"])
+        #expect(countdown.framing(for: "c") == zoomed)
+        countdown.removeBackground("c")
+        countdown.removeBackground("b")
+        #expect(countdown.allBackgroundImageIDs.isEmpty)
+    }
+
+    @Test func oldRecordsKeepNewFieldsFromLocalCopy() {
+        let local = Countdown(title: "Us", extraBackgroundImageIDs: ["b"], showsProgress: true, sinceLabel: "Together")
+        var remote = Countdown(id: local.id, title: "Us edited")
+        remote.keepNewFields(from: local)
+        #expect(remote.extraBackgroundImageIDs == ["b"])
+        #expect(remote.showsProgress)
+        #expect(remote.sinceLabel == "Together")
+        #expect(local.backgroundImageSlots.count == 5)
+    }
+
+    @Test func liveActivityOverrideBeatsGlobalSetting() {
+        var countdown = Countdown(title: "T")
+        #expect(countdown.startsLiveActivity(globalEnabled: true))
+        #expect(!countdown.startsLiveActivity(globalEnabled: false))
+        countdown.liveActivity = .on
+        #expect(countdown.startsLiveActivity(globalEnabled: false))
+        countdown.liveActivity = .off
+        #expect(!countdown.startsLiveActivity(globalEnabled: true))
+        var remote = Countdown(id: countdown.id, title: "T")
+        remote.keepNewFields(from: countdown)
+        #expect(remote.liveActivity == .off)
+    }
+
+    @Test func liveActivityToggleFollowsGlobalUntilChanged() {
+        var countdown = Countdown(title: "T")
+        countdown.setLiveActivity(true, globalEnabled: true)
+        #expect(countdown.liveActivity == .automatic)
+        countdown.setLiveActivity(false, globalEnabled: true)
+        #expect(countdown.liveActivity == .off)
+        countdown.setLiveActivity(true, globalEnabled: false)
+        #expect(countdown.liveActivity == .on)
+        countdown.setLiveActivity(false, globalEnabled: false)
+        #expect(countdown.liveActivity == .automatic)
+    }
+
+    @Test func pushScheduleOnlyIncludesEnabledUpcomingCountdowns() {
+        let soon = Countdown(title: "Soon", date: now.addingTimeInterval(7_200), isAllDay: false)
+        var off = Countdown(title: "Off", date: now.addingTimeInterval(3_600), isAllDay: false)
+        off.liveActivity = .off
+        let past = Countdown(title: "Past", date: now.addingTimeInterval(-60), isAllDay: false)
+        let far = Countdown(title: "Far", date: now.addingTimeInterval(60 * 86_400), isAllDay: false)
+        let items = LiveActivityPushService.scheduleItems([far, past, off, soon], now: now, globalEnabled: true, leadHours: 2)
+        #expect(items.map { $0.id } == [soon.id])
+        #expect(items[0].fireAt == items[0].target - 7_200)
+        #expect(LiveActivityPushService.scheduleItems([soon], now: now, globalEnabled: false, leadHours: 2).isEmpty)
+    }
+
+    @Test func liveActivityStateUsesEpochSeconds() throws {
+        let state = CountdownActivityAttributes.ContentState(start: Date(timeIntervalSince1970: 100), target: Date(timeIntervalSince1970: 200), revision: 5)
+        let json = String(data: try JSONEncoder().encode(state), encoding: .utf8) ?? ""
+        #expect(json.contains("\"target\":200"))
+        #expect(!json.contains("title"))
+        #expect(try JSONDecoder().decode(CountdownActivityAttributes.ContentState.self, from: Data(#"{"start":1,"target":2}"#.utf8)).revision == 0)
+        #expect(try JSONDecoder().decode(CountdownActivityAttributes.ContentState.self, from: Data(json.utf8)) == state)
+    }
+
+    @Test func progressStyleDefaultsToBarAndSurvivesOldData() throws {
+        #expect(Countdown(title: "T").progressStyle == .bar)
+        let json = #"[{"id":"7C9C3D5E-1C1F-4F55-9E2D-1A2B3C4D5E6F","date":800000000,"progressStyle":"ring"}]"#
+        #expect(try JSONDecoder().decode([Countdown].self, from: Data(json.utf8)).first?.progressStyle == .ring)
+        let bad = #"[{"id":"7C9C3D5E-1C1F-4F55-9E2D-1A2B3C4D5E6F","date":800000000,"progressStyle":"pie"}]"#
+        #expect(try JSONDecoder().decode([Countdown].self, from: Data(bad.utf8)).first?.progressStyle == .bar)
+    }
+
+    @Test func gradientColorsDriveAutoFontColorAndStayWhenUnlocked() throws {
+        let light = CustomGradient(startHex: "#FFFFFF", endHex: "#F0F0F0")
+        let countdown = Countdown(title: "T", style: .gradient, customGradient: light)
+        #expect((countdown.backgroundLuminance ?? 0) > ForegroundContrast.darkTextThreshold)
+        let dark = Countdown(title: "T", style: .gradient, customGradient: CustomGradient(startHex: "#101010", endHex: "#303030"))
+        #expect((dark.backgroundLuminance ?? 1) < ForegroundContrast.darkTextThreshold)
+        #expect(Countdown(title: "T", style: .night).backgroundLuminance == 0)
+        #expect(Countdown(title: "T", style: .minimal).backgroundLuminance == nil)
+        #expect(countdown.resolved(isPremium: false).style == .classic)
+        let decoded = try JSONDecoder().decode([Countdown].self, from: JSONEncoder().encode([countdown]))
+        #expect(decoded.first?.customGradient == light)
+        let bad = ##"[{"id":"7C9C3D5E-1C1F-4F55-9E2D-1A2B3C4D5E6F","date":800000000,"customGradient":{"startHex":"#000000"}}]"##
+        #expect(try JSONDecoder().decode([Countdown].self, from: Data(bad.utf8)).first?.customGradient == nil)
+    }
+
+    @Test func photoZonesPickDarkTextPerAreaOrOverall() {
+        let brightTopDarkBottom = PhotoZones(header: 0.9, body: 0.2)
+        var countdown = Countdown(title: "T")
+        #expect(countdown.darkTextZones(brightTopDarkBottom) == (header: true, body: false))
+        countdown.zoneFontColor = false
+        let single = countdown.darkTextZones(brightTopDarkBottom)
+        #expect(!single.header && !single.body)
+        countdown.zoneFontColor = true
+        countdown.autoFontColor = false
+        let manual = countdown.darkTextZones(PhotoZones(header: 1, body: 1))
+        #expect(!manual.header && !manual.body)
+        #expect(Countdown(title: "T").zoneFontColor)
+    }
+
+    @Test func photoZonesMeasureOnlyTheVisibleCrop() {
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 40, height: 20), format: { let f = UIGraphicsImageRendererFormat(); f.scale = 1; return f }())
+        let image = renderer.image { context in
+            UIColor.black.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 20, height: 20))
+            UIColor.white.setFill()
+            context.fill(CGRect(x: 20, y: 0, width: 20, height: 20))
+        }
+        let square = CGSize(width: 10, height: 10)
+        let left = image.zones(framing: BackgroundFraming(focusX: 0, focusY: 0.5, zoom: 1), containerSize: square)
+        let right = image.zones(framing: BackgroundFraming(focusX: 1, focusY: 0.5, zoom: 1), containerSize: square)
+        #expect(left.average < 0.1)
+        #expect(right.average > 0.9)
+        #expect(image.zones.average > 0.3 && image.zones.average < 0.7)
+    }
+
+    @Test func everyCountdownFieldSurvivesEncodingAndMerging() throws {
+        let framing = BackgroundFraming(focusX: 0.3, focusY: 0.6, zoom: 2)
+        let full = Countdown(
+            id: UUID(),
+            title: "Everything",
+            date: Date(timeIntervalSince1970: 1_800_000_000),
+            isAllDay: false,
+            timeZoneIdentifier: "Europe/Berlin",
+            repeatRule: RepeatRule(frequency: .monthly, interval: 2),
+            symbol: "heart.fill",
+            color: .teal,
+            customColorHex: "#112233",
+            unit: .weeks,
+            style: .glass,
+            typeface: .serif,
+            backgroundImageID: "a",
+            backgroundFraming: framing,
+            extraBackgroundImageIDs: ["b", "c"],
+            extraBackgroundFramings: ["b": framing],
+            showsProgress: true,
+            progressStyle: .ring,
+            customGradient: CustomGradient(startHex: "#111111", endHex: "#EEEEEE", direction: .horizontal),
+            autoFontColor: false,
+            zoneFontColor: false,
+            fontColorHex: "#445566",
+            sinceLabel: "Together",
+            liveActivity: .off,
+            reminders: [.onTheDay],
+            createdAt: Date(timeIntervalSince1970: 1_700_000_000),
+            modifiedAt: Date(timeIntervalSince1970: 1_750_000_000)
+        )
+        #expect(try JSONDecoder().decode(Countdown.self, from: JSONEncoder().encode(full)) == full)
+
+        var remote = Countdown(id: full.id, title: "Edited elsewhere")
+        remote.keepNewFields(from: full)
+        remote.title = full.title
+        remote.date = full.date
+        #expect(remote.extraBackgroundImageIDs == full.extraBackgroundImageIDs)
+        #expect(remote.extraBackgroundFramings == full.extraBackgroundFramings)
+        #expect(remote.showsProgress == full.showsProgress)
+        #expect(remote.progressStyle == full.progressStyle)
+        #expect(remote.customGradient == full.customGradient)
+        #expect(remote.autoFontColor == full.autoFontColor)
+        #expect(remote.zoneFontColor == full.zoneFontColor)
+        #expect(remote.fontColorHex == full.fontColorHex)
+        #expect(remote.sinceLabel == full.sinceLabel)
+        #expect(remote.liveActivity == full.liveActivity)
+    }
+
+    @Test func photoSetCanBeStashedAndRestored() {
+        var countdown = Countdown(title: "T")
+        countdown.setBackgrounds(["a", "b"])
+        countdown.setFraming(BackgroundFraming(zoom: 2), for: "b")
+        let stash = countdown.photoSet
+        countdown.setBackgrounds([])
+        #expect(countdown.allBackgroundImageIDs.isEmpty)
+        countdown.apply(stash)
+        #expect(countdown.allBackgroundImageIDs == ["a", "b"])
+        #expect(countdown.framing(for: "b") == BackgroundFraming(zoom: 2))
+    }
+
+    @Test func visibleCropIsCachedPerFraming() {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 40, height: 20), format: format).image { context in
+            UIColor.red.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 40, height: 20))
+        }
+        let square = CGSize(width: 10, height: 10)
+        let first = image.visibleCrop(framing: nil, containerSize: square)
+        #expect(first === image.visibleCrop(framing: nil, containerSize: square))
+        #expect(first !== image.visibleCrop(framing: BackgroundFraming(zoom: 2), containerSize: square))
+    }
+
+    @Test func rotatingSwapsSizeAndReplacingKeepsPosition() {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 40, height: 20), format: format).image { context in
+            UIColor.red.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 40, height: 20))
+        }
+        #expect(image.rotated(quarterTurns: 1).size == CGSize(width: 20, height: 40))
+        #expect(image.rotated(quarterTurns: 2).size == CGSize(width: 40, height: 20))
+        #expect(image.rotated(quarterTurns: 4).size == image.size)
+        #expect(image.rotated(quarterTurns: -1).size == CGSize(width: 20, height: 40))
+        var countdown = Countdown(title: "T")
+        countdown.setBackgrounds(["a", "b", "c"])
+        countdown.setFraming(BackgroundFraming(zoom: 2), for: "b")
+        countdown.replaceBackground("b", with: "b2")
+        #expect(countdown.allBackgroundImageIDs == ["a", "b2", "c"])
+        #expect(countdown.framing(for: "b2") == nil && countdown.framing(for: "b") == nil)
+        countdown.replaceBackground("a", with: "a2")
+        #expect(countdown.backgroundImageID == "a2")
+    }
+
+    @Test func visibleCropIsExactlyTheFramedRegion() {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 40, height: 20), format: format).image { context in
+            UIColor.red.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 40, height: 20))
+        }
+        let square = CGSize(width: 10, height: 10)
+        #expect(image.visibleCrop(framing: nil, containerSize: square).size == CGSize(width: 20, height: 20))
+        #expect(image.visibleCrop(framing: BackgroundFraming(zoom: 2), containerSize: square).size == CGSize(width: 10, height: 10))
+        let wide = CGSize(width: 20, height: 10)
+        #expect(image.visibleCrop(framing: nil, containerSize: wide).size == CGSize(width: 40, height: 20))
+        let tight = image.visibleCrop(framing: BackgroundFraming(zoom: 4), containerSize: wide).size
+        #expect(tight.width == 10)
+        #expect((5...6).contains(tight.height))
+    }
+
+    @Test func fontColorDefaultsToAutoAndOldCustomStyleBecomesGradient() throws {
+        #expect(Countdown(title: "T").autoFontColor)
+        let json = ##"[{"id":"7C9C3D5E-1C1F-4F55-9E2D-1A2B3C4D5E6F","date":800000000,"style":"custom","autoFontColor":false,"fontColorHex":"#112233"}]"##
+        let decoded = try #require(try JSONDecoder().decode([Countdown].self, from: Data(json.utf8)).first)
+        #expect(decoded.style == .gradient)
+        #expect(!decoded.autoFontColor)
+        #expect(decoded.fontColorHex == "#112233")
+        let old = #"[{"id":"7C9C3D5E-1C1F-4F55-9E2D-1A2B3C4D5E6F","date":800000000}]"#
+        #expect(try JSONDecoder().decode([Countdown].self, from: Data(old.utf8)).first?.autoFontColor == true)
+        let local = Countdown(title: "T", autoFontColor: false, fontColorHex: "#112233")
+        var remote = Countdown(id: local.id, title: "T edited")
+        remote.keepNewFields(from: local)
+        #expect(!remote.autoFontColor)
+    }
+
+    @Test func progressTracksElapsedShare() {
+        let countdown = Countdown(
+            title: "Term",
+            date: date("2026-10-12T00:00:00"),
+            showsProgress: true,
+            createdAt: date("2026-09-22T00:00:00")
+        )
+        let fraction = countdown.progress(at: date("2026-10-02T00:00:00"), calendar: calendar)
+        #expect(fraction == 0.5)
+        #expect(countdown.progress(at: date("2026-11-01T00:00:00"), calendar: calendar) == 1)
+        var repeating = countdown
+        repeating.repeatRule = .yearly
+        #expect(repeating.progress(at: now, calendar: calendar) == nil)
+        var off = countdown
+        off.showsProgress = false
+        #expect(off.progress(at: now, calendar: calendar) == nil)
     }
 
     @Test func decodesOlderDataWithMissingFields() throws {

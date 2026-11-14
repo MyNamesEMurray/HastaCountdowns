@@ -6,24 +6,48 @@ struct CountdownPalette {
     let secondary: Color
     let number: Color
     let accent: Color
+    let headerPrimary: Color
+    let headerSecondary: Color
+    let headerAccent: Color
 
-    init(countdown: Countdown, hasImage: Bool, renderingMode: WidgetRenderingMode = .fullColor) {
-        if renderingMode != .fullColor {
-            primary = .primary
-            secondary = .secondary
-            number = .primary
-            accent = .primary
-        } else if hasImage || countdown.style.usesLightForeground {
-            primary = .white
-            secondary = .white.opacity(0.78)
-            number = .white
-            accent = .white
-        } else {
-            primary = .primary
-            secondary = .secondary
-            number = countdown.tint
-            accent = countdown.tint
+    private static let darkInk = Color(white: 0.1)
+
+    init(countdown: Countdown, hasImage: Bool, renderingMode: WidgetRenderingMode = .fullColor, photoZones: PhotoZones? = nil) {
+        var inks: (primary: Color, secondary: Color, number: Color, accent: Color)
+        var header: (primary: Color, secondary: Color, accent: Color)?
+        func simple(_ ink: Color, secondaryOpacity: Double) -> (primary: Color, secondary: Color, number: Color, accent: Color) {
+            (ink, ink.opacity(secondaryOpacity), ink, ink)
         }
+        if renderingMode != .fullColor {
+            inks = (.primary, .secondary, .primary, .primary)
+        } else if !countdown.autoFontColor {
+            inks = simple(countdown.fontColor, secondaryOpacity: 0.78)
+        } else if hasImage {
+            let dark = countdown.darkTextZones(photoZones ?? PhotoZones(header: 0, body: 0))
+            inks = simple(dark.body ? Self.darkInk : .white, secondaryOpacity: dark.body ? 0.65 : 0.78)
+            let ink: Color = dark.header ? Self.darkInk : .white
+            header = (ink, ink.opacity(dark.header ? 0.65 : 0.78), ink)
+        } else if let luminance = countdown.backgroundLuminance {
+            if luminance > ForegroundContrast.darkTextThreshold {
+                if countdown.style == .paper {
+                    let ink = Color(red: 0.22, green: 0.17, blue: 0.12)
+                    inks = (ink, ink.opacity(0.65), countdown.tint, countdown.tint)
+                } else {
+                    inks = simple(Self.darkInk, secondaryOpacity: 0.65)
+                }
+            } else {
+                inks = simple(.white, secondaryOpacity: 0.78)
+            }
+        } else {
+            inks = (.primary, .secondary, countdown.tint, countdown.tint)
+        }
+        primary = inks.primary
+        secondary = inks.secondary
+        number = inks.number
+        accent = inks.accent
+        headerPrimary = header?.primary ?? inks.primary
+        headerSecondary = header?.secondary ?? inks.secondary
+        headerAccent = header?.accent ?? inks.accent
     }
 }
 
@@ -33,14 +57,19 @@ struct CountdownBackground: View {
 
     var body: some View {
         if let image {
-            ZStack {
-                Color.black
-                FramedPhoto(image: image, framing: countdown.backgroundFraming ?? .centered)
-                LinearGradient(
-                    colors: [.black.opacity(0.05), .black.opacity(0.2), .black.opacity(0.6)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+            GeometryReader { proxy in
+                ZStack {
+                    Color.black
+                    FramedPhoto(image: image, framing: countdown.backgroundFraming ?? .centered)
+                    let dark = countdown.darkTextZones(image.zones(framing: countdown.backgroundFraming, containerSize: proxy.size))
+                    let top = dark.header ? 0.0 : 0.05
+                    let bottom = dark.body ? 0.0 : 0.6
+                    LinearGradient(
+                        colors: [.black.opacity(top), .black.opacity(min(top, bottom) + abs(bottom - top) / 3), .black.opacity(bottom)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                }
             }
         } else {
             switch countdown.style {
@@ -60,7 +89,73 @@ struct CountdownBackground: View {
                         endRadius: 260
                     )
                 }
+            case .glass:
+                GlassBackground(tint: countdown.tint)
+            case .gradient:
+                (countdown.customGradient ?? .starting(from: countdown.tint)).view
+            case .paper:
+                Color(red: 0.97, green: 0.95, blue: 0.9)
             }
+        }
+    }
+}
+
+private struct GlassBackground: View {
+    let tint: Color
+
+    var body: some View {
+        ZStack {
+            LinearGradient(colors: [tint.opacity(0.95), tint.adjusting(brightness: -0.3)], startPoint: .top, endPoint: .bottom)
+            RadialGradient(colors: [.white.opacity(0.4), .clear], center: .topLeading, startRadius: 0, endRadius: 220)
+            Rectangle().fill(.white.opacity(0.08))
+        }
+    }
+}
+
+struct CountdownProgressBar: View {
+    let countdown: Countdown
+    let now: Date
+    let palette: CountdownPalette
+
+    var body: some View {
+        if countdown.progressStyle == .bar, let fraction = countdown.progress(at: now) {
+            Capsule()
+                .fill(palette.primary.opacity(0.18))
+                .frame(height: 5)
+                .overlay(alignment: .leading) {
+                    GeometryReader { proxy in
+                        Capsule()
+                            .fill(palette.primary)
+                            .frame(width: proxy.size.width * fraction)
+                            .widgetAccentable()
+                    }
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(fraction, format: .percent.precision(.fractionLength(0))))
+                .padding(.top, 8)
+        }
+    }
+}
+
+struct CountdownProgressRing: View {
+    let countdown: Countdown
+    let now: Date
+    let palette: CountdownPalette
+    var size: CGFloat = 24
+
+    var body: some View {
+        if countdown.progressStyle == .ring, let fraction = countdown.progress(at: now) {
+            ZStack {
+                Circle().stroke(palette.headerPrimary.opacity(0.2), lineWidth: 3)
+                Circle()
+                    .trim(from: 0, to: fraction)
+                    .stroke(palette.headerPrimary, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .widgetAccentable()
+            }
+            .frame(width: size, height: size)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(fraction, format: .percent.precision(.fractionLength(0))))
         }
     }
 }
@@ -71,18 +166,14 @@ struct FramedPhoto: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let container = proxy.size
-            let imageSize = image.size
-            let rect = framing.visibleRect(imageSize: imageSize, containerSize: container)
-            let scale = rect.width > 0 ? container.width / (rect.width * imageSize.width) : 1
-            let displayed = CGSize(width: imageSize.width * scale, height: imageSize.height * scale)
-            Image(uiImage: image)
+            Image(uiImage: image.visibleCrop(framing: framing, containerSize: proxy.size))
                 .resizable()
                 .widgetAccentedRenderingMode(.desaturated)
-                .frame(width: displayed.width, height: displayed.height)
-                .offset(x: -rect.minX * displayed.width, y: -rect.minY * displayed.height)
+                .scaledToFill()
+                .frame(width: proxy.size.width, height: proxy.size.height)
+                .clipped()
         }
-        .clipped()
+        .allowsHitTesting(false)
     }
 }
 
@@ -124,11 +215,15 @@ struct CountdownTileRow: View {
     var body: some View {
         let segments = countdown.segments(at: now)
         let isLive = !countdown.isAllDay && status.target > now && status.target.timeIntervalSince(now) < 86_400
+        let isSince = countdown.isSinceToday(at: now)
         HStack(spacing: spacing) {
             if segments.isEmpty {
                 tile {
                     if isLive {
                         Text(timerInterval: now...status.target, countsDown: true)
+                            .multilineTextAlignment(.center)
+                    } else if isSince {
+                        Text(timerInterval: status.target...status.target.addingTimeInterval(86_400), countsDown: false)
                             .multilineTextAlignment(.center)
                     } else if status.isToday {
                         Text("Today")
@@ -138,6 +233,8 @@ struct CountdownTileRow: View {
                 } label: {
                     if isLive {
                         Text("remaining")
+                    } else if isSince {
+                        Text("ago")
                     } else if status.isToday {
                         Text(countdown.isAllDay ? countdown.formattedDate(at: now, style: .abbreviated) : status.target.formatted(date: .omitted, time: .shortened))
                     } else {
@@ -183,24 +280,26 @@ struct CountdownTileRow: View {
 
 struct SmallCountdownView: View {
     @Environment(\.widgetRenderingMode) private var renderingMode
+    @Environment(\.photoZones) private var photoZones
     let countdown: Countdown
     let now: Date
     var hasImage = false
 
     var body: some View {
         let status = countdown.status(at: now)
-        let palette = CountdownPalette(countdown: countdown, hasImage: hasImage, renderingMode: renderingMode)
+        let palette = CountdownPalette(countdown: countdown, hasImage: hasImage, renderingMode: renderingMode, photoZones: photoZones)
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 Image(systemName: countdown.symbol)
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(palette.accent)
+                    .foregroundStyle(palette.headerAccent)
                     .widgetAccentable()
                 Spacer(minLength: 0)
+                CountdownProgressRing(countdown: countdown, now: now, palette: palette, size: 22)
                 if countdown.repeatRule != .never {
                     Image(systemName: "repeat")
                         .font(.caption2.weight(.bold))
-                        .foregroundStyle(palette.secondary)
+                        .foregroundStyle(palette.headerSecondary)
                 }
             }
             Spacer(minLength: 0)
@@ -211,7 +310,7 @@ struct SmallCountdownView: View {
                 .minimumScaleFactor(0.5)
                 .allowsTightening(true)
                 .layoutPriority(1)
-            Text(countdown.formattedDate(at: now, style: .abbreviated))
+            Text(countdown.subtitle(status: status, at: now, style: .abbreviated))
                 .font(countdown.typeface.font(.caption2, weight: .medium))
                 .foregroundStyle(palette.secondary)
                 .lineLimit(1)
@@ -221,6 +320,7 @@ struct SmallCountdownView: View {
                 valueSize: 19, labelFont: .caption2, verticalPadding: 6, cornerRadius: 11, spacing: 5
             )
             .padding(.top, 8)
+            CountdownProgressBar(countdown: countdown, now: now, palette: palette)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
@@ -228,24 +328,26 @@ struct SmallCountdownView: View {
 
 struct MediumCountdownView: View {
     @Environment(\.widgetRenderingMode) private var renderingMode
+    @Environment(\.photoZones) private var photoZones
     let countdown: Countdown
     let now: Date
     var hasImage = false
 
     var body: some View {
         let status = countdown.status(at: now)
-        let palette = CountdownPalette(countdown: countdown, hasImage: hasImage, renderingMode: renderingMode)
+        let palette = CountdownPalette(countdown: countdown, hasImage: hasImage, renderingMode: renderingMode, photoZones: photoZones)
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 Image(systemName: countdown.symbol)
                     .font(.system(size: 19, weight: .semibold))
-                    .foregroundStyle(palette.accent)
+                    .foregroundStyle(palette.headerAccent)
                     .widgetAccentable()
                 Spacer(minLength: 0)
+                CountdownProgressRing(countdown: countdown, now: now, palette: palette, size: 24)
                 if countdown.repeatRule != .never {
                     Label(countdown.repeatRule.title, systemImage: "repeat")
                         .font(countdown.typeface.font(.caption, weight: .semibold))
-                        .foregroundStyle(palette.secondary)
+                        .foregroundStyle(palette.headerSecondary)
                 }
             }
             Spacer(minLength: 0)
@@ -257,7 +359,7 @@ struct MediumCountdownView: View {
                         .lineLimit(3)
                         .minimumScaleFactor(0.5)
                         .allowsTightening(true)
-                    Text(countdown.formattedDate(at: now))
+                    Text(countdown.subtitle(status: status, at: now, style: .abbreviated))
                         .font(countdown.typeface.font(.caption, weight: .medium))
                         .foregroundStyle(palette.secondary)
                         .lineLimit(1)
@@ -271,6 +373,7 @@ struct MediumCountdownView: View {
                 )
                 .frame(width: 168)
             }
+            CountdownProgressBar(countdown: countdown, now: now, palette: palette)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
@@ -278,24 +381,26 @@ struct MediumCountdownView: View {
 
 struct LargeCountdownView: View {
     @Environment(\.widgetRenderingMode) private var renderingMode
+    @Environment(\.photoZones) private var photoZones
     let countdown: Countdown
     let now: Date
     var hasImage = false
 
     var body: some View {
         let status = countdown.status(at: now)
-        let palette = CountdownPalette(countdown: countdown, hasImage: hasImage, renderingMode: renderingMode)
+        let palette = CountdownPalette(countdown: countdown, hasImage: hasImage, renderingMode: renderingMode, photoZones: photoZones)
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 Image(systemName: countdown.symbol)
                     .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(palette.accent)
+                    .foregroundStyle(palette.headerAccent)
                     .widgetAccentable()
                 Spacer(minLength: 0)
+                CountdownProgressRing(countdown: countdown, now: now, palette: palette, size: 28)
                 if countdown.repeatRule != .never {
                     Label(countdown.repeatRule.title, systemImage: "repeat")
                         .font(countdown.typeface.font(.caption, weight: .semibold))
-                        .foregroundStyle(palette.secondary)
+                        .foregroundStyle(palette.headerSecondary)
                 }
             }
             Spacer(minLength: 0)
@@ -312,7 +417,7 @@ struct LargeCountdownView: View {
                 .lineLimit(1)
                 .padding(.top, 2)
             if status.isPast {
-                Text("Time Since")
+                Text(countdown.trimmedSinceLabel.isEmpty ? String(localized: "Time Since") : countdown.trimmedSinceLabel)
                     .font(countdown.typeface.font(.caption, weight: .semibold))
                     .textCase(.uppercase)
                     .foregroundStyle(palette.secondary)
@@ -320,6 +425,7 @@ struct LargeCountdownView: View {
             }
             CountdownTileRow(countdown: countdown, status: status, now: now, palette: palette)
             .padding(.top, status.isPast ? 6 : 16)
+            CountdownProgressBar(countdown: countdown, now: now, palette: palette)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
@@ -379,7 +485,7 @@ struct RectangularCountdownView: View {
                     .allowsTightening(true)
                 if status.isPast {
                     Spacer(minLength: 2)
-                    Text("ago")
+                    Text(countdown.trimmedSinceLabel.isEmpty ? String(localized: "ago") : countdown.trimmedSinceLabel)
                         .font(countdown.typeface.font(.caption2, weight: .semibold))
                         .foregroundStyle(.secondary)
                 }
@@ -403,6 +509,13 @@ struct RectangularCountdownView: View {
                     label: String(localized: "remaining"),
                     typeface: countdown.typeface
                 )
+            } else if countdown.isSinceToday(at: now) {
+                SegmentTile(
+                    timerInterval: status.target...status.target.addingTimeInterval(86_400),
+                    countsDown: false,
+                    label: String(localized: "ago"),
+                    typeface: countdown.typeface
+                )
             } else {
                 SegmentTile(text: "Today", label: countdown.formattedDate(at: now, style: .abbreviated), typeface: countdown.typeface)
             }
@@ -414,19 +527,22 @@ struct RectangularCountdownView: View {
 struct SegmentTile: View {
     private let text: String?
     private let timerInterval: ClosedRange<Date>?
+    private let countsDown: Bool
     let label: String
     let typeface: Typeface
 
     init(text: String, label: String, typeface: Typeface) {
         self.text = text
         self.timerInterval = nil
+        self.countsDown = true
         self.label = label
         self.typeface = typeface
     }
 
-    init(timerInterval: ClosedRange<Date>, label: String, typeface: Typeface) {
+    init(timerInterval: ClosedRange<Date>, countsDown: Bool = true, label: String, typeface: Typeface) {
         self.text = nil
         self.timerInterval = timerInterval
+        self.countsDown = countsDown
         self.label = label
         self.typeface = typeface
     }
@@ -435,7 +551,7 @@ struct SegmentTile: View {
         VStack(spacing: 1) {
             Group {
                 if let timerInterval {
-                    Text(timerInterval: timerInterval, countsDown: true)
+                    Text(timerInterval: timerInterval, countsDown: countsDown)
                         .multilineTextAlignment(.center)
                 } else if let text {
                     Text(text)
