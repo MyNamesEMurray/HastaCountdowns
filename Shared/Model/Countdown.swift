@@ -563,9 +563,9 @@ extension Countdown {
         func days(_ n: Int) -> Date { calendar.date(byAdding: .day, value: n, to: today) ?? today }
         func id(_ suffix: String) -> UUID { UUID(uuidString: "00000000-0000-0000-0000-0000000000\(suffix)")! }
         return [
-            Countdown(id: id("01"), title: String(localized: "Tokyo Trip"), date: days(42), symbol: "airplane", color: .blue, createdAt: days(-30)),
+            Countdown(id: id("01"), title: String(localized: "Tokyo Trip"), date: days(42), symbol: "airplane", color: .blue, showsProgress: true, createdAt: days(-30)),
             Countdown(id: id("02"), title: String(localized: "Maya's Birthday"), date: days(9), repeatRule: .yearly, symbol: "birthday.cake.fill", color: .pink, createdAt: days(-200)),
-            Countdown(id: id("03"), title: String(localized: "Concert"), date: days(17), symbol: "music.mic", color: .purple, style: .vivid, createdAt: days(-12)),
+            Countdown(id: id("03"), title: String(localized: "Concert"), date: days(17), symbol: "music.mic", color: .purple, style: .gradient, showsProgress: true, progressStyle: .ring, customGradient: CustomGradient(startHex: "#7B2FF7", endHex: "#F107A3"), createdAt: days(-12)),
             Countdown(id: id("04"), title: String(localized: "Marathon"), date: days(88), symbol: "figure.run", color: .orange, unit: .weeks, createdAt: days(-60)),
             Countdown(id: id("05"), title: String(localized: "Dinner Reservation at Lucia's Trattoria"), date: Date.now.addingTimeInterval(5 * 3_600 + 20 * 60), isAllDay: false, symbol: "fork.knife", color: .green, createdAt: days(-3)),
         ]

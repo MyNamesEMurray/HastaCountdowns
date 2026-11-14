@@ -31,7 +31,10 @@ GRÁTIS, SEM PEGADINHA
 
 HASTA PREMIUM
 Uma pequena compra única. Nunca uma assinatura.
-• Fotos de fundo, com posição e zoom
+• Fundos com foto, com posição e zoom, ou uma apresentação com até 5 fotos
+• Gire, corte e dê zoom em cada foto
+• Barra ou anel de progresso e suas próprias cores de degradê
+• Atividades ao Vivo na Tela Bloqueada e na Dynamic Island
 • Efeitos de Live Photo: escolha qualquer quadro ou crie uma longa exposição
 • Fontes e estilos de widget adicionais
 • Cores personalizadas
